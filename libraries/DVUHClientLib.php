@@ -43,7 +43,7 @@ class DVUHClientLib
 	/**
 	 * Performs a call to a remote web service
 	 */
-	public function call($url, $method, $callParametersArray = array())
+	public function call($url, $method, $getParametersArray = array(), $postData)
 	{
 		// Checks if the api set name is valid
 		if ($url == null || trim($url) == '')
@@ -54,13 +54,13 @@ class DVUHClientLib
 			$this->_error(self::MISSING_REQUIRED_PARAMETERS, 'Method is invalid');
 
 		// Checks that the webservice parameters are present in an array
-		if (!is_array($callParametersArray))
+		if (!is_array($getParametersArray))
 			$this->_error(self::WRONG_WS_PARAMETERS, 'Parameters are missing or wrong');
 
 		if ($this->isError())
 			return null; // If an error was raised then return a null value
 
-		return $this->_callRemoteService($url, $method, $callParametersArray);
+		return $this->_callRemoteService($url, $method, $getParametersArray, $postData);
 	}
 
 	/**
@@ -115,7 +115,7 @@ class DVUHClientLib
 	/**
 	 * Performs a remote web service call with the given name and parameters
 	 */
-	private function _callRemoteService($url, $method, $callParametersArray)
+	private function _callRemoteService($url, $method, $getParametersArray, $postData = null)
 	{
 		$response = null;
 
@@ -127,7 +127,7 @@ class DVUHClientLib
 		if ($method == 'GET')
 		{
 			$params = array();
-			foreach($callParametersArray as $key=>$val)
+			foreach($getParametersArray as $key=>$val)
 			{
 				$params[] = $key.'='.curl_escape($curl, $val);
 			}
@@ -151,11 +151,16 @@ class DVUHClientLib
 		{
 			case 'POST':
 				curl_setopt($curl, CURLOPT_POST, true);
-				curl_setopt($curl, CURLOPT_POSTFIELDS, $this->_convertToXML($callParametersArray));
+				if (!is_null($postData))
+					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 				break;
 
 			case 'PUT':
 				curl_setopt($curl, CURLOPT_PUT, true);
+				break;
+
+			case 'HEAD':
+				curl_setopt($ch, CURLOPT_NOBODY, true);
 				break;
 
 			case 'GET':
@@ -179,11 +184,6 @@ class DVUHClientLib
 			$this->_error(self::REQUEST_FAILED, 'HTTP Code not 200 - Value:'.$curl_info['http_code']);
 			return null;
 		}
-	}
-
-	private function _convertToXML($callParametersArray)
-	{
-		
 	}
 
 	/**

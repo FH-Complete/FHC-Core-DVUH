@@ -19,7 +19,7 @@ abstract class DVUHClientModel extends CI_Model
 	/**
 	 * Generic DVUH call. It checks also for specific blocking and non-blocking errors
 	 */
-	protected function _call($method, $callParametersArray)
+	protected function _call($method, $getParametersArray, $postData = null)
 	{
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHClientLib');
 
@@ -35,7 +35,8 @@ abstract class DVUHClientModel extends CI_Model
 			$this->dvuhclientlib->call(
 				$this->_url,
 				$method,
-				$callParametersArray
+				$getParametersArray,
+				$postData
 			)
 		);
 

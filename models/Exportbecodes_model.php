@@ -15,4 +15,14 @@ class Exportbecodes_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = '/rws/0.5/exportBecodes';
 	}
+
+	public function get()
+	{
+		$params = array(
+			"uuid" => getUUID()
+		);
+
+		$result = $this->_call('GET', $params);
+		return $result;
+	}
 }
