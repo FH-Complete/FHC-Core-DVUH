@@ -43,7 +43,7 @@ class DVUHClientLib
 	/**
 	 * Performs a call to a remote web service
 	 */
-	public function call($url, $method, $getParametersArray = array(), $postData)
+	public function call($url, $method, $getParametersArray = null, $postData = null)
 	{
 		// Checks if the api set name is valid
 		if ($url == null || trim($url) == '')
@@ -54,7 +54,7 @@ class DVUHClientLib
 			$this->_error(self::MISSING_REQUIRED_PARAMETERS, 'Method is invalid');
 
 		// Checks that the webservice parameters are present in an array
-		if (!is_array($getParametersArray))
+		if (!is_null($getParametersArray) && !is_array($getParametersArray))
 			$this->_error(self::WRONG_WS_PARAMETERS, 'Parameters are missing or wrong');
 
 		if ($this->isError())
@@ -133,7 +133,7 @@ class DVUHClientLib
 			}
 			$url .= '?'.implode('&', $params);
 		}
-
+		echo "Calling: ".$url;
 		curl_setopt($curl, CURLOPT_URL, $this->_connectionsArray['portal'].$url);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
@@ -141,6 +141,7 @@ class DVUHClientLib
 
 		$headers = array(
 			'Accept: application/xml',
+			'Content-Type: application/xml',
 			'Authorization: Bearer '.$access_token,
 			'User-Agent: FHComplete',
 			'Connection: Keep-Alive',
@@ -181,7 +182,7 @@ class DVUHClientLib
 		}
 		else
 		{
-			$this->_error(self::REQUEST_FAILED, 'HTTP Code not 200 - Value:'.$curl_info['http_code']);
+			$this->_error(self::REQUEST_FAILED, 'HTTP Code not 200 - Value:'.$curl_info['http_code'].$url.print_r($response,true));
 			return null;
 		}
 	}

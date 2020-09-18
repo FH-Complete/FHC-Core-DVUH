@@ -5,7 +5,7 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 /**
  * Example JOB
  */
-class Example extends JOB_Controller
+class Matrikelpruefung extends JOB_Controller
 {
 	/**
 	 * Controller initialization
@@ -21,17 +21,21 @@ class Example extends JOB_Controller
 	/**
 	 * Example method
 	 */
-	public function test()
+	public function get()
 	{
-		$this->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
+		$this->load->model('extensions/FHC-Core-DVUH/Matrikelpruefung_model', 'MatrikelpruefungModel');
 
-		$this->logInfo('Example job start');
+		$this->logInfo('Matrikelpruefung job start');
 
-		$matrikelnummer = '12345';
-		$be = null;
-		$semester = null;
-
-		$queryResult = $this->FullstudentModel->get($matrikelnummer, $be, $semester);
+		$queryResult = $this->MatrikelpruefungModel->get(
+			$bpk = null,
+			$ekz = null,
+			$geburtsdatum = '1984-04-26',
+			$matrikelnummer = null,
+			$nachname = 'Test',
+			$svnr = null,
+			$vorname = 'Karl'
+		);
 
 		if (hasData($queryResult))
 		{
@@ -42,6 +46,6 @@ class Example extends JOB_Controller
 			$this->logInfo('No elements were found');
 		}
 
-		$this->logInfo('Example job stop');
+		$this->logInfo('Matrikelpruefung job stop');
 	}
 }

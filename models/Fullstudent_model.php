@@ -29,6 +29,7 @@ class Fullstudent_model extends DVUHClientModel
 			'uuid' => getUUID()
 		);
 
+
 		if (!is_null($be))
 			$callParametersArray['be'] = $be;
 		if (!is_null($semester))
