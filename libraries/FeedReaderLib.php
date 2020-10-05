@@ -10,49 +10,74 @@ class FeedReaderLib
 
 	public function getFeeds($feedxml)
 	{
-		$feeds = array();
-
-		$tags = array('id', 'title');
+		$result = null;
 
 		$doc = new DOMDocument();
-		$doc->loadXML($feedxml);
-		$elements = $doc->getElementsByTagName('entry');
+		$loadres = $doc->loadXML($feedxml);
 
-		foreach ($elements as $element)
+		if ($loadres)
 		{
-			//var_dump($element);
+			$feedentries = array();
+			$tags = array('id', 'title');
 
-			//if (isset($element->))
+			$elements = $doc->getElementsByTagName('entry');
 
-			$feedentry = new stdClass();
-
-			foreach ($element->childNodes AS $child)
+			foreach ($elements as $element)
 			{
-				//var_dump($child);
-				if (isset($child->tagName))
+				$feedentry = new stdClass();
+				$contentStr = '';
+
+				foreach ($element->childNodes AS $child)
 				{
-
-					foreach ($tags as $tag)
+					//var_dump($child);
+					if (isset($child->tagName))
 					{
-						if ($child->tagName == $tag)
+
+						foreach ($tags as $tag)
 						{
-							$feedentry->{$tag} = $child->nodeValue;
+							if ($child->tagName == $tag)
+							{
+								$feedentry->{$tag} = $child->nodeValue;
+							}
 						}
-					}
 
-					if ($child->tagName === 'content')
-					{
-						foreach ($child->childNodes as $childNode)
+						if ($child->tagName === 'content')
 						{
-							//var_dump($childNode);
+							$this->_getFeedContentString($child, $contentStr);
+							$feedentry->content = $contentStr;
 						}
 					}
 				}
-			}
-			$feedsentries[] = $feedentry;
-		}
+				$feedsentries[] = $feedentry;
 
-		var_dump($feedsentries);
+				$result = success($feedentries);
+				//die();
+			}
+		}
+		else
+			$result = error('error when parsing feed string');
+
+		return $result;
 	}
 
+	private function _getFeedContentString($rootel, &$contentStr)
+	{
+		foreach ($rootel->childNodes as $childNode)
+		{
+			if (isset($childNode->childNodes))
+			{
+				if ($childNode->childNodes->length === 1 && $childNode->childNodes[0]->nodeType === 3)
+				{
+					$textNode = $childNode->childNodes[0];
+					$contentStr .= $childNode->tagName.': ';
+					$contentStr .= $textNode->nodeValue.'<br />';
+				}
+				elseif ($childNode->childNodes->length > 0 && $childNode->nodeType === 1)
+				{
+					$contentStr .= $childNode->tagName.'<br />';
+					$this->_getFeedContentString($childNode, $contentStr);
+				}
+			}
+		}
+	}
 }
