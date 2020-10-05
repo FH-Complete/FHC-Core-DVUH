@@ -39,7 +39,8 @@ class Feed_model extends DVUHClientModel
 			$callParametersArray['markread'] = $markread;
 
 		$result = $this->_call('GET', $callParametersArray);
-		echo print_r($result,true);
+		//echo print_r($result,true);
+		return $result;
 		// TODO Parse Result, Handle Errors
 	}
 }
