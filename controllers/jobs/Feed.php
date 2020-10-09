@@ -15,6 +15,7 @@ class Feed extends JOB_Controller
 		parent::__construct();
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
+		$this->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -29,17 +30,26 @@ class Feed extends JOB_Controller
 
 		$this->logInfo('Feed GET job start');
 
-
 		$be = $this->config->item('fhc_dvuh_be_code');
 		$content = 'true';
+		$markread = 'false';
 		$erstelltSeit='2020-05-01';
-		$markread='false';
 
 		$queryResult = $this->FeedModel->get($be, $content, $erstelltSeit, $markread);
 
 		if (hasData($queryResult))
 		{
-			echo print_r($queryResult, true);
+			$feeds = $this->feedreaderlib->parseFeeds(getData($queryResult));
+
+			if (isError($feeds))
+				$this->logError(getError($feeds));
+			elseif (hasData($feeds))
+			{
+				$feeddata = getData($feeds);
+				print_r($feeddata);
+			}
+			else
+				$this->logInfo('No new feeds available');
 		}
 		else
 		{
