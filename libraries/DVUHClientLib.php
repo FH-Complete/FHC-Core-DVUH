@@ -133,7 +133,10 @@ class DVUHClientLib
 			}
 			$url .= '?'.implode('&', $params);
 		}
-		echo "Calling: ".$url;
+
+		/*echo "Calling: ".$url;
+		var_dump($access_token);*/
+
 		curl_setopt($curl, CURLOPT_URL, $this->_connectionsArray['portal'].$url);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);

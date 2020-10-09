@@ -7,8 +7,15 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  */
 class FeedReaderLib
 {
+	const MATRIKELNR_NAME = 'matrikelnummer';
 
-	public function getFeeds($feedxml)
+	/**
+	 * Parse an XML feed string, create feed objects.
+	 * @param string $feedxml
+	 * @param string $matrikelnummer optionally filter by matrikelnr
+	 * @return object feed entry objects
+	 */
+	public function parseFeeds($feedxml, $matrikelnummer = null)
 	{
 		$result = null;
 
@@ -18,7 +25,7 @@ class FeedReaderLib
 		if ($loadres)
 		{
 			$feedentries = array();
-			$tags = array('id', 'title');
+			$tags = array('id', 'title', 'author', 'published', 'updated');
 
 			$elements = $doc->getElementsByTagName('entry');
 
@@ -29,15 +36,13 @@ class FeedReaderLib
 
 				foreach ($element->childNodes AS $child)
 				{
-					//var_dump($child);
 					if (isset($child->tagName))
 					{
-
 						foreach ($tags as $tag)
 						{
 							if ($child->tagName == $tag)
 							{
-								$feedentry->{$tag} = $child->nodeValue;
+								$feedentry->{$tag} = trim($child->nodeValue);
 							}
 						}
 
@@ -45,14 +50,18 @@ class FeedReaderLib
 						{
 							$this->_getFeedContentString($child, $contentStr);
 							$feedentry->content = $contentStr;
+							$matrikelnr_filter = $this->_getMatrikelnr($child);
+
+							if (!isEmptyString($matrikelnummer) && isset($matrikelnr_filter) && !strstr($matrikelnr_filter, $matrikelnummer))
+								continue 2; // continue elements loop if not correct matrikelnr
+
+							$feedentry->matrikelnr_filter = $matrikelnr_filter;
 						}
 					}
 				}
-				$feedsentries[] = $feedentry;
-
-				$result = success($feedentries);
-				//die();
+				$feedentries[] = $feedentry;
 			}
+			$result = success($feedentries);
 		}
 		else
 			$result = error('error when parsing feed string');
@@ -60,7 +69,13 @@ class FeedReaderLib
 		return $result;
 	}
 
-	private function _getFeedContentString($rootel, &$contentStr)
+	/**
+	 * Create feed content string out of DV-specific data.
+	 * @param object $rootel root xml element containing data
+	 * @param string $contentStr content string to create
+	 * @param int $level recursion level
+	 */
+	private function _getFeedContentString($rootel, &$contentStr, $level = 0)
 	{
 		foreach ($rootel->childNodes as $childNode)
 		{
@@ -69,13 +84,43 @@ class FeedReaderLib
 				if ($childNode->childNodes->length === 1 && $childNode->childNodes[0]->nodeType === 3)
 				{
 					$textNode = $childNode->childNodes[0];
-					$contentStr .= $childNode->tagName.': ';
+					$contentStr .= str_repeat('&nbsp;', $level * 2 + 2);
+					$contentStr .= $childNode->localName.': ';
 					$contentStr .= $textNode->nodeValue.'<br />';
 				}
 				elseif ($childNode->childNodes->length > 0 && $childNode->nodeType === 1)
 				{
-					$contentStr .= $childNode->tagName.'<br />';
-					$this->_getFeedContentString($childNode, $contentStr);
+					$contentStr .= str_repeat('&nbsp;', $level * 2);
+					$contentStr .= '[' . $childNode->localName.']<br />';
+					$level++;
+					$this->_getFeedContentString($childNode, $contentStr, $level);
+				}
+			}
+		}
+	}
+
+	/**
+	 * Get Matrikelnummer from DV-specific data.
+	 * @param $rootel root xml element containing data
+	 * @return string the first found matrikelnummer
+	 */
+	private function _getMatrikelnr($rootel)
+	{
+		foreach ($rootel->childNodes as $childNode)
+		{
+			if (isset($childNode->childNodes))
+			{
+				if ($childNode->childNodes->length === 1 && $childNode->childNodes[0]->nodeType === 3)
+				{
+					$textNode = $childNode->childNodes[0];
+					if ($childNode->localName == self::MATRIKELNR_NAME)
+					{
+						return $textNode->nodeValue;
+					}
+				}
+				elseif ($childNode->childNodes->length > 0 && $childNode->nodeType === 1)
+				{
+					return $this->_getMatrikelnr($childNode);
 				}
 			}
 		}
