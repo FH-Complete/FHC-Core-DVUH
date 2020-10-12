@@ -24,8 +24,8 @@ class Matrikelmanagement extends JOB_Controller
 	 */
 	public function manageMatrikelnummer()
 	{
-		$this->load->model('extensions/FHC-Core-DVUH/Matrikelpruefung_model', 'MatrikelpruefungModel');
 		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
 		//$this->load->model('person/Person_model', 'PersonModel');
 
 		$this->logInfo('Matrikelmanagement job start');
@@ -48,6 +48,7 @@ class Matrikelmanagement extends JOB_Controller
 
 			foreach ($persons as $person)
 			{
+				$this->dvuhmanagementlib->managePersonMatrikelnummer($person);
 			/*	$queryResult = $this->MatrikelpruefungModel->get(
 					$bpk = null,
 					$ekz = $person->ersatzkennzeichen,
