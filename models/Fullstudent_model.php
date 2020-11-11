@@ -24,18 +24,25 @@ class Fullstudent_model extends DVUHClientModel
 	 */
 	public function get($matrikelnummer, $be = null, $semester = null)
 	{
-		$callParametersArray = array(
-			'matrikelnummer' => $matrikelnummer,
-			'uuid' => getUUID()
-		);
+		if (isEmptyString($matrikelnummer))
+		{
+			$result = error('Matrikelnummer not set');
+		}
+		else
+		{
+			$callParametersArray = array(
+				'matrikelnummer' => $matrikelnummer,
+				'uuid' => getUUID()
+			);
 
+			if (!is_null($be))
+				$callParametersArray['be'] = $be;
+			if (!is_null($semester))
+				$callParametersArray['semester'] = $semester;
 
-		if (!is_null($be))
-			$callParametersArray['be'] = $be;
-		if (!is_null($semester))
-			$callParametersArray['semester'] = $semester;
-		$result = $this->_call('GET', $callParametersArray);
-		var_dump($result);
-		// TODO Parse Result, Handle Errors
+			$result = $this->_call('GET', $callParametersArray);
+		}
+
+		return $result;
 	}
 }

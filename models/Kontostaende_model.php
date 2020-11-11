@@ -24,21 +24,29 @@ class Kontostaende_model extends DVUHClientModel
 	 * @param $matrikelnummer Matrikelnummer of the Person you are Searching for
 	 * @param $seit Date since income Changes
 	 */
-	public function get($be, $semester, $matrikelnummer = null, $seit = null)
+	public function get($be, $semester, $matrikelnummer, $seit = null)
 	{
-		$callParametersArray = array(
-			'be' => $be,
-			'semester' => $semester,
-			'uuid' => getUUID()
-		);
+		if (isEmptyString($matrikelnummer))
+			$result = error('Matrikelnummer not set');
+		elseif(isEmptyString($semester))
+			$result = error('Semester not set');
+		else
+		{
+			$callParametersArray = array(
+				'be' => $be,
+				'semester' => $semester,
+				'matrikelnummer' => $matrikelnummer,
+				'uuid' => getUUID()
+			);
 
-		if (!is_null($matrikelnummer))
-			$callParametersArray['matrikelnummer'] = $matrikelnummer;
-		if (!is_null($seit))
-			$callParametersArray['seit'] = $seit;
+			if (!is_null($seit))
+				$callParametersArray['seit'] = $seit;
 
-		$result = $this->_call('GET', $callParametersArray);
-		echo print_r($result,true);
+			$result = $this->_call('GET', $callParametersArray);
+		}
+
+		return $result;
+		//echo print_r($result,true);
 		// TODO Parse Result, Handle Errors
 	}
 }

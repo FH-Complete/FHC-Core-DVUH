@@ -4,7 +4,7 @@
 class XMLReaderLib
 {
 
-	public function parseXml($xmlstr, $searchparams)
+	public function parseXml($xmlstr, $searchparams, $namespace = null)
 	{
 		$result = null;
 
@@ -14,11 +14,21 @@ class XMLReaderLib
 		if ($loadres)
 		{
 			$resultObj = new stdClass();
+			if (!is_array($searchparams))
+			{
+				if (is_string($searchparams))
+					$searchparams = array($searchparams);
+				else
+					return error('invalid searchparameters!');
+			}
 
 			foreach ($searchparams as $searchparam)
 			{
 				$reselements = array();
-				$elements = $doc->getElementsByTagName($searchparam);
+				if (!isEmptyString($namespace))
+					$elements = $doc->getElementsByTagNameNS($namespace, $searchparam);
+				else
+					$elements = $doc->getElementsByTagName($searchparam);
 
 				foreach ($elements as $element)
 				{

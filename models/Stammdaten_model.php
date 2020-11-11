@@ -25,132 +25,197 @@ class Stammdaten_model extends DVUHClientModel
 	 */
 	public function get($be, $matrikelnummer, $semester = null)
 	{
-		$callParametersArray = array(
-			'be' => $be,
-			'matrikelnummer' => $matrikelnummer,
-			'uuid' => getUUID()
-		);
+		if (isEmptyString($matrikelnummer))
+			$result = error('Matrikelnummer not set');
+		else
+		{
+			$callParametersArray = array(
+				'be' => $be,
+				'matrikelnummer' => $matrikelnummer,
+				'uuid' => getUUID()
+			);
 
-		if (!is_null($semester))
-			$callParametersArray['semester'] = $semester;
+			if (!is_null($semester))
+				$callParametersArray['semester'] = $semester;
 
-		$result = $this->_call('GET', $callParametersArray);
-		echo print_r($result,true);
-		// TODO Parse Result, Handle Errors
+			$result = $this->_call('GET', $callParametersArray);
+		}
+
+		return $result;
 	}
 
-	public function post()
+	public function post($be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist)
 	{
-		/*
-		$adressen = array(
-			array(
-				'coname' => $coname, // optional
-				'ort' => $ort,
-				'plz' => $plz,
-				'strasse' => $strasse,
-				'typ' => $typ // H = Heimatadresse, S = Studienadresse/Zustelladresse
-			)
-		);
+		if (isEmptyString($person_id))
+			$result = error('personID not set');
+		elseif (isEmptyString($semester))
+			$result = error('Semester not set');
+		elseif (isEmptyString($oehbeitrag))
+			$result = error('ÖH-Beitrag not set');
+		elseif (isEmptyString($studiengebuehr))
+			$result = error('Studiengebührt not set');
+		elseif (isEmptyString($valutadatum))
+			$result = error('Valudadatum not set');
+		elseif (isEmptyString($valutadatumnachfrist))
+			$result = error('Valudadatumnachfrist not set');
+		else
+		{
+			$this->load->model('person/person_model', 'PersonModel');
+			$this->load->model('person/benutzer_model', 'BenutzerModel');
 
-		$emailliste = array(
-			array(
-				'emailadresse' => $mail,
-				'emailtyp' => $mailtyp // BE | PR
-			)
-		);
-		$params = array(
-			"uuid" => getUUID(),
-			"studierendenkey" => array(
-				"matrikelnummer" => $matrikelnummer,
-				"be" => $be,
-				"semester" => $semester
-			),
-			'adressen' => $adressen,
-			'akadgrad' => $titelpre,
-			'akadgradnach' => $titelpost,
-			'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
-			'bpk' => $bpk,
-			'ekz' => $ersatzkennzeichen,
-			'emailliste' => $emailliste,
-			'geburtsdatum' => $gebdatum,
-			'geschlecht' => $geschlecht, // M, W, X
-			'nachname' => $nachname,
-			'staatsbuergerschaft' => $staatsbuergerschaft,
-			'svnr' => $svnr,
-			'vorname' => $vorname,
+			$stammdaten = $this->PersonModel->getPersonStammdaten($person_id);
 
-			'oehbeitrag' => $oehbeitrag, // IN CENT!!
-			'sonderbeitrag' => $sonderbeitrag,
-			'studienbeitrag' => $studienbeitrag, // Bei FH immer 0, CENT !!
-			'studienbeitragnachfrist' => $studienbeitragnachfrist, // Bei FH immer 0, CENT!!
-			'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
-			'studiengebuehrnachfrist' => $studiengebuehrnachfirst, //  in CENT!!!
-			'valutadatum' => $valutadatum,
-			'valutadatumnachfrist' => $valutadatumnachfrist
-		);
-		*/
+			//var_dump($stammdaten);
 
+			if (hasData($stammdaten))
+			{
+				$stammdaten = getData($stammdaten);
 
-		$adressen = array(
-			array(
-			//	'coname' => 'Karl Lagerfeld', // optional
-				'ort' => 'Wien',
-				'plz' => '1100',
-				'strasse' => 'Rathausplatz 1',
-				'staat' => 'A',
-				'typ' => 'H' // H = Heimatadresse, S = Studienadresse/Zustelladresse
-			),
-			array(
-			//	'coname' => 'Karl Lagerfeld', // optional
-				'ort' => 'Wien',
-				'plz' => '1100',
-				'strasse' => 'Rathausplatz 1',
-				'staat' => 'A',
-				'typ' => 'S' // H = Heimatadresse, S = Studienadresse/Zustelladresse
-			)
-		);
+				$adressen = array();
+				$emailliste = array();
 
-		$emailliste = array(
-			array(
-				'emailadresse' => 'invalid@technikum-wien.at',
-				'emailtyp' => 'BE' // BE | PR
-			)
-		);
-		$params = array(
-			"uuid" => getUUID(),
-			"studierendenkey" => array(
-				"matrikelnummer" => '520012345',
-				"be" => 'FT',
-				"semester" => '2020S'
-			),
-			'adressen' => $adressen,
-			'akadgrad' => 'Ing.',
-			'akadgradnach' => 'BSc',
-			'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
-			//'bpk' => '1234',
-			//'ekz' => 'ez1234',
-			'emailliste' => $emailliste,
-			'geburtsdatum' => '1984-04-26',
-			'geschlecht' => 'M',
-			'nachname' => 'TEST',
-			'staatsbuergerschaft' => 'A',
-			//'svnr' => '12345',
-			'vorname' => 'Karl',
+				// adresses
+				foreach ($stammdaten->adressen as $adresse)
+				{
+					$addr = array();
+					$addr['ort'] = $adresse->ort;
+					$addr['plz'] = $adresse->plz;
+					$addr['strasse'] = $adresse->strasse;
+					$addr['staat'] = $adresse->nation;
+					$addr['typ'] = $adresse->heimatadresse === true ? 'H' : 'S'; // TODO if only Heimatadresse, also automatically Zustelladresse?
+					$adressen[] = $addr;
+				}
 
-			'oehbeitrag' => '1920', // IN CENT!!
-			'sonderbeitrag' => '0',
-			'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
-			'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
-			'studiengebuehr' => '36336', // FH Studiengebuehr in CENT!!!
-			'studiengebuehrnachfrist' => '36336', //  in CENT!!!
-			'valutadatum' => '2020-09-01',
-			'valutadatumnachfrist' => '2020-11-30'
-		);
-		$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
-		echo $postData;
+				// private mail
+				foreach ($stammdaten->kontakte as $kontakt)
+				{
+					if ($kontakt->kontakttyp == 'email')
+					{
+						$knt = array();
+						$knt['emailadresse'] = $kontakt->kontakt;
+						$knt['emailtyp'] = 'PR';
+						$emailliste[] = $knt;
+					}
+				}
 
-		$result = $this->_call('POST', null, $postData);
-		echo print_r($result, true);
+				// business mail
+				$this->BenutzerModel->addSelect('uid');
+				$uids = $this->BenutzerModel->loadWhere(array('person_id' => $person_id));
+
+				if (hasData($uids))
+				{
+					$uids = getData($uids);
+
+					foreach ($uids as $uid)
+					{
+						$bsmail = array();
+						$bsmail['emailadresse'] = $uid->uid . '@' . DOMAIN;
+						$bsmail['emailtyp'] = 'BE';
+						$emailliste[] = $bsmail;
+					}
+				}
+			}
+
+			$geschlecht = 'X';
+
+			if ($stammdaten->geschlecht == 'm')
+				$geschlecht = 'M';
+			elseif ($stammdaten->geschlecht == 'w')
+				$geschlecht = 'W';
+
+			$params = array(
+				"uuid" => getUUID(),
+				"studierendenkey" => array(
+					"matrikelnummer" => $stammdaten->matr_nr,
+					"be" => $be,
+					"semester" => $semester
+				),
+				'adressen' => $adressen,
+				'akadgrad' => $stammdaten->titelpre,
+				'akadgradnach' => $stammdaten->titelpost,
+				'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
+				//'bpk' => '1234',
+				//'ekz' => 'ez1234',
+				'emailliste' => $emailliste,
+				'geburtsdatum' => $stammdaten->gebdatum,
+				'geschlecht' => $geschlecht,
+				'nachname' => $stammdaten->nachname,
+				'staatsbuergerschaft' => $stammdaten->staatsbuergerschaft_code,
+				//'svnr' => '12345',
+				'vorname' => $stammdaten->vorname,
+
+				'oehbeitrag' => $oehbeitrag, // IN CENT!!
+				'sonderbeitrag' => '0',
+				'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
+				'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
+				'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
+				'studiengebuehrnachfrist' => $studiengebuehr, //  in CENT!!!
+				'valutadatum' => $valutadatum,
+				'valutadatumnachfrist' => $valutadatumnachfrist
+			);
+
+			/*		$adressen = array(
+						array(
+						//	'coname' => 'Karl Lagerfeld', // optional
+							'ort' => 'Wien',
+							'plz' => '1100',
+							'strasse' => 'Rathausplatz 1',
+							'staat' => 'A',
+							'typ' => 'H' // H = Heimatadresse, S = Studienadresse/Zustelladresse
+						),
+						array(
+						//	'coname' => 'Karl Lagerfeld', // optional
+							'ort' => 'Wien',
+							'plz' => '1100',
+							'strasse' => 'Rathausplatz 1',
+							'staat' => 'A',
+							'typ' => 'S' // H = Heimatadresse, S = Studienadresse/Zustelladresse
+						)
+					);
+
+					$emailliste = array(
+						array(
+							'emailadresse' => 'invalid@technikum-wien.at',
+							'emailtyp' => 'BE' // BE | PR
+						)
+					);
+					$params = array(
+						"uuid" => getUUID(),
+						"studierendenkey" => array(
+							"matrikelnummer" => '51832997',
+							"be" => 'FT',
+							"semester" => '2020W'
+						),
+						'adressen' => $adressen,
+						'akadgrad' => 'Ing.',
+						'akadgradnach' => 'BSc',
+						'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
+						//'bpk' => '1234',
+						//'ekz' => 'ez1234',
+						'emailliste' => $emailliste,
+						'geburtsdatum' => '1997-07-19',
+						'geschlecht' => 'W',
+						'nachname' => 'Bornberg',
+						'staatsbuergerschaft' => 'A',
+						//'svnr' => '12345',
+						'vorname' => 'Christina',
+
+						'oehbeitrag' => '0', // IN CENT!!
+						'sonderbeitrag' => '0',
+						'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
+						'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
+						'studiengebuehr' => '0', // FH Studiengebuehr in CENT!!!
+						'studiengebuehrnachfrist' => '3600', //  in CENT!!!
+						'valutadatum' => '2020-09-01',
+						'valutadatumnachfrist' => '2020-11-30'
+					);*/
+			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
+
+			//var_dump($postData);
+
+			$result = $this->_call('POST', null, $postData);
+		}
+		//echo print_r($result, true);
 		return $result;
 
 	}

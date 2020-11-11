@@ -29,10 +29,9 @@ class Kontostaende extends JOB_Controller
 
 		$this->logInfo('Kontostaende GET job start');
 
-
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = '2020S';
-		$matrikelnummer = '52012345';
+		$semester = '2020W';
+		$matrikelnummer = '01206888';
 		$seit = null;
 
 		$queryResult = $this->KontostaendeModel->get($be, $semester, $matrikelnummer, $seit);

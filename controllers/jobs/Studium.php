@@ -29,11 +29,11 @@ class Studium extends JOB_Controller
 
 		$this->logInfo('Studium GET job start');
 
-		$matrikelnummer = '52012345';
+		$matrikelnummer = '00848224';
 
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = '2019W';
+		$semester = '2020W';
 		$studienkennung = null;
 
 		$queryResult = $this->StudiumModel->get($be, $matrikelnummer, $semester, $studienkennung);

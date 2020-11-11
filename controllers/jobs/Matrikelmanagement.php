@@ -13,7 +13,7 @@ class Matrikelmanagement extends JOB_Controller
 	public function __construct()
 	{
 		parent::__construct();
-		//$this->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -22,15 +22,15 @@ class Matrikelmanagement extends JOB_Controller
 	/**
 	 * Example method
 	 */
-	public function manageMatrikelnummer()
+	public function requestMatrikelnummer()
 	{
-		$this->load->model('extensions/FHC-Core-DVUH/Matrikelpruefung_model', 'MatrikelpruefungModel');
-		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
+		//$this->load->model('extensions/FHC-Core-DVUH/Matrikelpruefung_model', 'MatrikelpruefungModel');
+		//$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 		//$this->load->model('person/Person_model', 'PersonModel');
 
 		$this->logInfo('Matrikelmanagement job start');
 
-		$person_ids = array('65378'); // future students which already paid Kaution and RT absolviert
+		$person_ids = array(/*'65378'*/72062); // future students which already paid Kaution and RT absolviert
 
 		$qry = "
 				SELECT person_id, svnr, vorname, nachname, gebdatum, ersatzkennzeichen
@@ -48,6 +48,8 @@ class Matrikelmanagement extends JOB_Controller
 
 			foreach ($persons as $person)
 			{
+				$this->dvuhmanagementlib->requestMatrikelnummer($person);
+
 			/*	$queryResult = $this->MatrikelpruefungModel->get(
 					$bpk = null,
 					$ekz = $person->ersatzkennzeichen,

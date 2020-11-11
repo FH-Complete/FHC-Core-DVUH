@@ -29,10 +29,10 @@ class Stammdaten extends JOB_Controller
 
 		$this->logInfo('Stammdaten GET job start');
 
-		$matrikelnummer = '52012345';
+		$matrikelnummer = '51832997';
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = '2020S';
+		$semester = '2020W';
 
 		$queryResult = $this->StammdatenModel->get($be, $matrikelnummer, $semester);
 

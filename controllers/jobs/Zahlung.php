@@ -27,13 +27,13 @@ class Zahlung extends JOB_Controller
 	{
 		$this->logInfo('Zahlung job start');
 
-		$matrikelnummer='52012345';
+		$matrikelnummer='01206888';
 		$be = 'FT';
-		$semester = '2020S';
+		$semester = '2020W';
 		$zahlungsart = '1';
-		$centbetrag = '36336';
-		$buchungsdatum = '2020-05-13';
-		$referenznummer = '52012345-1234';
+		$centbetrag = '4';
+		$buchungsdatum = '2020-11-09';
+		$referenznummer = '58012345-1242';
 
 		$queryResult = $this->ZahlungModel->post(
 			$matrikelnummer,

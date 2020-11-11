@@ -36,28 +36,29 @@ class Matrikelpruefung_model extends DVUHClientModel
 
 		if (($vorname != '' || $nachname != '') && $geburtsdatum == '')
 		{
-			return error('Wenn der Name angegeben ist muss auch ein Geburtsdatum angegeben werden');
+			$result = error('Wenn der Name angegeben ist muss auch ein Geburtsdatum angegeben werden');
+		}
+		else
+		{
+			if (!is_null($bpk))
+				$callParametersArray['bpk'] = $bpk;
+			if (!is_null($ekz))
+				$callParametersArray['ekz'] = $ekz;
+			if (!is_null($geburtsdatum))
+				$callParametersArray['geburtsdatum'] = $geburtsdatum;
+			if (!is_null($matrikelnummer))
+				$callParametersArray['matrikelnummer'] = $matrikelnummer;
+			if (!is_null($nachname))
+				$callParametersArray['nachname'] = $nachname;
+			if (!is_null($svnr))
+				$callParametersArray['svnr'] = $svnr;
+			if (!is_null($vorname))
+				$callParametersArray['vorname'] = $vorname;
+
+			$result = $this->_call('GET', $callParametersArray);
+			//echo print_r($result,true);
 		}
 
-		if (!is_null($bpk))
-			$callParametersArray['bpk'] = $bpk;
-		if (!is_null($ekz))
-			$callParametersArray['ekz'] = $ekz;
-		if (!is_null($geburtsdatum))
-			$callParametersArray['geburtsdatum'] = $geburtsdatum;
-		if (!is_null($matrikelnummer))
-			$callParametersArray['matrikelnummer'] = $matrikelnummer;
-		if (!is_null($nachname))
-			$callParametersArray['nachname'] = $nachname;
-		if (!is_null($svnr))
-			$callParametersArray['svnr'] = $svnr;
-		if (!is_null($vorname))
-			$callParametersArray['vorname'] = $vorname;
-
-		$result = $this->_call('GET', $callParametersArray);
-		echo print_r($result,true);
-
 		return $result;
-		// TODO Parse Result, Handle Errors
 	}
 }

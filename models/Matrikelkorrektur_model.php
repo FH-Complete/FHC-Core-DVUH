@@ -1,0 +1,52 @@
+<?php
+
+require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
+
+/**
+ * Manage Payments
+ */
+class Matrikelkorrektur_model extends DVUHClientModel
+{
+	/**
+	 * Set the properties to perform calls
+	 */
+	public function __construct()
+	{
+		parent::__construct();
+		$this->_url = '/rws/0.5/matrikelkorrektur.xml';
+	}
+
+	/**
+	 * Correct Matrikelnummer
+	 *
+	 * @param $matrikelnummer Matrikelnummer
+	 * @param $be Code of Bildungseinrichtung
+	 * @param $semester Semester
+	 * @param $matrikelalt Old Matrikelnummer
+	 */
+	public function post($be, $matrikelnummer, $semester, $matrikelalt)
+	{
+		if (isEmptyString($matrikelnummer))
+			$result = error('Matrikelnummer not set');
+		elseif(isEmptyString($semester))
+			$result = error('Semester not set');
+		elseif(isEmptyString($matrikelalt))
+			$result = error('Matrikelnr alt not set');
+		else
+		{
+
+			$params = array(
+				"uuid" => getUUID(),
+				"matrikelnummer" => $matrikelnummer,
+				"be" => $be,
+				"semester" => $semester,
+				"matrikelalt" => $matrikelalt
+			);
+
+			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/matrikelkorrektur', $params, true);
+			$result = $this->_call('POST', null, $postData);
+		}
+
+		return $result;
+	}
+}

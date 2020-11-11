@@ -25,15 +25,20 @@ class Matrikelreservierung_model extends DVUHClientModel
 	 */
 	public function get($be, $sj)
 	{
-		$callParametersArray = array(
-			'be' => $be,
-			'sj' => $sj,
-			'uuid' => getUUID()
-		);
+		if (isEmptyString($sj))
+			$result = error('Studienjahr not set');
+		else
+		{
+			$callParametersArray = array(
+				'be' => $be,
+				'sj' => $sj,
+				'uuid' => getUUID()
+			);
 
-		$result = $this->_call('GET', $callParametersArray);
-		echo print_r($result,true);
-		// TODO Parse Result, Handle Errors
+			$result = $this->_call('GET', $callParametersArray);
+		}
+
+		return $result;
 	}
 
 	/**
@@ -45,18 +50,23 @@ class Matrikelreservierung_model extends DVUHClientModel
 	 */
 	public function post($be, $sj, $anzahl)
 	{
-		$params = array(
-			"uuid" => getUUID(),
-			"anzahl" => $anzahl,
-			"sj" => $sj,
-			"be" => $be
-		);
-		$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/matrikelreservierung', $params, true);
-		echo $postData;
+		if (isEmptyString($sj))
+			$result = error('Studienjahr not set');
+		elseif(isEmptyString($anzahl))
+			$result = error('Anzahl not set');
+		else
+		{
+			$params = array(
+				"uuid" => getUUID(),
+				"anzahl" => $anzahl,
+				"sj" => $sj,
+				"be" => $be
+			);
+			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/matrikelreservierung', $params, true);
 
-		$result = $this->_call('POST', null, $postData);
-		echo print_r($result, true);
+			$result = $this->_call('POST', null, $postData);
+		}
+		//echo print_r($result, true);
 		return $result;
-
 	}
 }

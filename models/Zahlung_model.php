@@ -27,21 +27,37 @@ class Zahlung_model extends DVUHClientModel
 	 * @param $buchungsdatum Date of payment
 	 * @param $referenznummer Reference Number
 	 */
-	public function post($matrikelnummer, $be, $semester, $zahlungsart, $centbetrag, $buchungsdatum, $referenznummer)
+	public function post($be, $matrikelnummer, $semester, $zahlungsart, $centbetrag, $buchungsdatum, $referenznummer)
 	{
-		$params = array(
-			"uuid" => getUUID(),
-			"matrikelnummer" => $matrikelnummer,
-			"be" => $be,
-			"semester" => $semester,
-			"zahlungsart" => $zahlungsart, // 1 = Bankomatzahlung, 2 = Quickzahlung
-			"centbetrag" => $centbetrag,
-			"buchungsdatum" => $buchungsdatum,
-			"referenznummer" => $referenznummer
-		);
+		if (isEmptyString($matrikelnummer))
+			$result = error('Matrikelnummer not set');
+		elseif (isEmptyString($semester))
+			$result = error('Semester not set');
+		elseif (isEmptyString($zahlungsart))
+			$result = error('Zahlungsart not set');
+		elseif (isEmptyString($centbetrag))
+			$result = error('Centbetrag not set');
+		elseif (isEmptyString($zahlungsart))
+			$result = error('Buchungsdatum not set');
+		elseif (isEmptyString($referenznummer))
+			$result = error('Referenznummer not set');
+		else
+		{
+			$params = array(
+				"uuid" => getUUID(),
+				"be" => $be,
+				"matrikelnummer" => $matrikelnummer,
+				"semester" => $semester,
+				"zahlungsart" => $zahlungsart, // 1 = Bankomatzahlung, 2 = Quickzahlung
+				"centbetrag" => $centbetrag,
+				"buchungsdatum" => $buchungsdatum,
+				"referenznummer" => $referenznummer
+			);
 
-		$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/zahlung', $params, true);
-		$result = $this->_call('POST', null, $postData);
+			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/zahlung', $params, true);
+			$result = $this->_call('POST', null, $postData);
+		}
+
 		return $result;
 	}
 }
