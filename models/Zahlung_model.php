@@ -30,17 +30,17 @@ class Zahlung_model extends DVUHClientModel
 	public function post($be, $matrikelnummer, $semester, $zahlungsart, $centbetrag, $buchungsdatum, $referenznummer)
 	{
 		if (isEmptyString($matrikelnummer))
-			$result = error('Matrikelnummer not set');
+			$result = error('Matrikelnummer nicht gesetzt');
 		elseif (isEmptyString($semester))
-			$result = error('Semester not set');
+			$result = error('Semester nicht gesetzt');
 		elseif (isEmptyString($zahlungsart))
-			$result = error('Zahlungsart not set');
+			$result = error('Zahlungsart nicht gesetzt');
 		elseif (isEmptyString($centbetrag))
-			$result = error('Centbetrag not set');
+			$result = error('Centbetrag nicht gesetzt');
 		elseif (isEmptyString($zahlungsart))
-			$result = error('Buchungsdatum not set');
+			$result = error('Buchungsdatum nicht gesetzt');
 		elseif (isEmptyString($referenznummer))
-			$result = error('Referenznummer not set');
+			$result = error('Referenznummer nicht gesetzt');
 		else
 		{
 			$params = array(

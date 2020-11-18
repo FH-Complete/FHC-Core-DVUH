@@ -26,7 +26,7 @@ class Fullstudent_model extends DVUHClientModel
 	{
 		if (isEmptyString($matrikelnummer))
 		{
-			$result = error('Matrikelnummer not set');
+			$result = error('Matrikelnummer nicht gesetzt');
 		}
 		else
 		{

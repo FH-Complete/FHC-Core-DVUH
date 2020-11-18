@@ -9,41 +9,44 @@
 	<studien>
 <?php
 	// Lehrgang
-	if(isset($lehrgang))
+	if(isset($lehrgaenge))
 	{
-		echo '
-			<lehrgang>';
-		if(isset($lehrgang['beedingungsdatum']))
-			echo '<beendigungsdatum>'.$lehrgang['beedingungsdatum'].'</beendigungsdatum>';
-		echo '
-				<lehrgangsnr>'.$lehrgang['lehrgangsnr'].'</lehrgangsnr>
-				<perskz>'.$lehrgang['perskz'].'</perskz>
-				<studstatuscode>'.$lehrgang['studstatuscode'].'</studstatuscode>';
-		if(isset($lehrgang['zugangsberechtigung']))
-		{
+		foreach ($lehrgaenge as $lehrgang):
 			echo '
-				<zugangsberechtigung>
-					<datum>'.$lehrgang['zugangsberechtigung']['datum'].'</datum>
-					<staat>'.$lehrgang['zugangsberechtigung']['staat'].'</staat>
-					<voraussetzung>'.$lehrgang['zugangsberechtigung']['voraussetzung'].'</voraussetzung>
-				</zugangsberechtigung>';
-		}
-		if(isset($lehrgang['zugangsberechtigungMA']))
-		{
+				<lehrgang>';
+			if(isset($lehrgang['beedingungsdatum']))
+				echo '<beendigungsdatum>'.$lehrgang['beedingungsdatum'].'</beendigungsdatum>';
 			echo '
-				<zugangsberechtigungMA>
-					<datum>'.$lehrgang['zugangsberechtigungMA']['datum'].'</datum>
-					<staat>'.$lehrgang['zugangsberechtigungMA']['staat'].'</staat>
-					<voraussetzung>'.$lehrgang['zugangsberechtigungMA']['voraussetzung'].'</voraussetzung>
-				</zugangsberechtigungMA>';
-		}
+					<lehrgangsnr>'.$lehrgang['lehrgangsnr'].'</lehrgangsnr>
+					<perskz>'.$lehrgang['perskz'].'</perskz>
+					<studstatuscode>'.$lehrgang['studstatuscode'].'</studstatuscode>';
+			if(isset($lehrgang['zugangsberechtigung']))
+			{
+				echo '
+					<zugangsberechtigung>
+						<datum>'.$lehrgang['zugangsberechtigung']['datum'].'</datum>
+						<staat>'.$lehrgang['zugangsberechtigung']['staat'].'</staat>
+						<voraussetzung>'.$lehrgang['zugangsberechtigung']['voraussetzung'].'</voraussetzung>
+					</zugangsberechtigung>';
+			}
+			if(isset($lehrgang['zugangsberechtigungMA']))
+			{
+				echo '
+					<zugangsberechtigungMA>
+						<datum>'.$lehrgang['zugangsberechtigungMA']['datum'].'</datum>
+						<staat>'.$lehrgang['zugangsberechtigungMA']['staat'].'</staat>
+						<voraussetzung>'.$lehrgang['zugangsberechtigungMA']['voraussetzung'].'</voraussetzung>
+					</zugangsberechtigungMA>';
+			}
 
-		echo '<zulassungsdatum>'.$lehrgang['zulassungsdatum'].'</zulassungsdatum>
-			</lehrgang>';
+			echo '<zulassungsdatum>'.$lehrgang['zulassungsdatum'].'</zulassungsdatum>
+				</lehrgang>';
+		endforeach;
 	}
 	// Studiengang
-	if(isset($studiengang))
+	if(isset($studiengaenge))
 	{
+		foreach ($studiengaenge as $studiengang):
 		echo '
 		<studiengang disloziert="'.$studiengang['disloziert'].'">
 			<ausbildungssemester>'.$studiengang['ausbildungssemester']."</ausbildungssemester>\n";
@@ -131,6 +134,7 @@
 		echo '
 			<zulassungsdatum>'.$studiengang['zulassungsdatum'].'</zulassungsdatum>
 		</studiengang>';
+		endforeach;
 	}
 ?>
 

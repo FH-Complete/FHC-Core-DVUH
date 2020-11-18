@@ -1,5 +1,5 @@
 /**
- * javascript file for showing DVUH feeds
+ * javascript file for displaying DVUH actions menu and executing DVUH calls
  */
 
 $(document).ready(function()
@@ -8,9 +8,6 @@ $(document).ready(function()
 			function()
 			{
 				var id = $(this).prop('id');
-
-				console.log(id)
-
 				DVUHMenu._printForm(id);
 			}
 		);
@@ -22,6 +19,7 @@ var DVUHMenu = {
 	{
 		var html = '';
 		var method = '';
+		var writePreviewButton = false;
 
 		switch(action)
 		{
@@ -98,6 +96,7 @@ var DVUHMenu = {
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
+				writePreviewButton = true;
 				break;
 			case 'postStammdatenVorschreibung':
 				html = '<h4>Stammdaten und Matrikelnummer melden (mit Vorschreibung)</h4>';
@@ -109,6 +108,7 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('valutadatumnachfrist', 'Valutadatum Nachfrist', 'Format: YYYY-MM-DD', 10)
 				method = 'post';
 				action = 'postStammdaten';
+				writePreviewButton = true;
 				break;
 			case 'postZahlung':
 				html = '<h4>Zahlungseingang melden</h4>';
@@ -120,47 +120,78 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('centbetrag', 'Centbetrag', 'In Cent', 10)
 				method = 'post';
 				break;
+			case 'postStudium':
+				html = '<h4>Studiumsdaten melden</h4>';
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+					+ DVUHMenu._getSemesterRow()
+				method = 'post';
+				writePreviewButton = true;
+				break;
 		}
 
-		//html += '<button class="btn btn-default" id="dvuhAbsenden">Absenden</button>'
+		// reset Gui
+		DVUHMenu._clearGui();
 
+		// form
 		$("#dvuhForm").html(html);
-		$("#dvuhAbsendenContainer").html('<button class="btn btn-default" id="dvuhAbsenden">Absenden</button>');
+
+		// data preview
+		if (writePreviewButton)
+		{
+			$("#dvuhDatenvorschauButton").html('<button class="btn btn-default" id="datenVorschau">Zu sendende Daten anzeigen</button>');
+
+			$("#datenVorschau").click(
+				function()
+				{
+					var preview = true;
+					DVUHMenu._writePreviewBox();
+					DVUHMenu.sendForm(action, method, preview);
+				}
+			);
+		}
+
+		// actual data send
+		$("#dvuhAbsendenButton").html('<button class="btn btn-default" id="dvuhAbsenden">Absenden</button>');
 
 		$("#dvuhAbsenden").click(
 			function()
 			{
+				DVUHMenu._writeSyncoutputBox();
 				DVUHMenu.sendForm(action, method);
 			}
 		);
 	},
-	sendForm: function(action, method)
+	sendForm: function(action, method, preview)
 	{
 		var url = FHC_JS_DATA_STORAGE_OBJECT.called_path + '/'+action;
 		var formData = DVUHMenu._getFormData();
+		var boxid = 'dvuhOutput';
+
+		if (preview)
+		{
+			formData.preview = preview;
+			boxid = 'dvuhPreviewOutput';
+		}
+
 		var successCallback = function(data, textStatus, jqXHR)
 		{
-			console.log(data);
 			if (FHC_AjaxClient.isSuccess(data))
 			{
 				if (FHC_AjaxClient.hasData(data))
 				{
-					DVUHMenu._writeResult(FHC_AjaxClient.getData(data));
+					DVUHMenu._writeResult(FHC_AjaxClient.getData(data), boxid);
 				}
 			}
 			else
 			{
-				DVUHMenu._writeResult(FHC_AjaxClient.getError(data), 'error');
-				//FHC_DialogLib.alertError("Error occured: " + FHC_AjaxClient.getError(data));
+				DVUHMenu._writeResult(FHC_AjaxClient.getError(data), boxid, 'error');
 			}
 		}
 
 		var errorCallback = function(jqXHR, textStatus, errorThrown)
 		{
-			DVUHMenu._writeResult("Error when calling " + action, 'error');
+			DVUHMenu._writeResult("Error when calling " + action, boxid, 'error');
 		}
-
-		console.log(formData);
 
 		if (method == 'get')
 		{
@@ -220,33 +251,109 @@ var DVUHMenu = {
 
 		for (var obj in data)
 		{
-			console.log(data[obj]);
 			if (data[obj].value !== '')
 				result.data[data[obj].name] = data[obj].value;
 		}
 
 		return result;
 	},
-	_writeResult: function(text, type)
+	_writeResult: function(text, boxid, type)
 	{
 		var colorClass = '';
 		var intro = 'Abfrage ausgeführt, Antwort:';
+		var textToWrite = text;
+		var isError = false;
+
 
 		if (type == 'error')
 		{
 			colorClass = ' class="text-danger"';
 			intro = 'Fehler aufgetreten, Antwort:';
+			isError = true;
 		}
+		else
+			textToWrite = DVUHMenu._printXmlTree(text);
 
-		var span = '<b>'+intro+'</b><br /><span'+colorClass+' id="dvuhOutputSpan"></span>';
+		var spanid = boxid+"Span";
+		var span = '<b>'+intro+'</b><br /><span'+colorClass+' id="'+spanid+'"></span>';
 
-		$("#dvuhOutput").html(span);
+		$("#"+boxid).html(span);
 
-/*		var xmlDoc = jQuery.parseXML(text);
-		var xml = $( xmlDoc )
-		console.log(xmlDoc.documentElement);
-		console.log(xml);*/
+		if (isError)
+			$("#"+spanid).text(textToWrite);
+		else
+			$("#"+spanid).html(textToWrite);
+	},
+	_writeSyncoutputBox: function()
+	{
+		if (!$("#dvuhOutputColumn").length)
+		{
+			var columns = $("#dvuhPreviewContainer").length ? 6 : 12;
+			$("#dvuhOutputContainer").append(
+				'<div class="col-lg-'+columns+'" id="dvuhOutputColumn">'+
+					'<div class="well well-sm wellminheight">'+
+						'<div class="panel-title text-center">Syncoutput</div>'+
+						'<div id="dvuhOutput" class="panel panel-body">'+
+						'</div>'+
+					'</div>'+
+				'</div>'
+			);
+		}
+	},
+	_writePreviewBox: function()
+	{
+		$("#dvuhOutput").empty();
 
-		$("#dvuhOutputSpan").text(text);
+		if (!$("#dvuhPreviewContainer").length)
+		{
+			$("#dvuhOutputColumn").removeClass("col-lg-12").addClass("col-lg-6");
+
+			$("#dvuhOutputContainer").prepend(
+				'<div class="col-lg-6" id="dvuhPreviewContainer">'+
+					'<div class="well well-sm wellminheight">'+
+						'<div class="panel-title text-center">Datenvorschau</div>'+
+						'<div id="dvuhPreviewOutput" class="panel panel-body">'+
+						'</div>'+
+					'</div>'+
+				'</div>'
+			)
+
+			DVUHMenu._writeSyncoutputBox();
+		}
+	},
+	_clearGui: function()
+	{
+		$("#dvuhDatenvorschauButton").empty();
+		$("#dvuhOutputContainer").empty();
+	},
+	_printXmlTree: function(xmlString)
+	{
+		var xmlDoc = jQuery.parseXML(xmlString);
+		var xml = $( xmlDoc.documentElement );
+
+		var xmlResultNodeString = {xmlString: ''};
+
+		DVUHMenu._printXmlNode(xml[0], xmlResultNodeString);
+
+		return xmlResultNodeString.xmlString;
+	},
+	_printXmlNode(xmlNode, xmlResultNodeString, level = 0)
+	{
+		var margin = 10 * level;
+		xmlResultNodeString.xmlString += '<span style="margin-left: '+margin+'px">&lt;' + xmlNode.nodeName + '&gt;</span><br />';
+		if (xmlNode.children.length)
+		{
+			++level;
+			for (var i = 0; i < xmlNode.children.length; i++)
+			{
+				this._printXmlNode(xmlNode.children[i], xmlResultNodeString, level);
+			}
+		}
+		else
+		{
+			var textmargin = margin + 10;
+			xmlResultNodeString.xmlString += '<span style="margin-left: ' + textmargin + 'px">' + xmlNode.textContent + '</span><br />';
+		}
+		xmlResultNodeString.xmlString += '<span style="margin-left: '+margin+'px">&lt;/' + xmlNode.nodeName + '&gt;</span><br />';
 	}
 };

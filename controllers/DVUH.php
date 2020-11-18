@@ -24,6 +24,7 @@ class DVUH extends Auth_Controller
 				'getBpk' =>'admin:r',
 				'reserveMatrikelnummer'=>'admin:r',
 				'postStammdaten'=>'admin:r',
+				'postStudium'=>'admin:r',
 				'postZahlung'=>'admin:r',
 				'postMatrikelkorrektur'=>'admin:r'
 			)
@@ -131,8 +132,8 @@ class DVUH extends Auth_Controller
 
 		$this->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 
-		$json = $this->KontostaendeModel->get(
-			$be, $semester, $matrikelnummer, $studienkennung
+		$json = $this->StudiumModel->get(
+			$be, $matrikelnummer, $semester, $studienkennung
 		);
 
 		$this->outputJson($json);
@@ -151,7 +152,7 @@ class DVUH extends Auth_Controller
 		$this->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
 
 		$json = $this->FullstudentModel->get(
-			$be, $semester, $matrikelnummer
+			$matrikelnummer, $be, $semester
 		);
 
 		$this->outputJson($json);
@@ -209,19 +210,22 @@ class DVUH extends Auth_Controller
 		$json = null;
 
 		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
-		$oehbeitrag = isset($data['oehbeitrag']) ? $data['oehbeitrag'] : '0';
-		$studiengebuehr = isset($data['studiengebuehr']) ? $data['studiengebuehr'] : '0';
-		$valutadatum = isset($data['valutadatum']) ? $data['valutadatum'] : date_format(date_create(), 'Y-m-d');
-		$valutadatumnachfrist = isset($data['valutadatumnachfrist']) ? $data['valutadatumnachfrist'] : date_format(date_create(), 'Y-m-d');
+		$oehbeitrag = isset($data['oehbeitrag']) ? $data['oehbeitrag'] : null;
+		$studiengebuehr = isset($data['studiengebuehr']) ? $data['studiengebuehr'] : null;
+
+		// valutadatum?? Buchungsdatum + Mahnspanne
+		$valutadatum = isset($data['valutadatum']) ? $data['valutadatum'] : null;
+		$valutadatumnachfrist = isset($data['valutadatumnachfrist']) ? $data['valutadatumnachfrist'] : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 
 		$json = $this->StammdatenModel->post(
-			$be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist
+			$be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $preview
 		);
 
 		$this->outputJson($json);
@@ -232,12 +236,6 @@ class DVUH extends Auth_Controller
 		$json = null;
 
 		$data = $this->input->post('data');
-
-/*		if (!isset($data['matrikelnummer']) || !isset($data['semester']) || !isset($data['zahlungsart'])
-			|| !isset($data['centbetrag']) || !isset($data['buchungsdatum']) || !isset($data['referenznummer']))
-			$json = error("Parameter not set");
-		else
-		{*/
 
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
@@ -254,7 +252,26 @@ class DVUH extends Auth_Controller
 			$be, $matrikelnummer, $semester, $zahlungsart, $centbetrag,
 			$buchungsdatum, $referenznummer
 		);
-		//}
+
+		$this->outputJson($json);
+	}
+
+	public function postStudium()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$be = $this->config->item('fhc_dvuh_be_code');
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+
+		$this->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
+
+		$json = $this->StudiumModel->post(
+			$be, $person_id, $semester, $preview
+		);
 
 		$this->outputJson($json);
 	}
@@ -264,11 +281,6 @@ class DVUH extends Auth_Controller
 		$json = null;
 
 		$data = $this->input->post('data');
-
-/*		if (!isset($data['matrikelnummer']) || !isset($data['semester']) || !isset($data['matrikelalt']))
-			$json = error("Parameter not set");
-		else
-		{*/
 
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
@@ -281,7 +293,6 @@ class DVUH extends Auth_Controller
 		$json = $this->MatrikelkorrekturModel->post(
 			$be, $matrikelnummer, $semester, $matrikelalt
 		);
-		//}
 
 		$this->outputJson($json);
 	}

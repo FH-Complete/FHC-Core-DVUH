@@ -26,7 +26,7 @@ class Matrikelreservierung_model extends DVUHClientModel
 	public function get($be, $sj)
 	{
 		if (isEmptyString($sj))
-			$result = error('Studienjahr not set');
+			$result = error('Studienjahr nicht gesetzt');
 		else
 		{
 			$callParametersArray = array(
@@ -51,9 +51,9 @@ class Matrikelreservierung_model extends DVUHClientModel
 	public function post($be, $sj, $anzahl)
 	{
 		if (isEmptyString($sj))
-			$result = error('Studienjahr not set');
+			$result = error('Studienjahr nicht gesetzt');
 		elseif(isEmptyString($anzahl))
-			$result = error('Anzahl not set');
+			$result = error('Anzahl nicht gesetzt');
 		else
 		{
 			$params = array(

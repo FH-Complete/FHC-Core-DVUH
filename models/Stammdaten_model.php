@@ -26,7 +26,7 @@ class Stammdaten_model extends DVUHClientModel
 	public function get($be, $matrikelnummer, $semester = null)
 	{
 		if (isEmptyString($matrikelnummer))
-			$result = error('Matrikelnummer not set');
+			$result = error('Matrikelnummer nicht gesetzt');
 		else
 		{
 			$callParametersArray = array(
@@ -44,179 +44,76 @@ class Stammdaten_model extends DVUHClientModel
 		return $result;
 	}
 
-	public function post($be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist)
+	public function post($be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $preview = false)
 	{
+		$result = null;
+
 		if (isEmptyString($person_id))
-			$result = error('personID not set');
+			$result = error('personID nicht gesetzt');
 		elseif (isEmptyString($semester))
-			$result = error('Semester not set');
-		elseif (isEmptyString($oehbeitrag))
-			$result = error('ÖH-Beitrag not set');
+			$result = error('Semester nicht gesetzt');
+/*		elseif (isEmptyString($oehbeitrag))
+			$result = error('ÖH-Beitrag nicht gesetzt');
 		elseif (isEmptyString($studiengebuehr))
-			$result = error('Studiengebührt not set');
+			$result = error('Studiengebührt nicht gesetzt');
 		elseif (isEmptyString($valutadatum))
-			$result = error('Valudadatum not set');
+			$result = error('Valudadatum nicht gesetzt');
 		elseif (isEmptyString($valutadatumnachfrist))
-			$result = error('Valudadatumnachfrist not set');
+			$result = error('Valudadatumnachfrist nicht gesetzt');*/
 		else
 		{
-			$this->load->model('person/person_model', 'PersonModel');
-			$this->load->model('person/benutzer_model', 'BenutzerModel');
+			$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 
-			$stammdaten = $this->PersonModel->getPersonStammdaten($person_id);
+			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id, $semester);
 
-			//var_dump($stammdaten);
-
-			if (hasData($stammdaten))
+			if (isError($stammdatenDataResult))
+				$result = $stammdatenDataResult;
+			elseif (hasData($stammdatenDataResult))
 			{
-				$stammdaten = getData($stammdaten);
+				$stammdatenData = getData($stammdatenDataResult);
 
-				$adressen = array();
-				$emailliste = array();
+				$params = array(
+					"uuid" => getUUID(),
+					"studierendenkey" => array(
+						"matrikelnummer" => $stammdatenData['matrikelnummer'],
+						"be" => $be,
+						"semester" => $semester
+					),
+					"studentinfo" => $stammdatenData['studentinfo'],
+				);
 
-				// adresses
-				foreach ($stammdaten->adressen as $adresse)
-				{
-					$addr = array();
-					$addr['ort'] = $adresse->ort;
-					$addr['plz'] = $adresse->plz;
-					$addr['strasse'] = $adresse->strasse;
-					$addr['staat'] = $adresse->nation;
-					$addr['typ'] = $adresse->heimatadresse === true ? 'H' : 'S'; // TODO if only Heimatadresse, also automatically Zustelladresse?
-					$adressen[] = $addr;
-				}
+/*				if (!isEmptyString($oehbeitrag) && !isEmptyString($studiengebuehr))
+				{*/
 
-				// private mail
-				foreach ($stammdaten->kontakte as $kontakt)
-				{
-					if ($kontakt->kontakttyp == 'email')
-					{
-						$knt = array();
-						$knt['emailadresse'] = $kontakt->kontakt;
-						$knt['emailtyp'] = 'PR';
-						$emailliste[] = $knt;
-					}
-				}
+				$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
+				$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
 
-				// business mail
-				$this->BenutzerModel->addSelect('uid');
-				$uids = $this->BenutzerModel->loadWhere(array('person_id' => $person_id));
+				// valutadatum?? Buchungsdatum + Mahnspanne
+				$valutadatum = isset($valutadatum) ? $valutadatum : date_format(date_create(), 'Y-m-d');
+				$valutadatumnachfrist = isset($valutadatumnachfrist) ? $valutadatumnachfrist : date_format(date_create(), 'Y-m-d');
 
-				if (hasData($uids))
-				{
-					$uids = getData($uids);
+				$params["vorschreibung"] = array(
+					'oehbeitrag' => $oehbeitrag, // IN CENT!!
+					'sonderbeitrag' => '0',
+					'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
+					'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
+					'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
+					'studiengebuehrnachfrist' => $studiengebuehr, //  in CENT!!!
+					'valutadatum' => $valutadatum,
+					'valutadatumnachfrist' => $valutadatumnachfrist
+				);
+				//}
 
-					foreach ($uids as $uid)
-					{
-						$bsmail = array();
-						$bsmail['emailadresse'] = $uid->uid . '@' . DOMAIN;
-						$bsmail['emailtyp'] = 'BE';
-						$emailliste[] = $bsmail;
-					}
-				}
+				$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
+
+				if ($preview)
+					$result = success($postData);
+				else
+					$result = $this->_call('POST', null, $postData);
+
 			}
-
-			$geschlecht = 'X';
-
-			if ($stammdaten->geschlecht == 'm')
-				$geschlecht = 'M';
-			elseif ($stammdaten->geschlecht == 'w')
-				$geschlecht = 'W';
-
-			$params = array(
-				"uuid" => getUUID(),
-				"studierendenkey" => array(
-					"matrikelnummer" => $stammdaten->matr_nr,
-					"be" => $be,
-					"semester" => $semester
-				),
-				'adressen' => $adressen,
-				'akadgrad' => $stammdaten->titelpre,
-				'akadgradnach' => $stammdaten->titelpost,
-				'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
-				//'bpk' => '1234',
-				//'ekz' => 'ez1234',
-				'emailliste' => $emailliste,
-				'geburtsdatum' => $stammdaten->gebdatum,
-				'geschlecht' => $geschlecht,
-				'nachname' => $stammdaten->nachname,
-				'staatsbuergerschaft' => $stammdaten->staatsbuergerschaft_code,
-				//'svnr' => '12345',
-				'vorname' => $stammdaten->vorname,
-
-				'oehbeitrag' => $oehbeitrag, // IN CENT!!
-				'sonderbeitrag' => '0',
-				'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
-				'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
-				'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
-				'studiengebuehrnachfrist' => $studiengebuehr, //  in CENT!!!
-				'valutadatum' => $valutadatum,
-				'valutadatumnachfrist' => $valutadatumnachfrist
-			);
-
-			/*		$adressen = array(
-						array(
-						//	'coname' => 'Karl Lagerfeld', // optional
-							'ort' => 'Wien',
-							'plz' => '1100',
-							'strasse' => 'Rathausplatz 1',
-							'staat' => 'A',
-							'typ' => 'H' // H = Heimatadresse, S = Studienadresse/Zustelladresse
-						),
-						array(
-						//	'coname' => 'Karl Lagerfeld', // optional
-							'ort' => 'Wien',
-							'plz' => '1100',
-							'strasse' => 'Rathausplatz 1',
-							'staat' => 'A',
-							'typ' => 'S' // H = Heimatadresse, S = Studienadresse/Zustelladresse
-						)
-					);
-
-					$emailliste = array(
-						array(
-							'emailadresse' => 'invalid@technikum-wien.at',
-							'emailtyp' => 'BE' // BE | PR
-						)
-					);
-					$params = array(
-						"uuid" => getUUID(),
-						"studierendenkey" => array(
-							"matrikelnummer" => '51832997',
-							"be" => 'FT',
-							"semester" => '2020W'
-						),
-						'adressen' => $adressen,
-						'akadgrad' => 'Ing.',
-						'akadgradnach' => 'BSc',
-						'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
-						//'bpk' => '1234',
-						//'ekz' => 'ez1234',
-						'emailliste' => $emailliste,
-						'geburtsdatum' => '1997-07-19',
-						'geschlecht' => 'W',
-						'nachname' => 'Bornberg',
-						'staatsbuergerschaft' => 'A',
-						//'svnr' => '12345',
-						'vorname' => 'Christina',
-
-						'oehbeitrag' => '0', // IN CENT!!
-						'sonderbeitrag' => '0',
-						'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
-						'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
-						'studiengebuehr' => '0', // FH Studiengebuehr in CENT!!!
-						'studiengebuehrnachfrist' => '3600', //  in CENT!!!
-						'valutadatum' => '2020-09-01',
-						'valutadatumnachfrist' => '2020-11-30'
-					);*/
-			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
-
-			//var_dump($postData);
-
-			$result = $this->_call('POST', null, $postData);
 		}
-		//echo print_r($result, true);
-		return $result;
 
+		return $result;
 	}
 }

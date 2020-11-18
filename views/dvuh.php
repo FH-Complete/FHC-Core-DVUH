@@ -70,18 +70,16 @@ $this->load->view('templates/FHC-Header', array(
 			<div class="row">
 				<div class="col-lg-12">
 					<form class="form-horizontal" id="dvuhForm"></form>
-					<div id="dvuhAbsendenContainer"></div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-lg-offset-2 col-lg-10">
+					<span id="dvuhDatenvorschauButton"></span>
+					<span id="dvuhAbsendenButton"></span>
 				</div>
 			</div>
 			<br />
-			<div class="row">
-				<div class="col-lg-12">
-					<div class="well well-sm wellminheight">
-						<div id="dvuhOutput" class="panel panel-body">
-						</div>
-					</div>
-				</div>
-			</div>
+			<div class="row" id="dvuhOutputContainer"></div>
 		</div>
 	</div>
 </div>

@@ -21,11 +21,11 @@ class Pruefebpk_model extends DVUHClientModel
 						$alternativname = null)
 	{
 		if (isEmptyString($vorname))
-			$result = error('Vorname not set');
+			$result = error('Vorname nicht gesetzt');
 		elseif (isEmptyString($nachname))
-			$result = error('Nachname not set');
+			$result = error('Nachname nicht gesetzt');
 		elseif (isEmptyString($geburtsdatum))
-			$result = error('Geburtsdatum not set');
+			$result = error('Geburtsdatum nicht gesetzt');
 		else
 		{
 			$callParametersArray = array(
