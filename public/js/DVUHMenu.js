@@ -339,7 +339,7 @@ var DVUHMenu = {
 	},
 	_printXmlNode(xmlNode, xmlResultNodeString, level = 0)
 	{
-		var margin = 10 * level;
+		var margin = 18 * level;
 		xmlResultNodeString.xmlString += '<span style="margin-left: '+margin+'px">&lt;' + xmlNode.nodeName + '&gt;</span><br />';
 		if (xmlNode.children.length)
 		{

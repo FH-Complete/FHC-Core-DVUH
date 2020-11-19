@@ -50,9 +50,9 @@ $this->load->view('templates/FHC-Header', array(
 								Zahlungsvorschreibung)</a></li>
 						<li id="postStammdatenVorschreibung"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (mit
 								Zahlungsvorschreibung)</a></li>
-						<li id="getKontostaende"><a href="javascript:void(0)">Kontostand anzeigen</a></li>
+						<li id="getKontostaende"><a href="javascript:void(0)">Kontostand abfragen</a></li>
 						<li id="postZahlung"><a href="javascript:void(0)">Zahlungseingang melden</a></li>
-						<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten anzeigen</a></li>
+						<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten abfragen</a></li>
 						<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
 						<li id="getFullstudent"><a href="javascript:void(0)">Detaillierte Studiendaten abfragen</a></li>
 						<li id="getBpk"><a href="javascript:void(0)">BPK ermitteln</a></li>

@@ -79,24 +79,37 @@
 
 		if(isset($studiengang['mobilitaet']))
 		{
-			echo '
-			<mobilitaet>
-				<aufenthaltfoerderungcode>'.$studiengang['mobilitaet']['aufenthaltfoerderungcode']."</aufenthaltfoerderungcode>\n";
+			foreach ($studiengang['mobilitaet'] as $mobilitaet)
+			{
+				echo '
+			<mobilitaet>';
+				if (isset($mobilitaet['aufenthaltfoerderungcode']))
+				{
+					foreach ($mobilitaet['aufenthaltfoerderungcode'] as $foerderungscode)
+					{
+						echo '<aufenthaltfoerderungcode>' . $foerderungscode . "</aufenthaltfoerderungcode>\n";
+					}
+				}
 
-			if(isset($studiengang['mobilitaet']['bis']) && $studiengang['mobilitaet']['bis']!='')
-				echo "\t\t\t\t<bis>".$studiengang['mobilitaet']['bis']."</bis>\n";
+				if (isset($mobilitaet['bis']) && $mobilitaet['bis'] != '')
+					echo "\t\t\t\t<bis>" . $mobilitaet['bis'] . "</bis>\n";
 
-			if(isset($studiengang['mobilitaet']['ectsangerechnet']) && $studiengang['mobilitaet']['ectsangerechnet'] != '')
-				echo "\t\t\t\t<ectsangerechnet>".$studiengang['mobilitaet']['ectsangerechnet']."</ectsangerechnet>\n";
+				if (isset($mobilitaet['ectsangerechnet']) && $mobilitaet['ectsangerechnet'] != '')
+					echo "\t\t\t\t<ectsangerechnet>" . $mobilitaet['ectsangerechnet'] . "</ectsangerechnet>\n";
 
-			if(isset($studiengang['mobilitaet']['ectserworben']) && $studiengang['mobilitaet']['ectserworben'] != '')
-				echo "\t\t\t\t<ectserworben>".$studiengang['mobilitaet']['ectserworben']."</ectserworben>\n";
+				if (isset($mobilitaet['ectserworben']) && $mobilitaet['ectserworben'] != '')
+					echo "\t\t\t\t<ectserworben>" . $mobilitaet['ectserworben'] . "</ectserworben>\n";
 
-			echo "\t\t\t\t<programm>".$studiengang['mobilitaet']['programm']."</programm>\n";
-			echo "\t\t\t\t<staat>".$studiengang['mobilitaet']['staat']."</staat>\n";
-			echo "\t\t\t\t<von>".$studiengang['mobilitaet']['von']."</von>\n";
-			echo "\t\t\t\t<zweck>".$studiengang['mobilitaet']['zweck']."</zweck>\n";
-			echo "\t\t\t</mobilitaet>\n";
+				echo "\t\t\t\t<programm>" . $mobilitaet['programm'] . "</programm>\n";
+				echo "\t\t\t\t<staat>" . $mobilitaet['staat'] . "</staat>\n";
+				echo "\t\t\t\t<von>" . $mobilitaet['von'] . "</von>\n";
+
+				foreach ($mobilitaet['zweck'] as $zweck)
+				{
+					echo "\t\t\t\t<zweck>" . $zweck . "</zweck>\n";
+				}
+				echo "\t\t\t</mobilitaet>\n";
+			}
 		}
 		echo '
 			<orgformcode>'.$studiengang['orgformcode'].'</orgformcode>

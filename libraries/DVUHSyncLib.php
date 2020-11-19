@@ -153,13 +153,15 @@ class DVUHSyncLib
 			$semester = $this->_convertSemesterToFHC($semester);
 
 			// Meldung pro Student, Studium und Semester
-			$active_status = array('Aufgenommener', 'Student', 'Incoming', 'Diplomand');
+			$active_status = array(/*'Aufgenommener',*/ 'Student', 'Incoming', 'Diplomand');
 
 			$prestudentstatusesResult = $this->_dbModel->execReadOnlyQuery("
-				SELECT ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ, 
-				       stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, pss.orgform_kurzbz AS prestudentstatus_orgform,
-				       stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester, tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
+				SELECT ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
+				       stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
+				       pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester,
+				       tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
 				       tbl_student.matrikelnr AS personenkennzeichen, ps.zgv_code, ps.zgvdatum, ps.zgvnation, ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation,
+				       ps.gsstudientyp_kurzbz,
 				       (SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
 							AND (status_kurzbz='Student' OR status_kurzbz='Unterbrecher')
@@ -225,7 +227,6 @@ class DVUHSyncLib
 					if ($prestudentstatus->studiengang_typ == 'l')
 					{
 						$lehrgang = array(
-							//'beendigungsdatum' => $beendigungsdatum,
 							'lehrgangsnr' => $dvuh_stgkz,
 							'perskz' => $perskz,
 							'studstatuscode' => $studstatuscode,
@@ -265,7 +266,7 @@ class DVUHSyncLib
 
 						// gemeinsame Studien
 						$gemeinsam = null;
-						$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $semester);
+						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester);
 
 						if (isset($gemeinsamResult) && isError($gemeinsamResult))
 							return $gemeinsamResult;
@@ -331,7 +332,6 @@ class DVUHSyncLib
 						$studiengang = array(
 							'disloziert' => 'N', // J,N,j,n
 							'ausbildungssemester' => $ausbildungssemester,
-							//'beendigungsdatum' => '2019-01-01',
 							'bmwfwfoerderrelevant' => $bmffoerderrelevant,
 							'orgformcode' => $orgformcode,
 							'perskz' => $perskz,
@@ -404,13 +404,13 @@ class DVUHSyncLib
 				return error("error when getting Diplomanden");
 			elseif (hasData($diplomandResult))
 			{
-				$diplomandcount = getData($diplomandResult);
+				$diplomandcount = getData($diplomandResult)[0];
 
-				if($diplomandcount->dipl > 1)
+				if ($diplomandcount->dipl > 1)
 				{
 					$ausbildungssemester = 50;
 				}
-				if($diplomandcount->dipl > 3)
+				if ($diplomandcount->dipl > 3)
 				{
 					$ausbildungssemester = 60;
 				}
@@ -420,8 +420,11 @@ class DVUHSyncLib
 		return success($ausbildungssemester);
 	}
 
-	private function _getGemeinsameStudien($prestudent_id, $semester)
+	private function _getGemeinsameStudien($prestudentstatus, $semester)
 	{
+		$prestudent_id = $prestudentstatus->prestudent_id;
+		$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
+
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 
 		$kodex_studientyp_array = array();
@@ -471,8 +474,8 @@ class DVUHSyncLib
 			else
 				return error('no status found for gemeinsame Studien');
 
-			if (isset($kodex_studientyp_array[$gemeinsamestudien->gsstudientyp_kurzbz]))
-				$studtyp = $kodex_studientyp_array[$gemeinsamestudien->gsstudientyp_kurzbz];
+			if (isset($kodex_studientyp_array[$gsstudientyp_kurzbz]))
+				$studtyp = $kodex_studientyp_array[$gsstudientyp_kurzbz];
 			else
 				return error('no studientyp found for gemeinsame Studien');
 
@@ -503,7 +506,7 @@ class DVUHSyncLib
 
 		$ioResult = $this->_dbModel->execReadOnlyQuery("SELECT *
 					FROM bis.tbl_bisio WHERE student_uid=?
-					AND von between ? and ?;",
+					AND bis >= ? AND von <= ?;",
 					array($prestudentstatus->student_uid, $semester->start, $semester->ende)
 		);
 
