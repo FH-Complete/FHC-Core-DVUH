@@ -14,6 +14,8 @@ class Studium_model extends DVUHClientModel
 	{
 		parent::__construct();
 		$this->_url = '/rws/0.5/studium.xml';
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	/**
@@ -45,14 +47,10 @@ class Studium_model extends DVUHClientModel
 		}
 
 		return $result;
-		//echo print_r($result,true);
-		// TODO Parse Result, Handle Errors
 	}
 
 	public function post($be, $person_id, $semester, $preview = false)
 	{
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
-
 		$result = null;
 
 		$studiumDataResult = $this->dvuhsynclib->getStudiumData($person_id, $semester);

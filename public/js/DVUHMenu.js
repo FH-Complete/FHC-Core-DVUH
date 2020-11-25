@@ -106,6 +106,7 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('studiengebuehr', 'Studiengebühr', 'In Cent', 10)
 					+ DVUHMenu._getTextfieldHtml('valutadatum', 'Valutadatum', 'Format: YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('valutadatumnachfrist', 'Valutadatum Nachfrist', 'Format: YYYY-MM-DD', 10)
+					+ DVUHMenu._getTextfieldHtml('studiengebuehrnachfrist', 'Studiengebühr Nachfrist', 'In Cent', 10)
 				method = 'post';
 				action = 'postStammdaten';
 				writePreviewButton = true;

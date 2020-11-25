@@ -217,6 +217,7 @@ class DVUH extends Auth_Controller
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 		$oehbeitrag = isset($data['oehbeitrag']) ? $data['oehbeitrag'] : null;
 		$studiengebuehr = isset($data['studiengebuehr']) ? $data['studiengebuehr'] : null;
+		$studiengebuehrnachfrist = isset($data['studiengebuehrnachfrist']) ? $data['studiengebuehrnachfrist'] : null;
 
 		// valutadatum?? Buchungsdatum + Mahnspanne
 		$valutadatum = isset($data['valutadatum']) ? $data['valutadatum'] : null;
@@ -225,7 +226,7 @@ class DVUH extends Auth_Controller
 		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 
 		$json = $this->StammdatenModel->post(
-			$be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $preview
+			$be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist, $preview
 		);
 
 		$this->outputJson($json);

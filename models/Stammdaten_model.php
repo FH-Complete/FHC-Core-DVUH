@@ -44,7 +44,9 @@ class Stammdaten_model extends DVUHClientModel
 		return $result;
 	}
 
-	public function post($be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $preview = false)
+	public function post($be, $person_id, $semester,
+						 $oehbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+						 $studiengebuehrnachfrist = null, $preview = false)
 	{
 		$result = null;
 
@@ -87,6 +89,7 @@ class Stammdaten_model extends DVUHClientModel
 
 				$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
 				$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
+				$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
 
 				// valutadatum?? Buchungsdatum + Mahnspanne
 				$valutadatum = isset($valutadatum) ? $valutadatum : date_format(date_create(), 'Y-m-d');
@@ -98,7 +101,7 @@ class Stammdaten_model extends DVUHClientModel
 					'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
 					'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
 					'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
-					'studiengebuehrnachfrist' => $studiengebuehr, //  in CENT!!!
+					'studiengebuehrnachfrist' => $studiengebuehrnachfrist, //  in CENT!!!
 					'valutadatum' => $valutadatum,
 					'valutadatumnachfrist' => $valutadatumnachfrist
 				);
@@ -110,7 +113,6 @@ class Stammdaten_model extends DVUHClientModel
 					$result = success($postData);
 				else
 					$result = $this->_call('POST', null, $postData);
-
 			}
 		}
 

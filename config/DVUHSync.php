@@ -1,5 +1,8 @@
 <?php
 
+$config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 0;
+$config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; //10.5;
+
 $config['fhc_dvuh_sync_not_foerderrelevant'] = array(); // prestudent_ids set to not foerderrelevant
 $config['fhc_dvuh_sync_student_standort'] = array(); // $prestudent_id => $standortid
 $config['fhc_dvuh_sync_standortcode_wien'] = '22';
