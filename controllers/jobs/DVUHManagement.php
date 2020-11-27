@@ -41,10 +41,12 @@ class DVUHManagement extends JQW_Controller
 				array(date('Y-m-d H:i:s')) // Job properties new values
 			);
 
-			$person_arr = $this->_getPersonIdArray(getData($lastJobs));
+			$person_arr = $this->_getInputObjArray(getData($lastJobs));
 
-			foreach ($person_arr as $person_id)
+			foreach ($person_arr as $persobj)
 			{
+				$person_id = $persobj->person_id;
+
 				$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id);
 
 				if (isError($requestMatrnrResult))
@@ -109,29 +111,26 @@ class DVUHManagement extends JQW_Controller
 				array(date('Y-m-d H:i:s')) // Job properties new values
 			);
 
-			$person_arr = $this->_getPersonIdArray(getData($lastJobs));
+			$person_arr = $this->_getInputObjArray(getData($lastJobs));
 
-			foreach ($person_arr as $person_id)
+			foreach ($person_arr as $persobj)
 			{
-				$sendChargeResult = $this->dvuhmanagementlib->sendCharge($person_id);
+				$person_id = $persobj->person_id;
+				$studiensemester = $persobj->studiensemester_kurzbz;
+
+				$sendChargeResult = $this->dvuhmanagementlib->sendCharge($person_id, $studiensemester);
 
 				if (isError($sendChargeResult))
-					$this->logError("An error occurred while sending charge, person Id $person_id", getError($sendChargeResult));
+					$this->logError("An error occurred while sending charge, person Id $person_id, studiensemester $studiensemester", getError($sendChargeResult));
 				elseif (hasData($sendChargeResult))
 				{
-					$sendChargeItems = getData($sendChargeResult);
+					$sendCharge = getData($sendChargeResult);
 
-					if (is_string($sendChargeItems))
-						$this->logInfo($sendChargeItems . ", person_id $person_id");
-					elseif (is_array($sendChargeItems))
+					if (is_string($sendCharge))
+						$this->logInfo($sendCharge . ", person_id $person_id, studiensemester $studiensemester");
+					else
 					{
-						foreach ($sendChargeItems as $chargeRes)
-						{
-							if (isError($chargeRes))
-								$this->logError("An error occurred while sending charge, person Id $person_id", getError($chargeRes));
-							elseif (hasData($chargeRes))
-								$this->logInfo("Stammdaten with charge of student with person Id $person_id, studiensemester " . getData($chargeRes)['studiensemester_kurzbz'] . " successfully sent");
-						}
+						$this->logInfo("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
 					}
 				}
 			}
@@ -149,7 +148,125 @@ class DVUHManagement extends JQW_Controller
 		$this->logInfo('DVUHSendCharge job stop');
 	}
 
-	private function _getPersonIdArray($jobs)
+	public function sendPayment()
+	{
+		$jobType = 'DVUHSendPayment';
+		$this->logInfo('DVUHSendPayment job start');
+
+		// Gets the latest jobs
+		$lastJobs = $this->getLastJobs($jobType);
+		if (isError($lastJobs))
+		{
+			$this->logError(getCode($lastJobs).': '.getError($lastJobs), $jobType);
+		}
+		else
+		{
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_START_TIME), // Job properties to be updated
+				array(date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			$person_arr = $this->_getInputObjArray(getData($lastJobs));
+
+			foreach ($person_arr as $persobj)
+			{
+				$person_id = $persobj->person_id;
+				$studiensemester = $persobj->studiensemester_kurzbz;
+
+				$sendPaymentResult = $this->dvuhmanagementlib->sendPayment($person_id, $studiensemester);
+
+				if (isError($sendPaymentResult))
+					$this->logError("An error occurred while sending charge, person Id $person_id, studiensemester $studiensemester", getError($sendPaymentResult));
+				elseif (hasData($sendPaymentResult))
+				{
+					$sendPaymentItems = getData($sendPaymentResult);
+
+					if (is_string($sendPaymentItems))
+						$this->logInfo($sendPaymentItems . ", person Id $person_id, studiensemester $studiensemester");
+					elseif (is_array($sendPaymentItems))
+					{
+						foreach ($sendPaymentItems as $chargeRes)
+						{
+							if (isError($chargeRes))
+								$this->logError("An error occurred while sending payment, person Id $person_id, studiensemester $studiensemester", getError($chargeRes));
+							elseif (hasData($chargeRes))
+								$this->logInfo("Payment of student with person Id $person_id, studiensemester $studiensemester successfully sent");
+						}
+					}
+				}
+			}
+
+			// Update jobs properties values
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_STATUS, JobsQueueLib::PROPERTY_END_TIME), // Job properties to be updated
+				array(JobsQueueLib::STATUS_DONE, date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
+		}
+
+		$this->logInfo('DVUHSendPayment job stop');
+	}
+
+	public function sendStudyData()
+	{
+		$jobType = 'DVUHSendStudyData';
+		$this->logInfo('DVUHSendStudyData job start');
+
+		// Gets the latest jobs
+		$lastJobs = $this->getLastJobs($jobType);
+		if (isError($lastJobs))
+		{
+			$this->logError(getCode($lastJobs).': '.getError($lastJobs), $jobType);
+		}
+		else
+		{
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_START_TIME), // Job properties to be updated
+				array(date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			$prestudent_arr = $this->_getInputObjArray(getData($lastJobs));
+
+			foreach ($prestudent_arr as $prsobj)
+			{
+				$prestudent_id = $prsobj->prestudent_id;
+				$studiensemester = $prsobj->studiensemester_kurzbz;
+
+				$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($prestudent_id, $studiensemester);
+
+				if (isError($sendStudyDataResult))
+					$this->logError("An error occurred while sending study data, prestudent Id $prestudent_id, studiensemester $studiensemester", getError($sendStudyDataResult));
+				elseif (hasData($sendStudyDataResult))
+				{
+					$sendStudyData = getData($sendStudyDataResult);
+
+					if (is_string($sendStudyData))
+						$this->logInfo($sendStudyData . ", prestudent_id $prestudent_id, studiensemester $studiensemester");
+					else
+					{
+						$this->logInfo("Study data for student with prestudent Id $prestudent_id, studiensemester $studiensemester successfully sent");
+					}
+				}
+			}
+
+			// Update jobs properties values
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_STATUS, JobsQueueLib::PROPERTY_END_TIME), // Job properties to be updated
+				array(JobsQueueLib::STATUS_DONE, date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
+		}
+
+		$this->logInfo('DVUHSendStudyData job stop');
+	}
+
+	private function _getInputObjArray($jobs)
 	{
 		$mergedUsersArray = array();
 
@@ -162,7 +279,7 @@ class DVUHManagement extends JQW_Controller
 			{
 				foreach ($decodedInput as $el)
 				{
-					$mergedUsersArray[] = $el->person_id;
+					$mergedUsersArray[] = $el;
 				}
 			}
 		}

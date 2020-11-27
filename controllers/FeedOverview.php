@@ -22,6 +22,7 @@ class FeedOverview extends Auth_Controller
 		);
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
+
 		$this->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
 	}
 
@@ -33,6 +34,7 @@ class FeedOverview extends Auth_Controller
 	 */
 	public function index()
 	{
+		$this->load->library('WidgetLib');
 		$this->load->view(
 			'extensions/FHC-Core-DVUH/feeds'
 		);

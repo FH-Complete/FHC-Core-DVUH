@@ -12,16 +12,19 @@ $this->load->view(
 		'ajaxlib' => true,
 		'customJSs' => array(
 			'public/extensions/FHC-Core-DVUH/js/feedoverview.js'
-		),
+		)/*,
 		'customCSSs' => array(
 			'public/css/sbadmin2/admintemplate_contentonly.css'
-		)
+		)*/
 	)
 );
 ?>
 
 <body>
 <div id="wrapper">
+	<?php
+	echo $this->widgetlib->widget('NavigationWidget');
+	?>
 	<div id="page-wrapper">
 		<div class="container-fluid">
 			<div class="row">

@@ -47,7 +47,6 @@ class DVUHSyncLib
 				$addr['strasse'] = $adresse->strasse;
 				$addr['staat'] = $adresse->nation;
 
-
 				if ($adresse->zustelladresse === true)
 				{
 					$addr['typ'] = 'S';
@@ -139,7 +138,7 @@ class DVUHSyncLib
 			return error("keine Stammdaten gefunden");
 	}
 
-	public function getStudiumData($person_id, $semester)
+	public function getStudyData($person_id, $semester, $prestudent_id = null)
 	{
 		$resultObj = new stdClass();
 
@@ -155,8 +154,7 @@ class DVUHSyncLib
 			// Meldung pro Student, Studium und Semester
 			$active_status = array(/*'Aufgenommener',*/ 'Student', 'Incoming', 'Diplomand');
 
-			$prestudentstatusesResult = $this->_dbModel->execReadOnlyQuery("
-				SELECT ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
+			$qry = "SELECT ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
 				       stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
 				       pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester,
 				       tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
@@ -180,13 +178,21 @@ class DVUHSyncLib
 				   AND (stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0) 
 				   AND ps.person_id = ? 
 				   AND pss.studiensemester_kurzbz = ?
-				   AND pss.status_kurzbz IN ?
-			", array(
-					$person_id,
-					$semester,
-					$active_status
-				)
+				   AND pss.status_kurzbz IN ?";
+
+			$params = array(
+				$person_id,
+				$semester,
+				$active_status
 			);
+
+			if (isset($prestudent_id))
+			{
+				$qry .= ' AND ps.prestudent_id = ?';
+				$params[] = $prestudent_id;
+			}
+
+			$prestudentstatusesResult = $this->_dbModel->execReadOnlyQuery($qry, $params);
 
 			if (hasData($prestudentstatusesResult))
 			{

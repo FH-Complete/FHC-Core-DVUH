@@ -21,13 +21,17 @@ class DVUHManagementLib
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+		$this->_ci->load->model('crm/Prestudent_model', 'PrestudentModel');
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 		$this->_ci->load->model('organisation/Studienjahr_model', 'StudienjahrModel');
 		$this->_ci->load->model('accounting/Konto_model', 'KontoModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelpruefung_model', 'MatrikelpruefungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelreservierung_model', 'MatrikelreservierungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Zahlung_model', 'ZahlungModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -188,10 +192,9 @@ class DVUHManagementLib
 		return $result;
 	}
 
-	public function sendCharge($person_id)
+	public function sendCharge($person_id, $studiensemester)
 	{
 		$result = null;
-		$resultArr = array();
 
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
@@ -202,6 +205,7 @@ class DVUHManagementLib
 								       studiensemester_kurzbz, TO_CHAR(buchungsdatum + (mahnspanne::text || ' days')::INTERVAL, 'yyyy-mm-dd') as valutadatum
 								FROM public.tbl_konto
 								WHERE person_id = ?
+								  AND studiensemester_kurzbz = ?
 								  AND buchungsnr_verweis IS NULL
 								  AND betrag < 0
 								  AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
@@ -211,108 +215,309 @@ class DVUHManagementLib
 								  AND EXISTS (SELECT 1 FROM public.tbl_prestudent
 								      			JOIN public.tbl_prestudentstatus USING (prestudent_id)
 								      			WHERE tbl_prestudent.person_id = tbl_konto.person_id
-								      			AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz
-								  )
+								      			AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
 								  AND buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
 								  ORDER BY buchungsdatum, buchungsnr",
 			array(
-				$person_id
+				$person_id,
+				$studiensemester
 			)
 		);
 
 		// TODO get Kaution and add it to Studiengebuehr
 
 
-		$vorschreibungen = array();
-		// calculate values for ÖH-Beitrag, studiengebühr (inkl. Kaution)
+		$vorschreibung = array();
+		// calculate values for ÖH-Beitrag, studiengebühr (inkl Kaution)
 		if (hasData($buchungenResult))
 		{
 			$buchungen = getData($buchungenResult);
 
 			foreach ($buchungen as $buchung)
 			{
-				if (!isset($vorschreibungen[$buchung->studiensemester_kurzbz][$buchung->buchungstyp_kurzbz]))
-					$vorschreibungen[$buchung->studiensemester_kurzbz][$buchung->buchungstyp_kurzbz] = 0;
+				if (!isset($vorschreibung[$buchung->buchungstyp_kurzbz]))
+					$vorschreibung[$buchung->buchungstyp_kurzbz] = 0;
 
-				$vorschreibungen[$buchung->studiensemester_kurzbz][$buchung->buchungstyp_kurzbz] += $buchung->betrag * -100;
+				$vorschreibung[$buchung->buchungstyp_kurzbz] += $buchung->betrag;
 
 				if ($buchung->buchungstyp_kurzbz == 'OEH')
 				{
-					$vorschreibungen[$buchung->studiensemester_kurzbz]['valutadatum'] = $buchung->valutadatum;
-					$vorschreibungen[$buchung->studiensemester_kurzbz]['valutadatumnachfrist'] =
+					$vorschreibung['valutadatum'] = $buchung->valutadatum;
+					$vorschreibung['valutadatumnachfrist'] =
 						date('Y-m-d', strtotime($buchung->valutadatum . ' + ' . $valutadatumnachfrist_days . ' days'));
-					$vorschreibungen[$buchung->studiensemester_kurzbz]['oehbuchungsnr'] = $buchung->buchungsnr;
+					$vorschreibung['oehbuchungsnr'] = $buchung->buchungsnr;
 				}
 				elseif ($buchung->buchungstyp_kurzbz == 'Studiengebuehr')
 				{
-					$vorschreibungen[$buchung->studiensemester_kurzbz]['studiengebuehrnachfrist'] = ($buchung->betrag - $studiengebuehrnachfrist_euros) * -100;
-					$vorschreibungen[$buchung->studiensemester_kurzbz]['studiengebuehrbuchungsnr'] = $buchung->buchungsnr;
+					$vorschreibung['studiengebuehrnachfrist'] = ($buchung->betrag - $studiengebuehrnachfrist_euros);
+					$vorschreibung['studiengebuehrbuchungsnr'] = $buchung->buchungsnr;
 				}
 			}
 
 			// send Stammdatenmeldung
-			foreach ($vorschreibungen as $studiensemester => $vorschreibung)
+			if (isset($vorschreibung['OEH']) || isset($vorschreibung['Studiengebuehr']))
 			{
-				if (isset($vorschreibung['OEH']) || isset($vorschreibung['Studiengebuehr']))
+				$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester);
+				$oehbeitrag = isset($vorschreibung['OEH']) ? $vorschreibung['OEH'] * -100 : null;
+				$studiengebuehr = isset($vorschreibung['Studiengebuehr']) ? $vorschreibung['Studiengebuehr'] * -100 : null;
+				$valutdatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
+				$valutdatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
+				$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist'] : null;
+
+				$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $oehbeitrag,
+					$studiengebuehr, $valutdatum, $valutdatumnachfrist, $studiengebuehrnachfrist);
+
+				if (isError($stammdatenResult))
+					$result = $stammdatenResult;
+				elseif (hasData($stammdatenResult))
 				{
-					$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester);
-					$oehbeitrag = isset($vorschreibung['OEH']) ? $vorschreibung['OEH'] : null;
-					$studiengebuehr = isset($vorschreibung['Studiengebuehr']) ? $vorschreibung['Studiengebuehr'] : null;
-					$valutdatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
-					$valutdatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
-					$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist'] : null;
+					$xmlstr = getData($stammdatenResult);
 
-					$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $oehbeitrag,
-						$studiengebuehr, $valutdatum, $valutdatumnachfrist, $studiengebuehrnachfrist);
+					$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
 
-					if (isError($stammdatenResult))
-						$resultArr[] = $stammdatenResult;
-					elseif (hasData($stammdatenResult))
+					if (isError($parsedObj))
+						$result = $parsedObj;
+					else
 					{
-						$xmlstr = getData($stammdatenResult);
+						$result = success(array('person_id' => $person_id, 'studiensemester_kurzbz' => $studiensemester));
 
-						$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
-
-						if (isError($parsedObj))
-							$resultArr[] = $parsedObj;
-						else
+						if (isset($vorschreibung['OEH']) && isset($vorschreibung['oehbuchungsnr']))
 						{
-							$resultArr[] = success(array('person_id' => $person_id, 'studiensemester_kurzbz' => $studiensemester));
+							// save date Buchungsnr and Betrag in sync table
+							$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
+								array(
+									'buchungsdatum' => date('Y-m-d'),
+									'buchungsnr' => $vorschreibung['oehbuchungsnr'],
+									'betrag' => $vorschreibung['OEH']
+								)
+							);
 
-							if (isset($oehbeitrag) && isset($vorschreibungen[$studiensemester]['oehbuchungsnr']))
-							{
-								// save date Buchungsnr and Betrag in sync table
-								$this->_ci->DVUHZahlungenModel->insert(
-									array(
-										'zahlung_datum' => date('Y-m-d'),
-										'buchungsnr' => $vorschreibungen[$studiensemester]['oehbuchungsnr'],
-										'betrag' => $oehbeitrag * (-1)
-									)
-								);
-							}
+							if (isError($zahlungSaveResult))
+								$result = error("Stammdaten save successfull, error when saving OEH-Beitrag Zahlung in FHC");
+						}
 
-							if (isset($studiengebuehr) && isset($vorschreibungen[$studiensemester]['studiengebuehrbuchungsnr']))
-							{
-								// save date Buchungsnr and Betrag in sync table
-								$this->_ci->DVUHZahlungenModel->insert(
-									array(
-										'zahlung_datum' => date('Y-m-d'),
-										'buchungsnr' => $vorschreibungen[$studiensemester]['studiengebuehrbuchungsnr'],
-										'betrag' => $studiengebuehr * (-1)
-									)
-								);
-							}
+						if (isset($vorschreibung['Studiengebuehr']) && isset($vorschreibung['studiengebuehrbuchungsnr']))
+						{
+							// save date Buchungsnr and Betrag in sync table
+							$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
+								array(
+									'buchungsdatum' => date('Y-m-d'),
+									'buchungsnr' => $vorschreibung['studiengebuehrbuchungsnr'],
+									'betrag' => $vorschreibung['Studiengebuehr']
+								)
+							);
+
+							if (isError($zahlungSaveResult))
+								$result = error("Stammdaten save successfull, error when saving Studiengebuehr Zahlung in FHC");
 						}
 					}
-					else
-						$resultArr[] = error('Error when sending Stammdaten');
 				}
+				else
+					$result = error('Error when sending Stammdaten');
 			}
-
-			$result = success($resultArr);
 		}
 		else
-			$result = success("no Buchungen found");
+			$result = success("No Buchungen found");
+
+		return $result;
+	}
+
+	public function sendPayment($person_id, $studiensemester)
+	{
+		$result = null;
+		$zahlungenResArr = array();
+
+		// get paid Buchungen
+		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
+								SELECT matr_nr, buchungsnr, buchungsdatum, betrag, buchungsnr_verweis, zahlungsreferenz, buchungstyp_kurzbz, studiensemester_kurzbz
+								FROM public.tbl_konto
+								JOIN public.tbl_person using(person_id)
+								WHERE person_id = ?
+								  AND studiensemester_kurzbz = ?
+								  AND buchungsnr_verweis IS NOT NULL
+								  AND betrag > 0
+								  AND EXISTS (SELECT 1 FROM public.tbl_prestudent
+								      			JOIN public.tbl_prestudentstatus USING (prestudent_id)
+								      			WHERE tbl_prestudent.person_id = tbl_konto.person_id
+								      			AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
+								  AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
+									WHERE buchungsnr = tbl_konto.buchungsnr
+									AND betrag > 0
+									LIMIT 1)
+								  AND buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
+								  ORDER BY buchungsdatum, buchungsnr",
+			array(
+				$person_id,
+				$studiensemester
+			)
+		);
+
+		// TODO get Kaution and add it to Studiengebuehr
+		// TODO check if paid on other university
+
+		// calculate values for ÖH-Beitrag, studiengebühr
+		if (hasData($buchungenResult))
+		{
+			// check: are there still unpaid Buchungen for the semester? Payment should only be sent if everything is paid
+			// to avoid part payments
+			$openPayments = $this->_dbModel->execReadOnlyQuery("
+								SELECT buchungsnr
+								FROM public.tbl_konto
+								WHERE person_id = ?
+								  AND studiensemester_kurzbz = ?
+								  AND buchungsnr_verweis IS NULL
+								  AND betrag < 0
+								  AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
+								  					WHERE kto.person_id = tbl_konto.person_id
+								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
+								      				LIMIT 1)
+								  AND buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
+								  ORDER BY buchungsdatum, buchungsnr
+								  LIMIT 1",
+				array(
+					$person_id, $studiensemester
+				)
+			);
+
+			if (hasData($openPayments))
+			{
+				return error("There are still open Buchungen.");
+			}
+
+			$buchungen = getData($buchungenResult);
+
+			$paymentsToSend = array();
+			foreach ($buchungen as $buchung)
+			{
+				$buchungsnr = $buchung->buchungsnr;
+
+				// check: all Buchungen to be paid must have been sent to DVUH as Vorschreibung in Stammdatenmeldung
+				$charges = $this->_dbModel->execReadOnlyQuery("
+								SELECT betrag
+								FROM sync.tbl_dvuh_zahlungen
+								WHERE buchungsnr = ?
+								AND betrag < 0
+								ORDER BY buchungsdatum DESC, insertamum DESC
+								LIMIT 1",
+					array(
+						$buchung->buchungsnr_verweis
+					)
+				);
+
+				if (hasData($charges))
+				{
+					if (abs(getData($charges)[0]->betrag) != $buchung->betrag)
+						return error("Buchung: $buchungsnr: payment not equal to charge amount");
+				}
+				else
+					return error("Buchung $buchungsnr: no charge before the payment");
+
+				$payment = new stdClass();
+				$payment->be = $this->_be;
+				$payment->matrikelnummer = $buchung->matr_nr;
+				$payment->semester = $this->_convertSemesterToDVUH($buchung->studiensemester_kurzbz);
+				$payment->zahlungsart = '1';
+				$payment->centbetrag = $buchung->betrag * 100;
+				$payment->eurobetrag = $buchung->betrag;
+				$payment->buchungsdatum = $buchung->buchungsdatum;
+				$payment->buchungstyp = $buchung->buchungstyp_kurzbz;
+				$payment->referenznummer = $buchung->buchungsnr;
+
+				$paymentsToSend[] = $payment;
+			}
+
+			//TODO check: Sum of Betrag to send must be equal to sum of Betrag of Stammdatenmeldungen
+
+			foreach ($paymentsToSend as $payment)
+			{
+				$zahlungResult = $this->_ci->ZahlungModel->post($this->_be, $payment->matrikelnummer, $payment->semester, $payment->zahlungsart,
+					$payment->centbetrag, $payment->buchungsdatum, $payment->referenznummer);
+
+				if (isError($zahlungResult))
+					$zahlungenResArr[] = $zahlungResult;
+				elseif (hasData($zahlungResult))
+				{
+					$xmlstr = getData($zahlungResult);
+
+					$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+
+					if (isError($parsedObj))
+						$zahlungenResArr[] = $parsedObj;
+					else
+					{
+						// save date Buchungsnr and Betrag in sync table
+						$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
+							array(
+								'buchungsdatum' => date('Y-m-d'),
+								'buchungsnr' => $payment->referenznummer,
+								'betrag' => $payment->eurobetrag
+							)
+						);
+
+						if (isError($zahlungSaveResult))
+							$zahlungenResArr[] = error("Payment successfull, error when saving " . $payment->buchungstyp . " payment in FHC");
+						else
+							$zahlungenResArr[] = success(array('person_id' => $person_id, 'studiensemester_kurzbz' => $studiensemester));
+					}
+				}
+				else
+					$zahlungenResArr[] = error('Error when sending Stammdaten');
+			}
+		}
+		else
+			return success("No Buchungen found");
+
+		return success($zahlungenResArr);
+	}
+
+	public function sendStudyData($prestudent_id, $studiensemester)
+	{
+		$result = null;
+
+		$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester);
+
+		$this->_ci->PrestudentModel->addSelect('person_id');
+		$personIdRes = $this->_ci->PrestudentModel->load($prestudent_id);
+
+		if (hasData($personIdRes))
+		{
+			$person_id = getData($personIdRes)[0]->person_id;
+
+			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
+
+			if (isError($studiumResult))
+				$result = $studiumResult;
+			elseif (hasData($studiumResult))
+			{
+				$xmlstr = getData($studiumResult);
+
+				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+
+				if (isError($parsedObj))
+					$result = $parsedObj;
+				else
+				{
+					$result = success(array('prestudent_id' => $prestudent_id, 'studiensemester_kurzbz' => $studiensemester));
+
+					// save info about saved studiumdata in sync table
+					$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
+						array(
+							'prestudent_id' => $prestudent_id,
+							'studiensemester_kurzbz' => $studiensemester,
+							'meldedatum' => date('Y-m-d')
+						)
+					);
+
+					if (isError($studiumSaveResult))
+						$result = error("Study data save successfull, error when saving info in FHC");
+
+				}
+			}
+			else
+				$result = error('Error when sending study data');
+		}
+		else
+			$result = error('No person found for prestudent');
 
 		return $result;
 	}

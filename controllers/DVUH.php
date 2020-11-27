@@ -38,7 +38,6 @@ class DVUH extends Auth_Controller
 
 	public function index()
 	{
-		//$action = $this->input->get('action');
 		$this->load->library('WidgetLib');
 		$this->load->view('extensions/FHC-Core-DVUH/dvuh'/*, array('action' => $action)*/);
 	}
@@ -271,7 +270,7 @@ class DVUH extends Auth_Controller
 		$this->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 
 		$json = $this->StudiumModel->post(
-			$be, $person_id, $semester, $preview
+			$be, $person_id, $semester, null, $preview
 		);
 
 		$this->outputJson($json);

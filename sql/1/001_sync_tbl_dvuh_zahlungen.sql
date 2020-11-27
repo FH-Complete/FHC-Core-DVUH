@@ -1,12 +1,13 @@
 CREATE TABLE IF NOT EXISTS sync.tbl_dvuh_zahlungen (
     zahlung_id bigint NOT NULL,
-    zahlung_datum date NOT NULL,
+    buchungsdatum date NOT NULL,
     buchungsnr integer NOT NULL,
-    betrag integer NOT NULL
+    betrag numeric(8,2) NOT NULL,
+    insertamum timestamp DEFAULT now()
 );
 
 COMMENT ON TABLE sync.tbl_dvuh_zahlungen IS 'Table to save charges and payments sent to DVUH';
-COMMENT ON COLUMN sync.tbl_dvuh_zahlungen.zahlung_datum IS 'date of charge / payment sent to DVUH';
+COMMENT ON COLUMN sync.tbl_dvuh_zahlungen.buchungsdatum IS 'date of charge / payment sent to DVUH';
 COMMENT ON COLUMN sync.tbl_dvuh_zahlungen.buchungsnr IS 'associated Buchung in FHC';
 COMMENT ON COLUMN sync.tbl_dvuh_zahlungen.betrag IS 'amount charged / payed in cents';
 
