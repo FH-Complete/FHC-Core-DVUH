@@ -64,7 +64,7 @@ var FeedOverview = {
 		{
 			var entry = feedentries[i];
 
-			var props = ["id", "author", "published", "updated", "content"]
+			var props = ["id", "author", "published", "updated", "contentHtml"]
 
 			feedentrstr +=
 				'<div class="panel panel-default">' +

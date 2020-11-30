@@ -2,7 +2,7 @@
 $this->load->view(
 	'templates/FHC-Header',
 	array(
-		'title' => 'SAP DVUH Feeds',
+		'title' => 'DVUH Feeds',
 		'jquery' => true,
 		'jqueryui' => true,
 		'bootstrap' => true,

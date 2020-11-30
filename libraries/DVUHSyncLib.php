@@ -148,6 +148,7 @@ class DVUHSyncLib
 		{
 			$person = getData($personresult)[0];
 			$resultObj->matrikelnummer = $person->matr_nr;
+			$gebdatum = $person->gebdatum;
 
 			$semester = $this->_convertSemesterToFHC($semester);
 
@@ -215,18 +216,35 @@ class DVUHSyncLib
 					// studstatuscode
 					$studstatuscodeResult = $this->_getStatuscode($status_kurzbz);
 
-					// studiengang kz
-					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad($studiengang_kz, 4, '0', STR_PAD_LEFT);
-
-					// zgv
-					$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
-
 					if (isError($studstatuscodeResult))
 						return $studstatuscodeResult;
 					if (hasData($studstatuscodeResult))
 					{
 						$studstatuscode = getData($studstatuscodeResult);
+					}
+
+					// studiengang kz
+					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . str_pad($studiengang_kz, 4, '0', STR_PAD_LEFT);
+
+					// zgv
+					$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum);
+
+					if (isError($zugangsberechtigungResult))
+						return $zugangsberechtigungResult;
+					if (hasData($zugangsberechtigungResult))
+					{
+						$zugangsberechtigung = getData($zugangsberechtigungResult);
+					}
+
+					// zgv master
+					$zugangsberechtigungMAResult = $this->_getZgvMaster($prestudentstatus, $gebdatum);
+
+					if (isset($zugangsberechtigungMAResult) && isError($zugangsberechtigungMAResult))
+						return $zugangsberechtigungMAResult;
+					if (hasData($zugangsberechtigungMAResult))
+					{
+						$zugangsberechtigungMA = getData($zugangsberechtigungMAResult);
 					}
 
 					// lehrgang
@@ -236,16 +254,15 @@ class DVUHSyncLib
 							'lehrgangsnr' => $dvuh_stgkz,
 							'perskz' => $perskz,
 							'studstatuscode' => $studstatuscode,
-							'zugangsberechtigung' => array(
-								'datum' => $prestudentstatus->zgvdatum,
-								'staat' => $prestudentstatus->zgvnation,
-								'voraussetzung' => $zugangsvoraussetzung // Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden??
-							),
+							'zugangsberechtigung' => $zugangsberechtigung,
 							'zulassungsdatum' => $prestudentstatus->beginndatum
 						);
 
 						if (isset($prestudentstatus->beendigungsdatum))
 							$lehrgang['beendigungsdatum'] = $prestudentstatus->beendigungsdatum;
+
+						if (isset($zugangsberechtigungMA))
+							$lehrgang['zugangsberechtigungMA'] = $zugangsberechtigungMA;
 
 						$lehrgaenge[] = $lehrgang;
 					}
@@ -323,17 +340,8 @@ class DVUHSyncLib
 						if (isEmptyString($prestudentstatus->berufstaetigkeit_code) && $orgformcode != '1' ) // wenn nicht Vollzeit
 							return error('Berufstätigkeitcode fehlt');
 
-						$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
-
-						// zgv master
-						$zugangsberechtigungMAResult = $this->_getZgvMaster($prestudentstatus);
-
-						if (isset($zugangsberechtigungMAResult) && isError($zugangsberechtigungMAResult))
-							return $zugangsberechtigungMAResult;
-						if (hasData($zugangsberechtigungMAResult))
-						{
-							$zugangsberechtigungMA = getData($zugangsberechtigungMAResult);
-						}
+						// TODO: there is no code 0 - use 1 instead?
+						$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code == '0' ? '1' : $prestudentstatus->berufstaetigkeit_code;
 
 						$studiengang = array(
 							'disloziert' => 'N', // J,N,j,n
@@ -345,11 +353,7 @@ class DVUHSyncLib
 							'stgkz' => $dvuh_stgkz, // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
 							'studstatuscode' => $studstatuscode,
 							//'vornachperskz' => '1910331006',
-							'zugangsberechtigung' => array(
-								'datum' => $prestudentstatus->zgvdatum,
-								'staat' => $prestudentstatus->zgvnation,
-								'voraussetzung' => $zugangsvoraussetzung // Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden??
-							),
+							'zugangsberechtigung' => $zugangsberechtigung,
 							'zulassungsdatum' => $prestudentstatus->beginndatum
 						);
 
@@ -376,7 +380,7 @@ class DVUHSyncLib
 			}
 			else
 			{
-				return error('No active students for given semester.');
+				return error('Keine aktiven Studenten für das gegebene Semester');
 			}
 		}
 
@@ -470,7 +474,7 @@ class DVUHSyncLib
 		);
 
 		if (isError($gemeinsamestudienResult))
-			return error("error when getting gemeinsame Studien");
+			return error("Fehler beim Holen gemeinsamer Studien");
 		if (hasData($gemeinsamestudienResult))
 		{
 			$gemeinsamestudien = getData($gemeinsamestudienResult)[0];
@@ -478,12 +482,12 @@ class DVUHSyncLib
 			if (isset($kodex_studstatuscode_array[$gemeinsamestudien->status_kurzbz]))
 				$gs_studstatuscode = $kodex_studstatuscode_array[$gemeinsamestudien->status_kurzbz];
 			else
-				return error('no status found for gemeinsame Studien');
+				return error('Kein Status für gemeinsame Studien gefunden');
 
 			if (isset($kodex_studientyp_array[$gsstudientyp_kurzbz]))
 				$studtyp = $kodex_studientyp_array[$gsstudientyp_kurzbz];
 			else
-				return error('no studientyp found for gemeinsame Studien');
+				return error('Kein Studientyp für gemeinsame Studien gefunden');
 
 			$gemeinsam = array(
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
@@ -686,7 +690,7 @@ class DVUHSyncLib
 			return success($orgform_code_array[$orgform_kurzbz]);
 		}
 		else
-			return error("error when getting orgform");
+			return error("Fehler beim Holen der Orgform");
 	}
 
 	private function _getStandort($prestudent_id, $studiengang_kz)
@@ -738,7 +742,34 @@ class DVUHSyncLib
 		return success($studstatuscode);
 	}
 
-	private function _getZgvMaster($prestudentstatus)
+	private function _getZgv($prestudentstatus, $gebdatum)
+	{
+		$zugangsberechtigung = null;
+
+		if (!isset($prestudentstatus->zgv_code))
+			return error("Zgv fehlt");
+
+		if($prestudentstatus->zgvdatum > date("Y-m-d"))
+		{
+			return error("ZGV Datum in Zukunft");
+		}
+		if($prestudentstatus->zgvdatum < $gebdatum)
+		{
+			return error("ZGV Datum vor Geburtsdatum");
+		}
+
+		$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
+
+		$zugangsberechtigung = array(
+			'datum' => $prestudentstatus->zgvdatum,
+			'staat' => $prestudentstatus->zgvnation,
+			'voraussetzung' => $zugangsvoraussetzung  // Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
+		);
+
+		return success($zugangsberechtigung);
+	}
+
+	private function _getZgvMaster($prestudentstatus, $gebdatum)
 	{
 		$zugangsberechtigungMA = null;
 
@@ -746,6 +777,19 @@ class DVUHSyncLib
 		{
 			if (!isset($prestudentstatus->zgvmas_code))
 				return error("Zgv Master fehlt");
+
+			if($prestudentstatus->zgvmadatum > date("Y-m-d"))
+			{
+				return error("ZGV Masterdatum in Zukunft");
+			}
+			if($prestudentstatus->zgvmadatum < $prestudentstatus->zgvdatum)
+			{
+				return error("ZGV Masterdatum bevor Zgvdatum");
+			}
+			if($prestudentstatus->zgvmadatum < $gebdatum)
+			{
+				return error("ZGV Masterdatum vor Geburtsdatum");
+			}
 
 			$zugangsvoraussetzung_ma = str_pad($prestudentstatus->zgvmas_code, 2, '0', STR_PAD_LEFT);
 

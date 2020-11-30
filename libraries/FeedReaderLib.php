@@ -48,8 +48,9 @@ class FeedReaderLib
 
 						if ($child->tagName === 'content')
 						{
+							$feedentry->contentXml = $doc->saveXML($child);
 							$this->_getFeedContentString($child, $contentStr);
-							$feedentry->content = $contentStr;
+							$feedentry->contentHtml = $contentStr;
 							$matrikelnr_filter = $this->_getMatrikelnr($child);
 
 							if (!isEmptyString($matrikelnummer) && isset($matrikelnr_filter) && !strstr($matrikelnr_filter, $matrikelnummer))

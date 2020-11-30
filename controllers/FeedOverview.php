@@ -61,13 +61,13 @@ class FeedOverview extends Auth_Controller
 		$queryResult = $this->FeedModel->get($be, $content, $erstelltSeit, $markread);
 
 		if (isError($queryResult))
-			$result = getError($queryResult);
+			$result = $queryResult;
 		elseif (hasData($queryResult))
 		{
 			$feeds = $this->feedreaderlib->parseFeeds(getData($queryResult), $matrikelnummer);
 
 			if (isError($feeds))
-				$result = getError($feeds);
+				$result = $feeds;
 			elseif (hasData($feeds))
 				$result = $feeds;
 			else

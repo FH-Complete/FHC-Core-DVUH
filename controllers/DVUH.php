@@ -39,7 +39,7 @@ class DVUH extends Auth_Controller
 	public function index()
 	{
 		$this->load->library('WidgetLib');
-		$this->load->view('extensions/FHC-Core-DVUH/dvuh'/*, array('action' => $action)*/);
+		$this->load->view('extensions/FHC-Core-DVUH/dvuh');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

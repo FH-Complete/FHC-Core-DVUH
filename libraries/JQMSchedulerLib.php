@@ -44,7 +44,7 @@ class JQMSchedulerLib
 			$studiensemester = getData($studiensemesterResult)[0]->studiensemester_kurzbz;
 
 			// get students with no Matrikelnr
-			$qry = "SELECT DISTINCT person_id
+			$qry = "SELECT DISTINCT person_id, pss.studiensemester_kurzbz
 					FROM public.tbl_person pers
 						JOIN public.tbl_prestudent ps USING (person_id)
 						JOIN public.tbl_student using(prestudent_id)
@@ -78,6 +78,51 @@ class JQMSchedulerLib
 
 		return $result;
 	}
+
+/*	public function sendMasterData()
+	{
+		$jobInput = null;
+		$result = null;
+
+		// person, adresse, kontakt
+
+		// get students whose master data changed
+		$qry = "SELECT DISTINCT person_id, pss.studiensemester_kurzbz
+				FROM public.tbl_person pers
+					JOIN public.tbl_prestudent ps USING (person_id)
+					JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
+					JOIN public.tbl_studiensemester USING(studiensemester_kurzbz)
+					JOIN public.tbl_student using(prestudent_id)
+					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
+					LEFT JOIN public.tbl_kontakt ktkt on pers.person_id = ktkt.person_id
+					LEFT JOIN public.tbl_adresse adr on pers.person_id = adr.person_id
+				WHERE ps.bismelden = true
+					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
+					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
+				  	AND pers.insertamum > ? OR ktkt.insertamum > ? OR adr.insertamum > ?
+						OR pers.updateamum > ? OR ktkt.updateamum > ? OR adr.updateamum > ?
+					AND tbl_studiensemester.ende >= ?::date";
+
+		$dbModel = new DB_Model();
+
+		$maToSyncResult = $dbModel->execReadOnlyQuery(
+			$qry,
+			array($this->_startdatum)
+		);
+
+		// If error occurred while retrieving students from database then return the error
+		if (isError($maToSyncResult)) return $maToSyncResult;
+
+		// If students are present
+		if (hasData($maToSyncResult))
+		{
+			$jobInput = json_encode(getData($maToSyncResult));
+		}
+
+		$result = success($jobInput);
+
+		return $result;
+	}*/
 
 	public function sendCharge()
 	{

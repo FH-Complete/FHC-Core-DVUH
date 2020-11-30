@@ -53,6 +53,35 @@ class JQMScheduler extends JQW_Controller
 		$this->logInfo('End job queue scheduler FHC-Core-DVUH->requestMatrikelnummer');
 	}
 
+/*	public function sendMasterdata()
+	{
+		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendMasterdata');
+
+		// If an error occured then log it
+		$jobInputResult = $this->jqmschedulerlib->sendMasterdata();
+
+		if (isError($jobInputResult))
+		{
+			$this->logError(getError($jobInputResult));
+		}
+		else
+		{
+			// Add the new job to the jobs queue
+			$addNewJobResult = $this->addNewJobsToQueue(
+				JQMSchedulerLib::JOB_TYPE_SEND_MASTERDATA, // job type
+				$this->generateJobs( // gnerate the structure of the new job
+					JobsQueueLib::STATUS_NEW,
+					getData($jobInputResult)
+				)
+			);
+
+			// If error occurred return it
+			if (isError($addNewJobResult)) $this->logError(getError($addNewJobResult));
+		}
+
+		$this->logInfo('End job queue scheduler FHC-Core-DVUH->sendMasterdata');
+	}*/
+
 	public function sendCharge()
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendCharge');

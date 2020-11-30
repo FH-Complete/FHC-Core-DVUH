@@ -46,8 +46,9 @@ class DVUHManagement extends JQW_Controller
 			foreach ($person_arr as $persobj)
 			{
 				$person_id = $persobj->person_id;
+				$studiensemester_kurzbz = $persobj->studiensemester_kurzbz;
 
-				$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id);
+				$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id, $studiensemester_kurzbz);
 
 				if (isError($requestMatrnrResult))
 					$this->logError("An error occurred while requesting Matrikelnummer, person Id $person_id", getError($requestMatrnrResult));
@@ -62,11 +63,11 @@ class DVUHManagement extends JQW_Controller
 						elseif ($requestMatrnrObj->matr_aktiv == false)
 							$this->logInfo('New Matrikelnr ' . $requestMatrnrObj->matr_nr . ' preliminary assigned to person Id ' . $person_id);
 
-						$sendStammdatenResult = $this->dvuhmanagementlib->sendStammdaten($person_id);
+						$sendMasterdataResult = $this->dvuhmanagementlib->sendMasterdata($person_id, $studiensemester_kurzbz);
 
-						if (isError($sendStammdatenResult))
-							$this->logError("An error occurred while sending Stammdaten, person Id $person_id", getError($sendStammdatenResult));
-						elseif (hasData($sendStammdatenResult))
+						if (isError($sendMasterdataResult))
+							$this->logError("An error occurred while sending Stammdaten, person Id $person_id", getError($sendMasterdataResult));
+						elseif (hasData($sendMasterdataResult))
 						{
 							$this->logInfo("Stammdaten of student with id $person_id successfully sent");
 						}

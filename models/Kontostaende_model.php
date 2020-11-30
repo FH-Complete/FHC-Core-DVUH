@@ -46,7 +46,5 @@ class Kontostaende_model extends DVUHClientModel
 		}
 
 		return $result;
-		//echo print_r($result,true);
-		// TODO Parse Result, Handle Errors
 	}
 }
