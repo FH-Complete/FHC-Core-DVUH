@@ -29,6 +29,18 @@ class Zahlung_model extends DVUHClientModel
 	 */
 	public function post($be, $matrikelnummer, $semester, $zahlungsart, $centbetrag, $buchungsdatum, $referenznummer)
 	{
+		$postData = $this->retrievePostData($be, $matrikelnummer, $semester, $zahlungsart, $centbetrag, $buchungsdatum, $referenznummer);
+
+		if (isError($postData))
+			$result = $postData;
+		else
+			$result = $this->_call('POST', null, getData($postData));
+
+		return $result;
+	}
+
+	public function retrievePostData($be, $matrikelnummer, $semester, $zahlungsart, $centbetrag, $buchungsdatum, $referenznummer)
+	{
 		if (isEmptyString($matrikelnummer))
 			$result = error('Matrikelnummer nicht gesetzt');
 		elseif (isEmptyString($semester))
@@ -55,7 +67,7 @@ class Zahlung_model extends DVUHClientModel
 			);
 
 			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/zahlung', $params, true);
-			$result = $this->_call('POST', null, $postData);
+			$result = success($postData);
 		}
 
 		return $result;

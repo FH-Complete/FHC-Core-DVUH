@@ -45,8 +45,23 @@ class Stammdaten_model extends DVUHClientModel
 	}
 
 	public function post($be, $person_id, $semester,
-						 $oehbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
-						 $studiengebuehrnachfrist = null, $preview = false)
+						 $matrikelnummer = null, $oehbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+						 $studiengebuehrnachfrist = null)
+	{
+		$postData = $this->retrievePostData($be, $person_id, $semester, $matrikelnummer, $oehbeitrag, $studiengebuehr, $valutadatum,
+			$valutadatumnachfrist, $studiengebuehrnachfrist);
+
+		if (isError($postData))
+			$result = $postData;
+		else
+			$result = $this->_call('POST', null, getData($postData));
+
+		return $result;
+	}
+
+	public function retrievePostData($be, $person_id, $semester, $matrikelnummer = null,
+									  $oehbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+									  $studiengebuehrnachfrist = null)
 	{
 		$result = null;
 
@@ -54,14 +69,14 @@ class Stammdaten_model extends DVUHClientModel
 			$result = error('personID nicht gesetzt');
 		elseif (isEmptyString($semester))
 			$result = error('Semester nicht gesetzt');
-/*		elseif (isEmptyString($oehbeitrag))
-			$result = error('ÖH-Beitrag nicht gesetzt');
-		elseif (isEmptyString($studiengebuehr))
-			$result = error('Studiengebührt nicht gesetzt');
-		elseif (isEmptyString($valutadatum))
-			$result = error('Valudadatum nicht gesetzt');
-		elseif (isEmptyString($valutadatumnachfrist))
-			$result = error('Valudadatumnachfrist nicht gesetzt');*/
+		/*		elseif (isEmptyString($oehbeitrag))
+					$result = error('ÖH-Beitrag nicht gesetzt');
+				elseif (isEmptyString($studiengebuehr))
+					$result = error('Studiengebührt nicht gesetzt');
+				elseif (isEmptyString($valutadatum))
+					$result = error('Valudadatum nicht gesetzt');
+				elseif (isEmptyString($valutadatumnachfrist))
+					$result = error('Valudadatumnachfrist nicht gesetzt');*/
 		else
 		{
 			$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
@@ -77,15 +92,12 @@ class Stammdaten_model extends DVUHClientModel
 				$params = array(
 					"uuid" => getUUID(),
 					"studierendenkey" => array(
-						"matrikelnummer" => $stammdatenData['matrikelnummer'],
+						"matrikelnummer" => isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'],
 						"be" => $be,
 						"semester" => $semester
 					),
 					"studentinfo" => $stammdatenData['studentinfo'],
 				);
-
-/*				if (!isEmptyString($oehbeitrag) && !isEmptyString($studiengebuehr))
-				{*/
 
 				$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
 				$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
@@ -109,10 +121,7 @@ class Stammdaten_model extends DVUHClientModel
 
 				$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
 
-				if ($preview)
-					$result = success($postData);
-				else
-					$result = $this->_call('POST', null, $postData);
+				$result = success($postData);
 			}
 		}
 

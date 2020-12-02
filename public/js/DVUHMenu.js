@@ -4,7 +4,7 @@
 
 $(document).ready(function()
 	{
-		$("#dvuhMenu li").click(
+		$(".dvuhMenu li").click(
 			function()
 			{
 				var id = $(this).prop('id');
@@ -45,7 +45,7 @@ var DVUHMenu = {
 				method = 'get';
 				break;
 			case 'getKontostaende':
-				html = '<h4>Konstostand abfragen</h4>';
+				html = '<h4>Kontostand abfragen</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
 					+ DVUHMenu._getSemesterRow()
 					+ DVUHMenu._getTextfieldHtml('seit', 'Dateineingang seit', 'Format: YYYY-MM-DD, optional', 10)
@@ -55,7 +55,7 @@ var DVUHMenu = {
 				html = '<h4>Studiumsdaten abfragen</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
 					+ DVUHMenu._getSemesterRow()
-					+ DVUHMenu._getTextfieldHtml('studienkennung', 'Studienkennung', 'Studiengesetz (1 Zeichen, typischerweise \'U\',\'H\' oder \'L\') ' +
+					+ DVUHMenu._getTextfieldHtml('studienkennung', 'Studienkennung', 'optional; Studiengesetz (1 Zeichen, typischerweise \'U\',\'H\' oder \'L\') ' +
 						'+ 2. BE-Kennung 1 (2 Zeichen) + SKZ 1 (Kopfcode oder Studienkennzahl, 3 Ziffern) + SKZ 2 (z.B. Lehramt Fach 1, 3 Ziffern; optional) ' +
 						'+ SKZ 3 (z.B. Lehramt Fach 2, 3 Ziffern; optional) + BE-Kennung 2 (2 Zeichen; optional).', 14)
 				method = 'get';
@@ -84,47 +84,49 @@ var DVUHMenu = {
 				html += DVUHMenu._getStudienjahrRow();
 				method = 'post';
 				break;
-			case 'correctMatrikelnummer':
+			case 'postMatrikelkorrektur':
 				html = '<h4>Matrikelnummer korrigieren</h4>';
 				html += DVUHMenu._getTextfieldHtml('matrikelnummer', 'Neue Matrikelnummer', '', 8)
-					+ DVUHMenu._getSemesterRow()
 					+ DVUHMenu._getTextfieldHtml('matrikelalt', 'Alte Matrikelnummer', '', 8)
+					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				break;
-			case 'postStammdaten':
+			case 'postMasterData':
 				html = '<h4>Stammdaten und Matrikelnummer melden (ohne Vorschreibung)</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				writePreviewButton = true;
 				break;
-			case 'postStammdatenVorschreibung':
+			case 'postCharge':
 				html = '<h4>Stammdaten und Matrikelnummer melden (mit Vorschreibung)</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
-					+ DVUHMenu._getTextfieldHtml('oehbeitrag', 'ÖH-Beitrag', 'In Cent', 4)
+/*					+ DVUHMenu._getTextfieldHtml('oehbeitrag', 'ÖH-Beitrag', 'In Cent', 4)
 					+ DVUHMenu._getTextfieldHtml('studiengebuehr', 'Studiengebühr', 'In Cent', 10)
 					+ DVUHMenu._getTextfieldHtml('valutadatum', 'Valutadatum', 'Format: YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('valutadatumnachfrist', 'Valutadatum Nachfrist', 'Format: YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('studiengebuehrnachfrist', 'Studiengebühr Nachfrist', 'In Cent', 10)
+					+ DVUHMenu._getTextfieldHtml('studiengebuehrnachfrist', 'Studiengebühr Nachfrist', 'In Cent', 10)*/
 				method = 'post';
-				action = 'postStammdaten';
+				//action = 'postMasterData';
 				writePreviewButton = true;
 				break;
-			case 'postZahlung':
+			case 'postPayment':
 				html = '<h4>Zahlungseingang melden</h4>';
-				html += DVUHMenu._getMatrikelnummerRow()
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')/*DVUHMenu._getMatrikelnummerRow()*/
 					+ DVUHMenu._getSemesterRow()
-					+ DVUHMenu._getTextfieldHtml('buchungsdatum', 'Buchungsdatum', 'Format: YYYY-MM-DD', 10)
+/*					+ DVUHMenu._getTextfieldHtml('buchungsdatum', 'Buchungsdatum', 'Format: YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('referenznummer', 'Referenznummer', 'numerisch', 60)
 					+ DVUHMenu._getTextfieldHtml('zahlungsart', 'Zahlungsart', '1 - Bankomatzahlung, 2 - Quickzahlung', 1)
-					+ DVUHMenu._getTextfieldHtml('centbetrag', 'Centbetrag', 'In Cent', 10)
+					+ DVUHMenu._getTextfieldHtml('centbetrag', 'Centbetrag', 'In Cent', 10)*/
 				method = 'post';
+				writePreviewButton = true;
 				break;
 			case 'postStudium':
 				html = '<h4>Studiumsdaten melden</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
+					+ DVUHMenu._getTextfieldHtml('prestudent_id', 'PrestudentID', 'optional')
 				method = 'post';
 				writePreviewButton = true;
 				break;
@@ -242,7 +244,7 @@ var DVUHMenu = {
 					'<div class="col-lg-5">'+
 						'<input class="form-control" id="'+name+'" name="'+name+'" type="text" size="30" maxlength="'+maxlength+'">'+
 					'</div>'+
-					'<label class="col-lg-5 control-label" style="text-align: left;" for="'+name+'">'+hint+'</label>'+
+					'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
 				'</div>';
 	},
 	_getFormData: function()
@@ -262,18 +264,42 @@ var DVUHMenu = {
 	{
 		var colorClass = '';
 		var intro = 'Abfrage ausgeführt, Antwort:';
-		var textToWrite = text;
+		var textToWrite = "";
 		var isError = false;
 
+		console.log(text);
 
 		if (type == 'error')
 		{
 			colorClass = ' class="text-danger"';
 			intro = 'Fehler aufgetreten, Antwort:';
 			isError = true;
+			textToWrite = text;
+		}
+		else if (text.info)
+		{
+			colorClass = ' class="text-success"';
+			textToWrite = text.info;
 		}
 		else
-			textToWrite = DVUHMenu._printXmlTree(text);
+		{
+			if (jQuery.isArray(text))
+			{
+				for (var i = 0; i < text.length; i++)
+				{
+					textToWrite += "<b>Anfrage " + (i + 1) + "</b>:<br />";
+
+					if (FHC_AjaxClient.isError(text[i]))
+						textToWrite += FHC_AjaxClient.getError(text[i]);
+					else
+						textToWrite += DVUHMenu._printXmlTree(FHC_AjaxClient.getData(text[i]));
+
+					textToWrite += "<br />";
+				}
+			}
+			else
+				textToWrite = DVUHMenu._printXmlTree(text);
+		}
 
 		var spanid = boxid+"Span";
 		var span = '<b>'+intro+'</b><br /><span'+colorClass+' id="'+spanid+'"></span>';
@@ -330,6 +356,10 @@ var DVUHMenu = {
 	_printXmlTree: function(xmlString)
 	{
 		var xmlDoc = jQuery.parseXML(xmlString);
+
+		if (!xmlDoc)
+			return "error when parsing xml string!";
+
 		var xml = $( xmlDoc.documentElement );
 
 		var xmlResultNodeString = {xmlString: ''};

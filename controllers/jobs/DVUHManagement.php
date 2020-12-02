@@ -54,27 +54,29 @@ class DVUHManagement extends JQW_Controller
 					$this->logError("An error occurred while requesting Matrikelnummer, person Id $person_id", getError($requestMatrnrResult));
 				elseif (hasData($requestMatrnrResult))
 				{
-					$requestMatrnrObj = getData($requestMatrnrResult);
+					$requestMatrnrArr = getData($requestMatrnrResult);
 
-					if (isset($requestMatrnrObj->matr_nr))
+					if (isset($requestMatrnrArr['matr_nr']))
 					{
-						if ($requestMatrnrObj->matr_aktiv == true)
-							$this->logInfo('Existing Matrikelnr ' . $requestMatrnrObj->matr_nr . ' assigned to person Id ' . $person_id);
-						elseif ($requestMatrnrObj->matr_aktiv == false)
-							$this->logInfo('New Matrikelnr ' . $requestMatrnrObj->matr_nr . ' preliminary assigned to person Id ' . $person_id);
+						$this->logInfo('Stammdaten with Matrikelnr ' . $requestMatrnrArr['matr_nr'] . ' successfully sent for person Id ' . $person_id);
 
-						$sendMasterdataResult = $this->dvuhmanagementlib->sendMasterdata($person_id, $studiensemester_kurzbz);
+						if ($requestMatrnrArr['matr_aktiv'] == true)
+							$this->logInfo('Existing Matrikelnr ' . $requestMatrnrArr['matr_nr'] . ' assigned to person Id ' . $person_id);
+						elseif ($requestMatrnrArr['matr_aktiv'] == false)
+							$this->logInfo('New Matrikelnr ' . $requestMatrnrArr['matr_nr'] . ' preliminary assigned to person Id ' . $person_id);
+
+/*						$sendMasterdataResult = $this->dvuhmanagementlib->sendMasterdata($person_id, $studiensemester_kurzbz);
 
 						if (isError($sendMasterdataResult))
 							$this->logError("An error occurred while sending Stammdaten, person Id $person_id", getError($sendMasterdataResult));
 						elseif (hasData($sendMasterdataResult))
 						{
 							$this->logInfo("Stammdaten of student with id $person_id successfully sent");
-						}
+						}*/
 					}
-					elseif (is_string($requestMatrnrObj))
+					elseif (isset($requestMatrnrArr['info']))
 					{
-						$this->logInfo($requestMatrnrObj . " (personId $person_id)");
+						$this->logInfo($requestMatrnrArr['info'] . " (personId $person_id)");
 					}
 
 				}
@@ -127,12 +129,10 @@ class DVUHManagement extends JQW_Controller
 				{
 					$sendCharge = getData($sendChargeResult);
 
-					if (is_string($sendCharge))
-						$this->logInfo($sendCharge . ", person_id $person_id, studiensemester $studiensemester");
+					if (isset($sendCharge['info']))
+						$this->logInfo($sendCharge['info'] . ", person_id $person_id, studiensemester $studiensemester");
 					else
-					{
 						$this->logInfo("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
-					}
 				}
 			}
 
@@ -183,15 +183,15 @@ class DVUHManagement extends JQW_Controller
 				{
 					$sendPaymentItems = getData($sendPaymentResult);
 
-					if (is_string($sendPaymentItems))
-						$this->logInfo($sendPaymentItems . ", person Id $person_id, studiensemester $studiensemester");
+					if (isset($sendPaymentItems['info']))
+						$this->logInfo($sendPaymentItems['info'] . ", person Id $person_id, studiensemester $studiensemester");
 					elseif (is_array($sendPaymentItems))
 					{
-						foreach ($sendPaymentItems as $chargeRes)
+						foreach ($sendPaymentItems as $paymentRes)
 						{
-							if (isError($chargeRes))
-								$this->logError("An error occurred while sending payment, person Id $person_id, studiensemester $studiensemester", getError($chargeRes));
-							elseif (hasData($chargeRes))
+							if (isError($paymentRes))
+								$this->logError("An error occurred while sending payment, person Id $person_id, studiensemester $studiensemester", getError($paymentRes));
+							elseif (hasData($paymentRes))
 								$this->logInfo("Payment of student with person Id $person_id, studiensemester $studiensemester successfully sent");
 						}
 					}
@@ -245,8 +245,8 @@ class DVUHManagement extends JQW_Controller
 				{
 					$sendStudyData = getData($sendStudyDataResult);
 
-					if (is_string($sendStudyData))
-						$this->logInfo($sendStudyData . ", prestudent_id $prestudent_id, studiensemester $studiensemester");
+					if (isset($sendStudyData['info']))
+						$this->logInfo($sendStudyData['info'] . ", prestudent_id $prestudent_id, studiensemester $studiensemester");
 					else
 					{
 						$this->logInfo("Study data for student with prestudent Id $prestudent_id, studiensemester $studiensemester successfully sent");

@@ -11,10 +11,10 @@ $this->load->view('templates/FHC-Header', array(
 	'sbadmintemplate' => true,
 	'customJSs' => array(
 		'public/extensions/FHC-Core-DVUH/js/DVUHMenu.js'
-	)/*,
-		'customCSSs' => array(
-			'public/css/sbadmin2/admintemplate_contentonly.css'
-		)*/
+	),
+	'customCSSs' => array(
+		'public/extensions/FHC-Core-DVUH/css/DVUHMenu.css'
+	)
 ));
 ?>
 <body>
@@ -36,37 +36,61 @@ $this->load->view('templates/FHC-Header', array(
 				</div>
 			</div>
 			<br />
-			<div class="row">
-				<div class="col-lg-12">
-
-					<ul id="dvuhMenu">
-						<!-- <li><a href="DVUH?action=getOAuth">OAuth Token anfordern</a></li>-->
-						<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
-						<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Matrikelnummerreservierungen anzeigen</a></li>
-						<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
-						<li id="correctMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
-						<li id="getStammdaten"><a href="javascript:void(0)">Stammdaten und Zahlungsvorschreibung abfragen
-						<li id="postStammdaten"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (ohne
-								Zahlungsvorschreibung)</a></li>
-						<li id="postStammdatenVorschreibung"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (mit
-								Zahlungsvorschreibung)</a></li>
-						<li id="getKontostaende"><a href="javascript:void(0)">Kontostand abfragen</a></li>
-						<li id="postZahlung"><a href="javascript:void(0)">Zahlungseingang melden</a></li>
-						<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten abfragen</a></li>
-						<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
-						<li id="getFullstudent"><a href="javascript:void(0)">Detaillierte Studiendaten abfragen</a></li>
-						<li id="getBpk"><a href="javascript:void(0)">BPK ermitteln</a></li>
-						<!--<li><a href="datenverbund_client.php?action=getByMatrikelnummer">Personendaten anhand der Matrikelnummer suchen</a></li>
-						<li><a href="datenverbund_client.php?action=getReservations">Matrikelnummer Reservierungen anzeigen</a></li>
-						<li><a href="datenverbund_client.php?action=getKontingent">Matrikelnummer Kontingent anfordern</a></li>
-						<li><a href="datenverbund_client.php?action=setMatrikelnummer">Matrikelnummer Vergabe melden</a></li>
-						<li><a href="datenverbund_client.php?action=assignMatrikelnummer">Gesamtprozess (Abfrage, ggf Vergabemeldung, Speichern bei Person)</a></li>
-						<li><a href="datenverbund_client.php?action=getBPK">BPK ermitteln</a></li>
-						<li><a href="datenverbund_client.php?action=pruefeBPK">BPK ermitteln manuell</a></li>-->
-					</ul>
+			<div class="row first-row">
+				<div class="col-lg-6">
+					<div class="panel panel-default">
+						<div class="panel-heading">Matrikelnummermanagement</div>
+						<div class="panel-body">
+							<ul class="list-unstyled dvuhMenu">
+								<li id="getBpk"><a href="javascript:void(0)">BPK ermitteln</a></li>
+								<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
+								<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Matrikelnummerreservierungen anzeigen</a></li>
+								<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
+								<li id="postMatrikelkorrektur"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-6">
+					<div class="panel panel-default">
+						<div class="panel-heading">Stammdatenmanagement</div>
+						<div class="panel-body">
+							<ul class="list-unstyled dvuhMenu">
+								<li id="getStammdaten"><a href="javascript:void(0)">Stammdaten und Zahlungsvorschreibung abfragen
+								<li id="postMasterData"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (ohne
+										Zahlungsvorschreibung)</a></li>
+								<li id="postCharge"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (mit
+										Zahlungsvorschreibung)</a></li>
+							</ul>
+						</div>
+					</div>
 				</div>
 			</div>
-			<br/>
+			<div class="row second-row">
+				<div class="col-lg-6">
+					<div class="panel panel-default">
+						<div class="panel-heading">Zahlungsmanagement</div>
+						<div class="list-unstyled panel-body">
+							<ul class="list-unstyled dvuhMenu">
+								<li id="getKontostaende"><a href="javascript:void(0)">Kontostand abfragen</a></li>
+								<li id="postPayment"><a href="javascript:void(0)">Zahlungseingang melden</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<div class="col-lg-6">
+					<div class="panel panel-default mx-auto">
+						<div class="panel-heading">Studiumsdatenmanagement</div>
+						<div class="panel-body">
+							<ul class="list-unstyled dvuhMenu">
+								<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten abfragen</a></li>
+								<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
+								<li id="getFullstudent"><a href="javascript:void(0)">Detaillierte Studiendaten abfragen</a></li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</div>
 			<div class="row">
 				<div class="col-lg-12">
 					<form class="form-horizontal" id="dvuhForm"></form>

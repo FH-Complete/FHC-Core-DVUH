@@ -18,7 +18,6 @@ class DVUHManagementLib
 	public function __construct()
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
-		$this->_dbModel = new DB_Model(); // get db
 
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
@@ -27,7 +26,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('crm/Prestudent_model', 'PrestudentModel');
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 		$this->_ci->load->model('organisation/Studienjahr_model', 'StudienjahrModel');
-		$this->_ci->load->model('accounting/Konto_model', 'KontoModel');
+		$this->_ci->load->model('crm/Konto_model', 'KontoModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelpruefung_model', 'MatrikelpruefungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelreservierung_model', 'MatrikelreservierungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
@@ -40,6 +39,8 @@ class DVUHManagementLib
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 		$this->_be = $this->_ci->config->item('fhc_dvuh_be_code');
+
+		$this->_dbModel = new DB_Model(); // get db
 	}
 
 	public function requestMatrikelnummer($person_id, $studiensemester_kurzbz)
@@ -133,7 +134,7 @@ class DVUHManagementLib
 								{
 									$reservedMatrnr = getData($reservedMatrnr);
 									$reservedMatrnrStr = $reservedMatrnr->matrikelnummer[0];
-									$result = $this->_updateMatrikelnummer($person->person_id, $reservedMatrnrStr, false);
+									$result = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $reservedMatrnrStr, false);
 								}
 								else
 									$result = error("No Matrikelnummer could be reserved");
@@ -150,7 +151,7 @@ class DVUHManagementLib
 					{
 						if (is_numeric($matrikelnummer))
 						{
-							$result = $this->_updateMatrikelnummer($person->person_id, $matrikelnummer, true);
+							$result = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, true);
 						}
 						else
 							$result = error("invalid Matrikelnummer");
@@ -170,12 +171,12 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = success("No valid person found for request Matrikelnummer");
+			$result = $this->_getInfoObj("No valid person found for request Matrikelnummer");
 
 		return $result;
 	}
 
-	public function sendMasterdata($person_id, $studiensemester_kurzbz)
+	public function sendMasterdata($person_id, $studiensemester_kurzbz, $matrikelnummer = null)
 	{
 		$result = null;
 
@@ -186,7 +187,7 @@ class DVUHManagementLib
 			$studiensemester = getData($studiensemesterResult)[0]->studiensemester_kurzbz;*/
 			$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester_kurzbz);
 
-			$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester);
+			$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer);
 
 			if (isError($stammdatenResult))
 				$result = $stammdatenResult;
@@ -199,7 +200,7 @@ class DVUHManagementLib
 				if (isError($parsedObj))
 					$result = $parsedObj;
 				else
-					$result = success(array('person_id' => $person_id));
+					$result = success($xmlstr);
 			}
 			else
 				$result = error('Error when sending Stammdaten');
@@ -207,29 +208,17 @@ class DVUHManagementLib
 		return $result;
 	}
 
-	public function sendCharge($person_id, $studiensemester_kurzbz)
+	public function sendCharge($person_id, $studiensemester_kurzbz, $preview = false)
 	{
 		$result = null;
 
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
 
-		$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz);
-
-		if (isError($paidOtherUniv))
-			return $paidOtherUniv;
-
-		if (hasData($paidOtherUniv))
-		{
-			$paidData = getData($paidOtherUniv)[0];
-			if ($paidData == true)
-				return success("Already paid in other university");
-		}
-
 		// get offene Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
-								SELECT buchungsdatum, mahnspanne, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
-								       studiensemester_kurzbz, TO_CHAR(buchungsdatum + (mahnspanne::text || ' days')::INTERVAL, 'yyyy-mm-dd') as valutadatum
+								SELECT person_id, studiengang_kz, buchungsdatum, mahnspanne, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
+								       studiensemester_kurzbz, buchungstext, buchungsnr_verweis, TO_CHAR(buchungsdatum + (mahnspanne::text || ' days')::INTERVAL, 'yyyy-mm-dd') as valutadatum
 								FROM public.tbl_konto
 								WHERE person_id = ?
 								  AND studiensemester_kurzbz = ?
@@ -260,6 +249,28 @@ class DVUHManagementLib
 		{
 			$buchungen = getData($buchungenResult);
 
+			$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz);
+
+			if (isError($paidOtherUniv))
+				return $paidOtherUniv;
+
+			if (hasData($paidOtherUniv))
+			{
+				$paidData = getData($paidOtherUniv)[0];
+				if ($paidData == true)
+				{
+					foreach ($buchungen as $buchung)
+					{
+						$nullifyResult = $this->_nullifyBuchung($buchung); // set Buchungen to 0 since they don't need to be paid anymore
+
+						if (isError($nullifyResult))
+							return $nullifyResult;
+					}
+
+					return $this->_getInfoObj("Already paid in other university");
+				}
+			}
+
 			foreach ($buchungen as $buchung)
 			{
 				if (!isset($vorschreibung[$buchung->buchungstyp_kurzbz]))
@@ -289,9 +300,15 @@ class DVUHManagementLib
 				$studiengebuehr = isset($vorschreibung['Studiengebuehr']) ? $vorschreibung['Studiengebuehr'] * -100 : null;
 				$valutdatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
 				$valutdatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
-				$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist'] : null;
+				$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist']  * -100 : null;
 
-				$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $oehbeitrag,
+				if ($preview)
+				{
+					return $this->_ci->StammdatenModel->retrievePostData($this->_be, $person_id, $dvuh_studiensemester, null, $oehbeitrag,
+						$studiengebuehr, $valutdatum, $valutdatumnachfrist, $studiengebuehrnachfrist);
+				}
+
+				$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, null, $oehbeitrag,
 					$studiengebuehr, $valutdatum, $valutdatumnachfrist, $studiengebuehrnachfrist);
 
 				if (isError($stammdatenResult))
@@ -306,7 +323,8 @@ class DVUHManagementLib
 						$result = $parsedObj;
 					else
 					{
-						$result = success(array('person_id' => $person_id, 'studiensemester_kurzbz' => $studiensemester_kurzbz));
+						//$result = success(array('person_id' => $person_id, 'studiensemester_kurzbz' => $studiensemester_kurzbz));
+						$result = success($xmlstr);
 
 						if (isset($vorschreibung['OEH']) && isset($vorschreibung['oehbuchungsnr']))
 						{
@@ -344,12 +362,12 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = success("No Buchungen found");
+			$result = $this->_getInfoObj("No Buchungen found");
 
 		return $result;
 	}
 
-	public function sendPayment($person_id, $studiensemester)
+	public function sendPayment($person_id, $studiensemester_kurzbz, $preview = false)
 	{
 		$result = null;
 		$zahlungenResArr = array();
@@ -375,7 +393,7 @@ class DVUHManagementLib
 								  ORDER BY buchungsdatum, buchungsnr",
 			array(
 				$person_id,
-				$studiensemester
+				$studiensemester_kurzbz
 			)
 		);
 
@@ -402,7 +420,7 @@ class DVUHManagementLib
 								  ORDER BY buchungsdatum, buchungsnr
 								  LIMIT 1",
 				array(
-					$person_id, $studiensemester
+					$person_id, $studiensemester_kurzbz
 				)
 			);
 
@@ -437,7 +455,7 @@ class DVUHManagementLib
 						return error("Buchung: $buchungsnr: payment not equal to charge amount");
 				}
 				else
-					return error("Buchung $buchungsnr: no charge before the payment");
+					return error("Buchung $buchungsnr: no charge sent to DVUH before the payment");
 
 				$payment = new stdClass();
 				$payment->be = $this->_be;
@@ -454,6 +472,22 @@ class DVUHManagementLib
 			}
 
 			//TODO check: Sum of Betrag to send must be equal to sum of Betrag of Stammdatenmeldungen
+
+			if ($preview)
+			{
+				$resultarr = array();
+				foreach ($paymentsToSend as $payment)
+				{
+					$postData = $this->_ci->ZahlungModel->retrievePostData($this->_be, $payment->matrikelnummer, $payment->semester, $payment->zahlungsart,
+						$payment->centbetrag, $payment->buchungsdatum, $payment->referenznummer);
+
+					if (isError($postData))
+						return $postData;
+					$resultarr[] = $postData;
+				}
+
+				return success($resultarr);
+			}
 
 			foreach ($paymentsToSend as $payment)
 			{
@@ -484,7 +518,7 @@ class DVUHManagementLib
 						if (isError($zahlungSaveResult))
 							$zahlungenResArr[] = error("Payment successfull, error when saving " . $payment->buchungstyp . " payment in FHC");
 						else
-							$zahlungenResArr[] = success(array('person_id' => $person_id, 'studiensemester_kurzbz' => $studiensemester));
+							$zahlungenResArr[] = success($xmlstr);
 					}
 				}
 				else
@@ -492,7 +526,7 @@ class DVUHManagementLib
 			}
 		}
 		else
-			return success("No Buchungen found");
+			return $this->_getInfoObj("No Buchungen found");
 
 		return success($zahlungenResArr);
 	}
@@ -562,17 +596,31 @@ class DVUHManagementLib
 		return $result;
 	}
 
+	private function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv)
+	{
+		$sendMasterDataResult = $this->sendMasterdata($person_id, $studiensemester_kurzbz, $matrikelnummer);
+
+		if (isError($sendMasterDataResult))
+			$result = $sendMasterDataResult;
+		elseif (hasData($sendMasterDataResult))
+		{
+			$result = $this->_updateMatrikelnummer($person_id, $matrikelnummer, $matr_aktiv);
+		}
+		else
+			$result = error("An error occurred while sending Stammdaten");
+
+		return $result;
+	}
+
 	private function _updateMatrikelnummer($person_id, $matrikelnummer, $matr_aktiv)
 	{
 		$updateResult = $this->_ci->PersonModel->update($person_id, array('matr_nr' => $matrikelnummer, 'matr_aktiv' => $matr_aktiv));
 
 		if (hasData($updateResult))
 		{
-			$updateResObj = new StdClass();
-			$updateResObj->matr_nr = $matrikelnummer;
-			$updateResObj->matr_aktiv = $matr_aktiv;
+			$updateResArr = array('matr_nr' => $matrikelnummer, 'matr_aktiv' => $matr_aktiv);
 
-			return success($updateResObj);
+			return success($updateResArr);
 		}
 		else
 		{
@@ -655,8 +703,45 @@ class DVUHManagementLib
 		return $result;
 	}
 
+	private function _nullifyBuchung($buchung)
+	{
+		$buchungNullify = $this->_ci->KontoModel->update(array('buchungsnr' => $buchung->buchungsnr), array('betrag' => 0));
+
+		if (hasData($buchungNullify))
+		{
+			$gegenbuchungNullify = $this->_ci->KontoModel->insert(array(
+					"person_id" => $buchung->person_id,
+					"studiengang_kz" => $buchung->studiengang_kz,
+					"studiensemester_kurzbz" => $buchung->studiensemester_kurzbz,
+					"betrag" => 0,
+					"buchungsdatum" => date('Y-m-d'),
+					"buchungstext" => $buchung->buchungstext,
+					"buchungstyp_kurzbz" => $buchung->buchungstyp_kurzbz,
+					"buchungsnr_verweis" => $buchung->buchungsnr,
+					"insertvon" => 'dvuhJob',
+					"insertamum" => date('Y-m-d H:i:s')
+				)
+			);
+
+			if (isError($gegenbuchungNullify))
+				return $gegenbuchungNullify;
+
+			return success("Successfully nullified");
+		}
+		else
+			return error("Error when nullify Buchung");
+	}
+
 	private function _convertSemesterToDVUH($semester)
 	{
+		if (!preg_match("/^(S|W)S\d{4}$/", $semester))
+			return $semester;
+
 		return mb_substr($semester, 2, strlen($semester) - 2).mb_substr($semester, 0,1);
+	}
+
+	private function _getInfoObj($str)
+	{
+		return success(array('info' => $str));
 	}
 }

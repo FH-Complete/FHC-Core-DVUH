@@ -1,0 +1,27 @@
+.panel-heading {
+    padding: 3px 8px
+}
+
+.panel-body {
+    padding: 8px;
+}
+
+.first-row div.panel {
+    height: 150px;
+}
+
+.second-row div.panel {
+    height: 110px;
+}
+
+label.form-hint {
+    text-align: left !important;
+}
+
+ul.dvuhMenu { /** vertically centered **/
+  /*  margin: 0;
+    position: absolute;
+    top: 50%;
+    -ms-transform: translateY(-50%);
+    transform: translateY(-50%);*/
+}

@@ -23,12 +23,16 @@ class DVUH extends Auth_Controller
 				'getFullstudent'=>'admin:r',
 				'getBpk' =>'admin:r',
 				'reserveMatrikelnummer'=>'admin:r',
-				'postStammdaten'=>'admin:r',
+				'postMasterData'=>'admin:r',
+				'postCharge'=>'admin:r',
 				'postStudium'=>'admin:r',
-				'postZahlung'=>'admin:r',
+				'postPayment'=>'admin:r',
 				'postMatrikelkorrektur'=>'admin:r'
 			)
 		);
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 	}
@@ -39,6 +43,7 @@ class DVUH extends Auth_Controller
 	public function index()
 	{
 		$this->load->library('WidgetLib');
+
 		$this->load->view('extensions/FHC-Core-DVUH/dvuh');
 	}
 
@@ -204,34 +209,53 @@ class DVUH extends Auth_Controller
 		$this->outputJson($queryResult);
 	}
 
-	public function postStammdaten()
+	public function postMasterData()
 	{
 		$json = null;
 
 		$data = $this->input->post('data');
 		$preview = $this->input->post('preview');
 
-		$be = $this->config->item('fhc_dvuh_be_code');
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
-		$oehbeitrag = isset($data['oehbeitrag']) ? $data['oehbeitrag'] : null;
-		$studiengebuehr = isset($data['studiengebuehr']) ? $data['studiengebuehr'] : null;
-		$studiengebuehrnachfrist = isset($data['studiengebuehrnachfrist']) ? $data['studiengebuehrnachfrist'] : null;
-
-		// valutadatum?? Buchungsdatum + Mahnspanne
-		$valutadatum = isset($data['valutadatum']) ? $data['valutadatum'] : null;
-		$valutadatumnachfrist = isset($data['valutadatumnachfrist']) ? $data['valutadatumnachfrist'] : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 
-		$json = $this->StammdatenModel->post(
-			$be, $person_id, $semester, $oehbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist, $preview
-		);
+		if ($preview)
+		{
+			$be = $this->config->item('fhc_dvuh_be_code');
+			$json = $this->StammdatenModel->retrievePostData(
+				$be, $person_id, $semester
+			);
+		}
+		else
+		{
+			$json = $this->dvuhmanagementlib->sendMasterdata($person_id, $semester);
+		}
 
 		$this->outputJson($json);
 	}
 
-	public function postZahlung()
+	public function postCharge()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+
+		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
+
+		$fhc_semester = $this->dvuhsynclib->convertSemesterToFHC($semester);
+
+		$json = $this->dvuhmanagementlib->sendCharge($person_id, $fhc_semester, $preview);
+
+		$this->outputJson($json);
+	}
+
+/*	public function postZahlung()
 	{
 		$json = null;
 
@@ -254,6 +278,25 @@ class DVUH extends Auth_Controller
 		);
 
 		$this->outputJson($json);
+	}*/
+
+	public function postPayment()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+
+		$this->load->model('extensions/FHC-Core-DVUH/Zahlung_model', 'ZahlungModel');
+
+		$fhc_semester = $this->dvuhsynclib->convertSemesterToFHC($semester);
+
+		$json = $this->dvuhmanagementlib->sendPayment($person_id, $fhc_semester, $preview);
+
+		$this->outputJson($json);
 	}
 
 	public function postStudium()
@@ -265,12 +308,13 @@ class DVUH extends Auth_Controller
 
 		$be = $this->config->item('fhc_dvuh_be_code');
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 
 		$json = $this->StudiumModel->post(
-			$be, $person_id, $semester, null, $preview
+			$be, $person_id, $semester, $prestudent_id, $preview
 		);
 
 		$this->outputJson($json);

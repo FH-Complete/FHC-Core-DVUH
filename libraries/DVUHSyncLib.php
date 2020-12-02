@@ -47,13 +47,13 @@ class DVUHSyncLib
 				$addr['strasse'] = $adresse->strasse;
 				$addr['staat'] = $adresse->nation;
 
-				if ($adresse->zustelladresse === true)
+				if ($adresse->zustelladresse)
 				{
 					$addr['typ'] = 'S';
 					$hasZustelladresse = true;
 					$adressen[] = $addr;
 				}
-				if ($adresse->heimatadresse === true)
+				if ($adresse->heimatadresse)
 				{
 					$addr['typ'] = 'H';
 					$hasHeimatadresse = true;
@@ -150,7 +150,7 @@ class DVUHSyncLib
 			$resultObj->matrikelnummer = $person->matr_nr;
 			$gebdatum = $person->gebdatum;
 
-			$semester = $this->_convertSemesterToFHC($semester);
+			$semester = $this->convertSemesterToFHC($semester);
 
 			// Meldung pro Student, Studium und Semester
 			$active_status = array(/*'Aufgenommener',*/ 'Student', 'Incoming', 'Diplomand');
@@ -388,6 +388,14 @@ class DVUHSyncLib
 		$resultObj->lehrgaenge = $lehrgaenge;
 
 		return success($resultObj);
+	}
+
+	public function convertSemesterToFHC($semester)
+	{
+		if (!preg_match("/^\d{4}(S|W)$/", $semester))
+			return $semester;
+
+		return mb_substr($semester, -1).'S'.mb_substr($semester, 0,4);
 	}
 
 	private function _getAusbildungssemester($prestudentstatus)
@@ -801,11 +809,6 @@ class DVUHSyncLib
 		}
 
 		return success($zugangsberechtigungMA);
-	}
-
-	private function _convertSemesterToFHC($semester)
-	{
-		return mb_substr($semester, -1).'S'.mb_substr($semester, 0,4);
 	}
 
 	private function _dateDiff($datum1, $datum2)
