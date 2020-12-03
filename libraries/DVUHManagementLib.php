@@ -531,53 +531,71 @@ class DVUHManagementLib
 		return success($zahlungenResArr);
 	}
 
-	public function sendStudyData($prestudent_id, $studiensemester)
+	public function sendStudyData($studiensemester, $person_id = null, $prestudent_id = null, $preview = false)
 	{
+		if (!isset($person_id))
+		{
+			if (!isset($prestudent_id))
+				return error("Person Id or prestudent Id must be given");
+
+			$this->_ci->PrestudentModel->addSelect('person_id');
+			$personIdRes = $this->_ci->PrestudentModel->load($prestudent_id);
+
+			if (hasData($personIdRes))
+			{
+				$person_id = getData($personIdRes)[0]->person_id;
+			}
+			else
+				return error('No person found for prestudent');
+		}
+
 		$result = null;
 
 		$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester);
 
-		$this->_ci->PrestudentModel->addSelect('person_id');
-		$personIdRes = $this->_ci->PrestudentModel->load($prestudent_id);
-
-		if (hasData($personIdRes))
+		if ($preview)
 		{
-			$person_id = getData($personIdRes)[0]->person_id;
+			return $this->_ci->StudiumModel->retrievePostData($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
+		}
 
-			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
+		$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
 
-			if (isError($studiumResult))
-				$result = $studiumResult;
-			elseif (hasData($studiumResult))
+		if (isError($studiumResult))
+			$result = $studiumResult;
+		elseif (hasData($studiumResult))
+		{
+			$xmlstr = getData($studiumResult);
+
+			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+
+			if (isError($parsedObj))
+				$result = $parsedObj;
+			else
 			{
-				$xmlstr = getData($studiumResult);
+				$result = success($xmlstr);
 
-				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+				// activate Matrikelnr
+				$matrNrActivationResult = $this->_ci->PersonModel->update(
+					array(
+						'person_id' => $person_id,
+						'matr_aktiv' => false
+					),
+					array(
+						'matr_aktiv' => true
+					)
+				);
 
-				if (isError($parsedObj))
-					$result = $parsedObj;
-				else
+				if (isError($matrNrActivationResult))
+					$result = error("Study data save successfull, error when activating Matrikelnummer");
+
+				$syncedPrestudentIds = $this->_ci->StudiumModel->retrieveSyncedPrestudentIds();
+
+				foreach ($syncedPrestudentIds as $syncedPrestudentId)
 				{
-					$result = success(array('prestudent_id' => $prestudent_id, 'studiensemester_kurzbz' => $studiensemester));
-
-					// activate Matrikelnr
-					$matrNrActivationResult = $this->_ci->PersonModel->update(
-						array(
-							'person_id' => $person_id,
-							'matr_aktiv' => false
-						),
-						array(
-							'matr_aktiv' => true
-						)
-					);
-
-					if (isError($matrNrActivationResult))
-						$result = error("Study data save successfull, error when activating Matrikelnummer");
-
 					// save info about saved studiumdata in sync table
 					$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
 						array(
-							'prestudent_id' => $prestudent_id,
+							'prestudent_id' => $syncedPrestudentId,
 							'studiensemester_kurzbz' => $studiensemester,
 							'meldedatum' => date('Y-m-d')
 						)
@@ -587,11 +605,9 @@ class DVUHManagementLib
 						$result = error("Study data save successfull, error when saving info in FHC");
 				}
 			}
-			else
-				$result = error('Error when sending study data');
 		}
 		else
-			$result = error('No person found for prestudent');
+			$result = error('Error when sending study data');
 
 		return $result;
 	}

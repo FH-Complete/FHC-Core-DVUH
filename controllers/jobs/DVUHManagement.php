@@ -237,7 +237,7 @@ class DVUHManagement extends JQW_Controller
 				$prestudent_id = $prsobj->prestudent_id;
 				$studiensemester = $prsobj->studiensemester_kurzbz;
 
-				$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($prestudent_id, $studiensemester);
+				$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
 
 				if (isError($sendStudyDataResult))
 					$this->logError("An error occurred while sending study data, prestudent Id $prestudent_id, studiensemester $studiensemester", getError($sendStudyDataResult));

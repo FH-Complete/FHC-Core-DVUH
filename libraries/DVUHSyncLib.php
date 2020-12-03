@@ -147,6 +147,10 @@ class DVUHSyncLib
 		if (hasData($personresult))
 		{
 			$person = getData($personresult)[0];
+
+			if (isEmptyString($person->matr_nr) || !preg_match("/^\d{8}$/", $person->matr_nr))
+				return error("Matrikelnummer ungültig");
+
 			$resultObj->matrikelnummer = $person->matr_nr;
 			$gebdatum = $person->gebdatum;
 
@@ -201,17 +205,23 @@ class DVUHSyncLib
 
 				$studiengaenge = array();
 				$lehrgaenge = array();
+				$prestudent_ids = array();
 
 				$prestudentstatuses = getData($prestudentstatusesResult);
 
 				foreach ($prestudentstatuses as $prestudentstatus)
 				{
 					$prestudent_id = $prestudentstatus->prestudent_id;
+					$prestudent_ids[] = $prestudent_id;
 					$status_kurzbz = $prestudentstatus->status_kurzbz;
 					$studiengang_kz = $prestudentstatus->studiengang_kz;
 
 					// personenkennzeichen
 					$perskz = trim($prestudentstatus->personenkennzeichen);
+
+					if (isEmptyString($perskz) || !preg_match("/^\d{10}$/", $perskz))
+						return error("Personenkennzeichen ungültig");
+
 
 					// studstatuscode
 					$studstatuscodeResult = $this->_getStatuscode($status_kurzbz);
@@ -386,6 +396,7 @@ class DVUHSyncLib
 
 		$resultObj->studiengaenge = $studiengaenge;
 		$resultObj->lehrgaenge = $lehrgaenge;
+		$resultObj->prestudent_ids = $prestudent_ids;
 
 		return success($resultObj);
 	}

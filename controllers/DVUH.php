@@ -299,7 +299,7 @@ class DVUH extends Auth_Controller
 		$this->outputJson($json);
 	}
 
-	public function postStudium()
+/*	public function postStudium()
 	{
 		$json = null;
 
@@ -316,6 +316,24 @@ class DVUH extends Auth_Controller
 		$json = $this->StudiumModel->post(
 			$be, $person_id, $semester, $prestudent_id, $preview
 		);
+
+		$this->outputJson($json);
+	}*/
+
+	public function postStudium()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+
+		$fhc_semester = $this->dvuhsynclib->convertSemesterToFHC($semester);
+
+		$json = $this->dvuhmanagementlib->sendStudyData($fhc_semester, $person_id, $prestudent_id,  $preview);
 
 		$this->outputJson($json);
 	}

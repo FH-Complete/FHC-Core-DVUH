@@ -7,6 +7,8 @@ require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
  */
 class Studium_model extends DVUHClientModel
 {
+	private $_prestudentIdsToSave = array();
+
 	/**
 	 * Set the properties to perform calls
 	 */
@@ -49,10 +51,20 @@ class Studium_model extends DVUHClientModel
 		return $result;
 	}
 
-	public function post($be, $person_id, $semester, $prestudent_id = null, $preview = false)
+	public function post($be, $person_id, $semester, $prestudent_id = null)
 	{
-		$result = null;
+		$postData = $this->retrievePostData($be, $person_id, $semester, $prestudent_id);
 
+		if (isError($postData))
+			$result = $postData;
+		else
+			$result = $this->_call('POST', null, getData($postData));
+
+		return $result;
+	}
+
+	public function retrievePostData($be, $person_id, $semester, $prestudent_id)
+	{
 		$studiumDataResult = $this->dvuhsynclib->getStudyData($person_id, $semester, $prestudent_id);
 
 		if (isError($studiumDataResult))
@@ -72,17 +84,23 @@ class Studium_model extends DVUHClientModel
 
 			$params['studiengaenge'] = $studiumData->studiengaenge;
 			$params['lehrgaenge'] = $studiumData->lehrgaenge;
+			$this->_prestudentIdsToSave = $studiumData->prestudent_ids;
 
 			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/studium', $params, true);
 
-			if ($preview)
-				$result = success($postData);
-			else
-				$result = $this->_call('POST', null, $postData);
+			$result = success($postData);
 		}
 		else
 			$result = error("Keine Studiumdaten gefunden");
 
 		return $result;
+	}
+
+	public function retrieveSyncedPrestudentIds()
+	{
+		if (!is_array($this->_prestudentIdsToSave))
+			return array();
+
+		return $this->_prestudentIdsToSave;
 	}
 }
