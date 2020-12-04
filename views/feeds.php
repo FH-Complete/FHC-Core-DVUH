@@ -7,6 +7,7 @@ $this->load->view(
 		'jqueryui' => true,
 		'bootstrap' => true,
 		'fontawesome' => true,
+		'navigationwidget' => true,
 		'sbadmintemplate' => true,
 		'dialoglib' => true,
 		'ajaxlib' => true,

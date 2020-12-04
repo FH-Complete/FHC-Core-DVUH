@@ -47,7 +47,7 @@ class JQMSchedulerLib
 			$qry = "SELECT DISTINCT person_id, pss.studiensemester_kurzbz
 					FROM public.tbl_person pers
 						JOIN public.tbl_prestudent ps USING (person_id)
-						JOIN public.tbl_student using(prestudent_id)
+						JOIN public.tbl_student USING(prestudent_id)
 						JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
 						LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 					WHERE ps.bismelden = true
