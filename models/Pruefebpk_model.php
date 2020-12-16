@@ -14,6 +14,8 @@ class Pruefebpk_model extends DVUHClientModel
 	{
 		parent::__construct();
 		$this->_url = '/rws/0.5/pruefebpk.xml';
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	public function get($vorname, $nachname, $geburtsdatum, $geschlecht = null,
@@ -55,5 +57,23 @@ class Pruefebpk_model extends DVUHClientModel
 		}
 
 		return $result;
+	}
+
+	public function getByPersonId($person_id)
+	{
+		if (!isset($person_id))
+			return error("Person Id must be given");
+
+		$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id);
+
+		if (isError($stammdatenDataResult))
+			return $stammdatenDataResult;
+		elseif (hasData($stammdatenDataResult))
+		{
+			$stammdatenData = getData($stammdatenDataResult)['studentinfo'];
+
+			return $this->get($stammdatenData['vorname'], $stammdatenData['nachname'], $stammdatenData['geburtsdatum'],
+				$stammdatenData['geschlecht'], null, null, null, $stammdatenData['akadgrad'], $stammdatenData['akadgradnach']);
+		}
 	}
 }

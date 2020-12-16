@@ -4,8 +4,9 @@
 class XMLReaderLib
 {
 	const MATRNR_NAMESPACE = 'http://www.brz.gv.at/datenverbund-unis';
-	const ERROR_CATEGORY = 'Z';
 	const ERRORLIST_TAG = 'fehlerliste';
+
+	private $_error_categories = array('Z', 'P', 'Y');
 
 	public function parseXml($xmlstr, $searchparams, $namespace = null)
 	{
@@ -75,7 +76,7 @@ class XMLReaderLib
 					$errResultobj->{$errAttr->tagName} = $errAttr->nodeValue;
 				}
 
-				if ($errResultobj->kategorie == self::ERROR_CATEGORY)
+				if (in_array($errResultobj->kategorie, $this->_error_categories))
 					$resultarr[] = $errResultobj->fehlernummer . ': ' . $errResultobj->fehlertext . ' ' . $errResultobj->massnahme;
 
 			}

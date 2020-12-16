@@ -19,9 +19,6 @@ class DVUHManagement extends JQW_Controller
 	//------------------------------------------------------------------------------------------------------------------
 	// Public methods
 
-	/**
-	 * Example method
-	 */
 	public function requestMatrikelnummer()
 	{
 		$jobType = 'DVUHRequestMatrikelnummer';

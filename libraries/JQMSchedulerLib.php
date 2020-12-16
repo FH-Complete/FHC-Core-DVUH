@@ -152,10 +152,10 @@ class JQMSchedulerLib
 					AND kto.buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
 					AND kto.buchungsnr_verweis IS NULL
 					AND kto.betrag < 0
-					AND NOT EXISTS (SELECT 1 FROM public.tbl_konto ggb /* no Gegenbuchung yet */
+/*					AND NOT EXISTS (SELECT 1 FROM public.tbl_konto ggb /* no Gegenbuchung yet */
 									WHERE ggb.person_id = kto.person_id
 									AND ggb.buchungsnr_verweis = kto.buchungsnr
-									LIMIT 1)
+									LIMIT 1)*/
 					AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* not yet sent to DVUH */
 									WHERE buchungsnr = kto.buchungsnr
 									AND betrag < 0

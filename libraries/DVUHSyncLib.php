@@ -114,11 +114,12 @@ class DVUHSyncLib
 				'geschlecht' => $geschlecht,
 				'nachname' => $stammdaten->nachname,
 				'staatsbuergerschaft' => $stammdaten->staatsbuergerschaft_code,
+				'geburtsland' => $stammdaten->geburtsnation_code,
 				'vorname' => $stammdaten->vorname,
 			);
 
 			if (isset($stammdaten->svnr))
-				$studentinfo['snvr'] = $stammdaten->svnr;
+				$studentinfo['svnr'] = $stammdaten->svnr;
 
 			if (isset($stammdaten->ersatzkennzeichen))
 				$studentinfo['ekz'] = $stammdaten->ersatzkennzeichen;

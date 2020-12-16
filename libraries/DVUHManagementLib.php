@@ -9,7 +9,7 @@ class DVUHManagementLib
 	private $_matrnr_statuscodes = array(
 		'assignNew' => array('1', '5'),
 		'saveExisting' => array('3'),
-		'error' => array('6')
+		'error' => array('4', '6')
 	);
 
 	/**
@@ -35,6 +35,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -214,6 +215,7 @@ class DVUHManagementLib
 
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
+		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester_kurzbz);
 
 		// get offene Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
@@ -224,10 +226,17 @@ class DVUHManagementLib
 								  AND studiensemester_kurzbz = ?
 								  AND buchungsnr_verweis IS NULL
 								  AND betrag < 0
-								  AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto /* no Gegenbuchung yet */
+								  /*AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto /* no Gegenbuchung yet */
+								  					WHERE kto.person_id = tbl_konto.person_id
+								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
+								      				LIMIT 1)*/
+								  AND NOT EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
+									WHERE buchungsnr = (SELECT kto.buchungsnr FROM public.tbl_konto kto
 								  					WHERE kto.person_id = tbl_konto.person_id
 								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
 								      				LIMIT 1)
+									AND betrag > 0
+									LIMIT 1)
 								  AND EXISTS (SELECT 1 FROM public.tbl_prestudent
 								      			JOIN public.tbl_prestudentstatus USING (prestudent_id)
 								      			WHERE tbl_prestudent.person_id = tbl_konto.person_id
@@ -249,6 +258,7 @@ class DVUHManagementLib
 		{
 			$buchungen = getData($buchungenResult);
 
+			$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester_kurzbz);
 			$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz);
 
 			if (isError($paidOtherUniv))
@@ -371,6 +381,7 @@ class DVUHManagementLib
 	{
 		$result = null;
 		$zahlungenResArr = array();
+		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester_kurzbz);
 
 		// get paid Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
@@ -455,7 +466,7 @@ class DVUHManagementLib
 						return error("Buchung: $buchungsnr: payment not equal to charge amount");
 				}
 				else
-					return error("Buchung $buchungsnr: no charge sent to DVUH before the payment");
+					return $this->_getInfoObj("Buchung $buchungsnr: no charge sent to DVUH before the payment");
 
 				$payment = new stdClass();
 				$payment->be = $this->_be;
@@ -694,9 +705,6 @@ class DVUHManagementLib
 					if (hasData($status))
 					{
 						$statusdata = getData($status);
-
-						/*var_dump($feed->published);
-						var_dump($lastFeedDate);*/
 
 						if ($statusdata->semester[0] == $this->_convertSemesterToDVUH($studiensemester_kurzbz)
 							&& ($lastFeedDate == '' || $feed->published > $lastFeedDate))

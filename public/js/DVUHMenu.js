@@ -4,18 +4,26 @@
 
 $(document).ready(function()
 	{
+		$("#toggleMenu").click(
+			function()
+			{
+				var visible = $("#menuContainer").is(":visible");
+				DVUHMenu._toggleMenu(visible);
+			}
+		);
+
 		$(".dvuhMenu li").click(
 			function()
 			{
 				var id = $(this).prop('id');
-				DVUHMenu._printForm(id);
+				DVUHMenu.printForm(id);
 			}
 		);
 	}
 );
 
 var DVUHMenu = {
-	_printForm: function(action)
+	printForm: function(action)
 	{
 		var html = '';
 		var method = '';
@@ -67,7 +75,7 @@ var DVUHMenu = {
 				method = 'get';
 				break;
 			case 'getBpk':
-				html = '<h4>BPK ermitteln</h4>';
+				html = '<h4>BPK ermitteln (manuell)</h4>';
 				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
 					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: YYYY-MM-DD', 10)
@@ -77,6 +85,11 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('geburtsland', 'Geburtsland', 'optional', 15)
 					+ DVUHMenu._getTextfieldHtml('akadgrad', 'Akademischer Grad Pre', 'vor dem Namen, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('akadnach', 'Akademischer Grad Post', 'nach dem Namen, optional', 255)
+				method = 'get';
+				break;
+			case 'getBpkByPersonId':
+				html = '<h4>Stammdaten und Matrikelnummer melden (ohne Vorschreibung)</h4>';
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
 				method = 'get';
 				break;
 			case 'reserveMatrikelnummer':
@@ -267,8 +280,6 @@ var DVUHMenu = {
 		var textToWrite = "";
 		var isError = false;
 
-		console.log(text);
-
 		if (type == 'error')
 		{
 			colorClass = ' class="text-danger"';
@@ -304,6 +315,10 @@ var DVUHMenu = {
 		var spanid = boxid+"Span";
 		var span = '<b>'+intro+'</b><br /><span'+colorClass+' id="'+spanid+'"></span>';
 
+		// hide menu to avoid scroll down
+		DVUHMenu._toggleMenu(true);
+
+		// write the results
 		$("#"+boxid).html(span);
 
 		if (isError)
@@ -346,6 +361,21 @@ var DVUHMenu = {
 			)
 
 			DVUHMenu._writeSyncoutputBox();
+		}
+	},
+	_toggleMenu: function(visible)
+	{
+		if (visible)
+		{
+			$("#menuContainer").hide();
+			$("#toggleMenuText").text("Menü aufklappen");
+			$("#toggleMenuCaret").removeClass().addClass("fa fa-caret-right")
+		}
+		else
+		{
+			$("#menuContainer").show();
+			$("#toggleMenuText").text("Menü zuklappen");
+			$("#toggleMenuCaret").removeClass().addClass("fa fa-caret-down")
 		}
 	},
 	_clearGui: function()

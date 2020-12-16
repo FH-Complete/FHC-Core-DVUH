@@ -22,6 +22,7 @@ class DVUH extends Auth_Controller
 				'getStudium'=>'admin:r',
 				'getFullstudent'=>'admin:r',
 				'getBpk' =>'admin:r',
+				'getBpkByPersonId' =>'admin:r',
 				'reserveMatrikelnummer'=>'admin:r',
 				'postMasterData'=>'admin:r',
 				'postCharge'=>'admin:r',
@@ -32,7 +33,6 @@ class DVUH extends Auth_Controller
 		);
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 	}
@@ -190,6 +190,21 @@ class DVUH extends Auth_Controller
 		$this->outputJson($json);
 	}
 
+	public function getBpkByPersonId()
+	{
+		$json = null;
+
+		$data = $this->input->get('data');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+
+		$this->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
+
+		$json = $this->PruefebpkModel->getByPersonId($person_id);
+
+		$this->outputJson($json);
+	}
+
 	//------------------------------------------------------------------------------------------------------------------
 	// POST methods
 
@@ -248,9 +263,7 @@ class DVUH extends Auth_Controller
 
 		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 
-		$fhc_semester = $this->dvuhsynclib->convertSemesterToFHC($semester);
-
-		$json = $this->dvuhmanagementlib->sendCharge($person_id, $fhc_semester, $preview);
+		$json = $this->dvuhmanagementlib->sendCharge($person_id, $semester, $preview);
 
 		$this->outputJson($json);
 	}
@@ -292,9 +305,7 @@ class DVUH extends Auth_Controller
 
 		$this->load->model('extensions/FHC-Core-DVUH/Zahlung_model', 'ZahlungModel');
 
-		$fhc_semester = $this->dvuhsynclib->convertSemesterToFHC($semester);
-
-		$json = $this->dvuhmanagementlib->sendPayment($person_id, $fhc_semester, $preview);
+		$json = $this->dvuhmanagementlib->sendPayment($person_id, $semester, $preview);
 
 		$this->outputJson($json);
 	}
@@ -331,9 +342,7 @@ class DVUH extends Auth_Controller
 		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$fhc_semester = $this->dvuhsynclib->convertSemesterToFHC($semester);
-
-		$json = $this->dvuhmanagementlib->sendStudyData($fhc_semester, $person_id, $prestudent_id,  $preview);
+		$json = $this->dvuhmanagementlib->sendStudyData($semester, $person_id, $prestudent_id,  $preview);
 
 		$this->outputJson($json);
 	}
