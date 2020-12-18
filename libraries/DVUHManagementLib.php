@@ -172,7 +172,7 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = $this->_getInfoObj("No valid person found for request Matrikelnummer");
+			$result = $this->_getInfoObj("No valid person found for Matrikelnummer request");
 
 		return $result;
 	}

@@ -19,6 +19,8 @@ $(document).ready(function()
 				DVUHMenu.printForm(id);
 			}
 		);
+
+		DVUHMenu._setScrollToTop();
 	}
 );
 
@@ -416,5 +418,26 @@ var DVUHMenu = {
 			xmlResultNodeString.xmlString += '<span style="margin-left: ' + textmargin + 'px">' + xmlNode.textContent + '</span><br />';
 		}
 		xmlResultNodeString.xmlString += '<span style="margin-left: '+margin+'px">&lt;/' + xmlNode.nodeName + '&gt;</span><br />';
+	},
+	_setScrollToTop()
+	{
+		if ($(document).scrollTop() > 20)
+			$("#scrollToTop").show();
+
+		//scroll to top button
+		$(window).scroll(function()
+			{
+				if ($(document).scrollTop() > 20)
+					$("#scrollToTop").show();
+				else
+					$("#scrollToTop").hide();
+			}
+		);
+
+		$("#scrollToTop").click(function()
+			{
+				$('html,body').animate({scrollTop:0},250,'linear');
+			}
+		)
 	}
 };
