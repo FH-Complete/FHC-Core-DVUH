@@ -37,8 +37,11 @@ class DVUHSyncLib
 			$emailliste = array();
 
 			// adresses
-			$hasZustelladresse = false;
-			$hasHeimatadresse = false;
+			$zustellAdresse = null;
+			$heimatAdresse = null;
+			$zustellInsertamum = null;
+			$heimatInsertamum = null;
+
 			foreach ($stammdaten->adressen as $adresse)
 			{
 				$addr = array();
@@ -49,23 +52,33 @@ class DVUHSyncLib
 
 				if ($adresse->zustelladresse)
 				{
-					$addr['typ'] = 'S';
-					$hasZustelladresse = true;
-					$adressen[] = $addr;
+					if (is_null($zustellInsertamum) || $adresse->insertamum > $zustellInsertamum)
+					{
+						$addr['typ'] = 'S';
+						$zustellInsertamum = $adresse->insertamum;
+						$zustellAdresse = $addr;
+					}
 				}
+
 				if ($adresse->heimatadresse)
 				{
-					$addr['typ'] = 'H';
-					$hasHeimatadresse = true;
-					$adressen[] = $addr;
+					if (is_null($heimatInsertamum) || $adresse->insertamum > $heimatInsertamum)
+					{
+						$addr['typ'] = 'H';
+						$heimatInsertamum = $adresse->insertamum;
+						$heimatAdresse = $addr;
+					}
 				}
 			}
 
-			if (!$hasZustelladresse)
+			if (isEmptyString($zustellAdresse))
 				return error("Keine Zustelladresse angegeben!");
 
-			if (!$hasHeimatadresse)
+			if (isEmptyString($heimatAdresse))
 				return error("Keine Heimatadresse angegeben!");
+
+			$adressen[] = $zustellAdresse;
+			$adressen[] = $heimatAdresse;
 
 			// private mail
 			/*				foreach ($stammdaten->kontakte as $kontakt)
@@ -160,7 +173,7 @@ class DVUHSyncLib
 			// Meldung pro Student, Studium und Semester
 			$active_status = array(/*'Aufgenommener',*/ 'Student', 'Incoming', 'Diplomand');
 
-			$qry = "SELECT ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
+			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
 				       stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
 				       pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester,
 				       tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
@@ -197,6 +210,8 @@ class DVUHSyncLib
 				$qry .= ' AND ps.prestudent_id = ?';
 				$params[] = $prestudent_id;
 			}
+
+			$qry .= ' ORDER BY prestudent_id, (CASE WHEN pss.datum < NOW() THEN 1 ELSE 2 END), pss.datum DESC, pss.insertamum DESC';
 
 			$prestudentstatusesResult = $this->_dbModel->execReadOnlyQuery($qry, $params);
 
@@ -236,7 +251,7 @@ class DVUHSyncLib
 
 					// studiengang kz
 					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad($studiengang_kz, 4, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
 
 					// zgv
 					$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum);
@@ -383,10 +398,8 @@ class DVUHSyncLib
 						if (isset($prestudentstatus->beendigungsdatum))
 							$studiengang['beendigungsdatum'] = $prestudentstatus->beendigungsdatum;
 
-
 						$studiengaenge[] = $studiengang;
 					}
-
 				}
 			}
 			else
@@ -455,6 +468,13 @@ class DVUHSyncLib
 		$prestudent_id = $prestudentstatus->prestudent_id;
 		$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
 
+		$prevSemesterResult = $this->_ci->StudiensemesterModel->getPreviousFrom($semester);
+
+		if (hasData($prevSemesterResult))
+			$prevSemester = getData($prevSemesterResult)[0]->studiensemester_kurzbz;
+		else
+			return error('No previous Studiensemester');
+
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 
 		$kodex_studientyp_array = array();
@@ -485,11 +505,12 @@ class DVUHSyncLib
 								LEFT JOIN public.tbl_firma USING(firma_id)
 							WHERE
 								prestudent_id=?
-								AND (studiensemester_kurzbz=? AND status_kurzbz = 'Absolvent')
+								AND (studiensemester_kurzbz=? OR (studiensemester_kurzbz=? AND status_kurzbz = 'Absolvent'))
 							ORDER BY tbl_mobilitaet.insertamum DESC limit 1;",
 			array(
 				$prestudent_id,
-				$semester
+				$semester,
+				$prevSemester
 			)
 		);
 
@@ -513,7 +534,7 @@ class DVUHSyncLib
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
 				'mobilitaetprogrammcode' => $gemeinsamestudien->mobilitaetsprogramm_code,
 				'partnercode' => $gemeinsamestudien->partner_code,
-				'programmnr' => $gemeinsamestudien->programm_code,
+				'programmnr' => $gemeinsamestudien->programm_code, // TODO: value from 1 - 9 excpected by dvuh
 				'studstatuscode' => $gs_studstatuscode,
 				'studtyp' => $studtyp
 			);
@@ -568,7 +589,7 @@ class DVUHSyncLib
 					$zweck_code_arr = array();
 
 					// Bei Incomings...
-					if ($prestudentstatus == 'Incoming')
+					if ($prestudentstatus->status_kurzbz == 'Incoming')
 					{
 						// ...max 1 Aufenthaltszweck
 						if (count($bisio_zweck) > 1)
@@ -602,7 +623,7 @@ class DVUHSyncLib
 					$aufenthaltfoerderung_code_arr = array();
 
 					// Nur bei Outgoings Aufenthaltsfoerderungscode melden
-					if ($prestudentstatus != 'Incoming')
+					if ($prestudentstatus->status_kurzbz != 'Incoming')
 					{
 						$this->_ci->AufenthaltfoerderungModel->addSelect('tbl_aufenthaltfoerderung.aufenthaltfoerderung_code');
 						$this->_ci->AufenthaltfoerderungModel->addJoin('bis.tbl_bisio_aufenthaltfoerderung', 'aufenthaltfoerderung_code');
@@ -672,10 +693,10 @@ class DVUHSyncLib
 					$mobilitaet['aufenthaltfoerderungcode'] = $aufenthaltfoerderung_code_arr;
 
 				if (!isEmptyString($ioitem->ects_angerechnet))
-					$mobilitaet['ectsangerechnet'] = $ioitem->ects_angerechnet;
+					$mobilitaet['ectsangerechnet'] = (integer) $ioitem->ects_angerechnet; // conversion, DVUH needs integer
 
 				if (!isEmptyString($ioitem->ects_erworben))
-					$mobilitaet['ectserworben'] = $ioitem->ects_erworben;
+					$mobilitaet['ectserworben'] = (integer) $ioitem->ects_erworben;
 
 				$mobilitaeten[] = $mobilitaet;
 			}
@@ -769,6 +790,10 @@ class DVUHSyncLib
 		if (!isset($prestudentstatus->zgv_code))
 			return error("Zgv fehlt");
 
+		if (!isset($prestudentstatus->zgvdatum))
+		{
+			return error("ZGV Datum fehlt");
+		}
 		if($prestudentstatus->zgvdatum > date("Y-m-d"))
 		{
 			return error("ZGV Datum in Zukunft");
@@ -798,15 +823,19 @@ class DVUHSyncLib
 			if (!isset($prestudentstatus->zgvmas_code))
 				return error("Zgv Master fehlt");
 
-			if($prestudentstatus->zgvmadatum > date("Y-m-d"))
+			if (!isset($prestudentstatus->zgvmadatum))
+			{
+				return error("ZGV Masterdatum fehlt");
+			}
+			if ($prestudentstatus->zgvmadatum > date("Y-m-d"))
 			{
 				return error("ZGV Masterdatum in Zukunft");
 			}
-			if($prestudentstatus->zgvmadatum < $prestudentstatus->zgvdatum)
+			if ($prestudentstatus->zgvmadatum < $prestudentstatus->zgvdatum)
 			{
-				return error("ZGV Masterdatum bevor Zgvdatum");
+				return error("ZGV Masterdatum vor Zgvdatum");
 			}
-			if($prestudentstatus->zgvmadatum < $gebdatum)
+			if ($prestudentstatus->zgvmadatum < $gebdatum)
 			{
 				return error("ZGV Masterdatum vor Geburtsdatum");
 			}
@@ -828,6 +857,6 @@ class DVUHSyncLib
 		$datetime1 = new DateTime($datum1);
 		$datetime2 = new DateTime($datum2);
 		$interval = $datetime1->diff($datetime2);
-		return $interval->format('%R%a');
+		return $interval->days;
 	}
 }
