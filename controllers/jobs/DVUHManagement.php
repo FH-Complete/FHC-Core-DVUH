@@ -42,40 +42,23 @@ class DVUHManagement extends JQW_Controller
 
 			foreach ($person_arr as $persobj)
 			{
-				$person_id = $persobj->person_id;
-				$studiensemester_kurzbz = $persobj->studiensemester_kurzbz;
-
-				$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id, $studiensemester_kurzbz);
-
-				if (isError($requestMatrnrResult))
-					$this->logError("An error occurred while requesting Matrikelnummer, person Id $person_id", getError($requestMatrnrResult));
-				elseif (hasData($requestMatrnrResult))
+				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
+					$this->logError("An error occurred while requesting Matrikelnummer, invalid parameters passed to queue");
+				else
 				{
-					$requestMatrnrArr = getData($requestMatrnrResult);
+					$person_id = $persobj->person_id;
+					$studiensemester_kurzbz = $persobj->studiensemester_kurzbz;
 
-					if (isset($requestMatrnrArr['matr_nr']))
+					$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id, $studiensemester_kurzbz);
+
+					if (isError($requestMatrnrResult))
+						$this->logError("An error occurred while requesting Matrikelnummer, person Id $person_id", getError($requestMatrnrResult));
+					elseif (hasData($requestMatrnrResult))
 					{
-						$this->logInfo('Stammdaten with Matrikelnr ' . $requestMatrnrArr['matr_nr'] . ' successfully sent for person Id ' . $person_id);
+						$requestMatrnrArr = getData($requestMatrnrResult);
 
-						if ($requestMatrnrArr['matr_aktiv'] == true)
-							$this->logInfo('Existing Matrikelnr ' . $requestMatrnrArr['matr_nr'] . ' assigned to person Id ' . $person_id);
-						elseif ($requestMatrnrArr['matr_aktiv'] == false)
-							$this->logInfo('New Matrikelnr ' . $requestMatrnrArr['matr_nr'] . ' preliminary assigned to person Id ' . $person_id);
-
-/*						$sendMasterdataResult = $this->dvuhmanagementlib->sendMasterdata($person_id, $studiensemester_kurzbz);
-
-						if (isError($sendMasterdataResult))
-							$this->logError("An error occurred while sending Stammdaten, person Id $person_id", getError($sendMasterdataResult));
-						elseif (hasData($sendMasterdataResult))
-						{
-							$this->logInfo("Stammdaten of student with id $person_id successfully sent");
-						}*/
+						$this->_logInfos($requestMatrnrArr);
 					}
-					elseif (isset($requestMatrnrArr['info']))
-					{
-						$this->logInfo($requestMatrnrArr['info'] . " (personId $person_id)");
-					}
-
 				}
 			}
 
@@ -115,21 +98,26 @@ class DVUHManagement extends JQW_Controller
 
 			foreach ($person_arr as $persobj)
 			{
-				$person_id = $persobj->person_id;
-				$studiensemester = $persobj->studiensemester_kurzbz;
-
-				$sendChargeResult = $this->dvuhmanagementlib->sendCharge($person_id, $studiensemester);
-
-				if (isError($sendChargeResult))
-					$this->logError("An error occurred while sending charge, person Id $person_id, studiensemester $studiensemester", getError($sendChargeResult));
-				elseif (hasData($sendChargeResult))
+				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
+					$this->logError("An error occurred while sending charge, invalid parameters passed to queue");
+				else
 				{
-					$sendCharge = getData($sendChargeResult);
+					$person_id = $persobj->person_id;
+					$studiensemester = $persobj->studiensemester_kurzbz;
 
-					if (isset($sendCharge['info']))
-						$this->logInfo($sendCharge['info'] . ", person_id $person_id, studiensemester $studiensemester");
-					else
-						$this->logInfo("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
+					$sendChargeResult = $this->dvuhmanagementlib->sendMasterData($person_id, $studiensemester);
+
+					if (isError($sendChargeResult))
+						$this->logError("An error occurred while sending charge, person Id $person_id, studiensemester $studiensemester", getError($sendChargeResult));
+					elseif (hasData($sendChargeResult))
+					{
+						$sendCharge = getData($sendChargeResult);
+
+						$this->_logInfos($sendCharge);
+
+						if (isset($sendCharge['result']))
+							$this->logInfo("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
+					}
 				}
 			}
 
@@ -172,24 +160,28 @@ class DVUHManagement extends JQW_Controller
 				$person_id = $persobj->person_id;
 				$studiensemester = $persobj->studiensemester_kurzbz;
 
-				$sendPaymentResult = $this->dvuhmanagementlib->sendPayment($person_id, $studiensemester);
-
-				if (isError($sendPaymentResult))
-					$this->logError("An error occurred while sending charge, person Id $person_id, studiensemester $studiensemester", getError($sendPaymentResult));
-				elseif (hasData($sendPaymentResult))
+				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
+					$this->logError("An error occurred while sending payment, invalid parameters passed to queue");
+				else
 				{
-					$sendPaymentItems = getData($sendPaymentResult);
+					$sendPaymentResult = $this->dvuhmanagementlib->sendPayment($person_id, $studiensemester);
 
-					if (isset($sendPaymentItems['info']))
-						$this->logInfo($sendPaymentItems['info'] . ", person Id $person_id, studiensemester $studiensemester");
-					elseif (is_array($sendPaymentItems))
+					if (isError($sendPaymentResult))
+						$this->logError("An error occurred while sending charge, person Id $person_id, studiensemester $studiensemester", getError($sendPaymentResult));
+					elseif (hasData($sendPaymentResult))
 					{
-						foreach ($sendPaymentItems as $paymentRes)
+						$sendPaymentItems = getData($sendPaymentResult);
+
+
+						$this->_logInfos($sendPaymentItems);
+
+						if (isset($sendPaymentItems['result']) && is_array($sendPaymentItems['result']))
 						{
-							if (isError($paymentRes))
-								$this->logError("An error occurred while sending payment, person Id $person_id, studiensemester $studiensemester", getError($paymentRes));
-							elseif (hasData($paymentRes))
-								$this->logInfo("Payment of student with person Id $person_id, studiensemester $studiensemester successfully sent");
+							foreach ($sendPaymentItems['result'] as $paymentRes)
+							{
+								if (isError($paymentRes))
+									$this->logError("An error occurred while sending payment, person Id $person_id, studiensemester $studiensemester", getError($paymentRes));
+							}
 						}
 					}
 				}
@@ -234,19 +226,25 @@ class DVUHManagement extends JQW_Controller
 				$prestudent_id = $prsobj->prestudent_id;
 				$studiensemester = $prsobj->studiensemester_kurzbz;
 
-				$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
-
-				if (isError($sendStudyDataResult))
-					$this->logError("An error occurred while sending study data, prestudent Id $prestudent_id, studiensemester $studiensemester", getError($sendStudyDataResult));
-				elseif (hasData($sendStudyDataResult))
+				if (!isset($prsobj->prestudent_id) || !isset($prsobj->studiensemester_kurzbz))
+					$this->logError("An error occurred while sending study data, invalid parameters passed to queue");
+				else
 				{
-					$sendStudyData = getData($sendStudyDataResult);
 
-					if (isset($sendStudyData['info']))
-						$this->logInfo($sendStudyData['info'] . ", prestudent_id $prestudent_id, studiensemester $studiensemester");
-					else
+					$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
+
+					if (isError($sendStudyDataResult))
+						$this->logError("An error occurred while sending study data, prestudent Id $prestudent_id, studiensemester $studiensemester", getError($sendStudyDataResult));
+					elseif (hasData($sendStudyDataResult))
 					{
-						$this->logInfo("Study data for student with prestudent Id $prestudent_id, studiensemester $studiensemester successfully sent");
+						$sendStudyData = getData($sendStudyDataResult);
+
+						$this->_logInfos($sendStudyData);
+
+						if (isset($sendStudyData['result']))
+						{
+							$this->logInfo("Study data for student with prestudent Id $prestudent_id, studiensemester $studiensemester successfully sent");
+						}
 					}
 				}
 			}
@@ -282,5 +280,16 @@ class DVUHManagement extends JQW_Controller
 			}
 		}
 		return $mergedUsersArray;
+	}
+
+	private function _logInfos($infos)
+	{
+		if (isset($infos['infos']) && is_array($infos['infos']))
+		{
+			foreach ($infos['infos'] as $info)
+			{
+				$this->logInfo($info);
+			}
+		}
 	}
 }

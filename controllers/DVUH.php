@@ -236,62 +236,10 @@ class DVUH extends Auth_Controller
 
 		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 
-		if ($preview)
-		{
-			$be = $this->config->item('fhc_dvuh_be_code');
-			$json = $this->StammdatenModel->retrievePostData(
-				$be, $person_id, $semester
-			);
-		}
-		else
-		{
-			$json = $this->dvuhmanagementlib->sendMasterdata($person_id, $semester);
-		}
+		$json = $this->dvuhmanagementlib->sendMasterdata($person_id, $semester, null, $preview);
 
 		$this->outputJson($json);
 	}
-
-	public function postCharge()
-	{
-		$json = null;
-
-		$data = $this->input->post('data');
-		$preview = $this->input->post('preview');
-
-		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
-		$semester = isset($data['semester']) ? $data['semester'] : null;
-
-		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
-
-		$json = $this->dvuhmanagementlib->sendCharge($person_id, $semester, $preview);
-
-		$this->outputJson($json);
-	}
-
-/*	public function postZahlung()
-	{
-		$json = null;
-
-		$data = $this->input->post('data');
-
-		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
-		$semester = isset($data['semester']) ? $data['semester'] : null;
-		$zahlungsart = isset($data['zahlungsart']) ? $data['zahlungsart'] : null;
-		$centbetrag = isset($data['centbetrag']) ? $data['centbetrag'] : null;
-		$buchungsdatum = isset($data['buchungsdatum']) ? $data['buchungsdatum'] : null;
-		$referenznummer = isset($data['referenznummer']) ? $data['referenznummer'] : null;
-
-		$be = $this->config->item('fhc_dvuh_be_code');
-
-		$this->load->model('extensions/FHC-Core-DVUH/Zahlung_model', 'ZahlungModel');
-
-		$json = $this->ZahlungModel->post(
-			$be, $matrikelnummer, $semester, $zahlungsart, $centbetrag,
-			$buchungsdatum, $referenznummer
-		);
-
-		$this->outputJson($json);
-	}*/
 
 	public function postPayment()
 	{
@@ -309,27 +257,6 @@ class DVUH extends Auth_Controller
 
 		$this->outputJson($json);
 	}
-
-/*	public function postStudium()
-	{
-		$json = null;
-
-		$data = $this->input->post('data');
-		$preview = $this->input->post('preview');
-
-		$be = $this->config->item('fhc_dvuh_be_code');
-		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
-		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
-		$semester = isset($data['semester']) ? $data['semester'] : null;
-
-		$this->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
-
-		$json = $this->StudiumModel->post(
-			$be, $person_id, $semester, $prestudent_id, $preview
-		);
-
-		$this->outputJson($json);
-	}*/
 
 	public function postStudium()
 	{

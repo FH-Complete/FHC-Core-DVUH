@@ -107,25 +107,25 @@ var DVUHMenu = {
 				method = 'post';
 				break;
 			case 'postMasterData':
-				html = '<h4>Stammdaten und Matrikelnummer melden (ohne Vorschreibung)</h4>';
+				html = '<h4>Stammdaten und Matrikelnummer melden</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				writePreviewButton = true;
 				break;
-			case 'postCharge':
+/*			case 'postCharge':
 				html = '<h4>Stammdaten und Matrikelnummer melden (mit Vorschreibung)</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
-/*					+ DVUHMenu._getTextfieldHtml('oehbeitrag', 'ÖH-Beitrag', 'In Cent', 4)
+/!*					+ DVUHMenu._getTextfieldHtml('oehbeitrag', 'ÖH-Beitrag', 'In Cent', 4)
 					+ DVUHMenu._getTextfieldHtml('studiengebuehr', 'Studiengebühr', 'In Cent', 10)
 					+ DVUHMenu._getTextfieldHtml('valutadatum', 'Valutadatum', 'Format: YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('valutadatumnachfrist', 'Valutadatum Nachfrist', 'Format: YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('studiengebuehrnachfrist', 'Studiengebühr Nachfrist', 'In Cent', 10)*/
+					+ DVUHMenu._getTextfieldHtml('studiengebuehrnachfrist', 'Studiengebühr Nachfrist', 'In Cent', 10)*!/
 				method = 'post';
 				//action = 'postMasterData';
 				writePreviewButton = true;
-				break;
+				break;*/
 			case 'postPayment':
 				html = '<h4>Zahlungseingang melden</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')/*DVUHMenu._getMatrikelnummerRow()*/
@@ -289,29 +289,50 @@ var DVUHMenu = {
 			isError = true;
 			textToWrite = text;
 		}
-		else if (text.info)
-		{
-			colorClass = ' class="text-success"';
-			textToWrite = text.info;
-		}
 		else
 		{
-			if (jQuery.isArray(text))
+
+			if (text.infos)
 			{
-				for (var i = 0; i < text.length; i++)
+				//colorClass = ' class="text-success"';
+
+				for (var i = 0; i < text.infos.length; i++)
+				{
+					textToWrite += "<span class='text-success'>";
+					textToWrite += text.infos[i];
+					textToWrite += "</span><br />";
+				}
+			}
+
+			var result = null
+			if (text.result)
+			{
+				result = text.result;
+			}
+			else if (typeof text == 'string')
+			{
+				result = text;
+			}
+
+			if (jQuery.isArray(result))
+			{
+				for (var i = 0; i < result.length; i++)
 				{
 					textToWrite += "<b>Anfrage " + (i + 1) + "</b>:<br />";
 
-					if (FHC_AjaxClient.isError(text[i]))
-						textToWrite += FHC_AjaxClient.getError(text[i]);
+					if (FHC_AjaxClient.isError(result[i]))
+						textToWrite += FHC_AjaxClient.getError(result[i]);
 					else
-						textToWrite += DVUHMenu._printXmlTree(FHC_AjaxClient.getData(text[i]));
+						textToWrite += DVUHMenu._printXmlTree(FHC_AjaxClient.getData(result[i]));
 
 					textToWrite += "<br />";
 				}
 			}
 			else
-				textToWrite = DVUHMenu._printXmlTree(text);
+			{
+				textToWrite += DVUHMenu._printXmlTree(result);
+			}
+
 		}
 
 		var spanid = boxid+"Span";
@@ -387,6 +408,9 @@ var DVUHMenu = {
 	},
 	_printXmlTree: function(xmlString)
 	{
+		if (typeof xmlString !== 'string')
+			return '';
+
 		var xmlDoc = jQuery.parseXML(xmlString);
 
 		if (!xmlDoc)

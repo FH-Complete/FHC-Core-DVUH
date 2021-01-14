@@ -65,10 +65,9 @@ $this->load->view('templates/FHC-Header', array(
 							<div class="panel-body">
 								<ul class="list-unstyled dvuhMenu">
 									<li id="getStammdaten"><a href="javascript:void(0)">Stammdaten und Zahlungsvorschreibung abfragen
-									<li id="postMasterData"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (ohne
-											Zahlungsvorschreibung)</a></li>
-									<li id="postCharge"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (mit
-											Zahlungsvorschreibung)</a></li>
+									<li id="postMasterData"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden</a></li>
+<!--									<li id="postCharge"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (mit
+											Zahlungsvorschreibung)</a></li>-->
 								</ul>
 							</div>
 						</div>
