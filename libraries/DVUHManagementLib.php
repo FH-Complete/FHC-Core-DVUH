@@ -231,7 +231,6 @@ class DVUHManagementLib
 		{
 			$buchungen = getData($buchungenResult);
 
-			//$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester_kurzbz);
 			$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $matrikelnummer);
 
 			if (isError($paidOtherUniv))
@@ -319,6 +318,7 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
+				$infos[] = 'Stammdaten successfully saved in DVUH';
 				$result = $this->_getResponseArr($infos, $xmlstr);
 
 				// write Stammdatenmeldung in FHC db
@@ -531,7 +531,7 @@ class DVUHManagementLib
 					}
 				}
 				else
-					$zahlungenResArr[] = error('Error when sending Stammdaten');
+					$zahlungenResArr[] = error('Error when sending Zahlung');
 			}
 		}
 		else
@@ -586,7 +586,7 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$result = $this->_getResponseArr(null, $xmlstr);
+				$result = $this->_getResponseArr(array('Study data successfully saved in DVUH'), $xmlstr);
 
 				// activate Matrikelnr
 				$matrNrActivationResult = $this->_ci->PersonModel->update(

@@ -124,18 +124,12 @@ class JQMSchedulerLib
 		return $result;
 	}*/
 
-	public function sendCharge()
+	public function sendCharge($lastJobTime)
 	{
 		$jobInput = null;
 		$result = null;
 
-		/*$studiensemesterResult = $this->_ci->StudiensemesterModel->getAktOrNextSemester();
-
-		if (hasData($studiensemesterResult))
-		{
-			$studiensemester = getData($studiensemesterResult)[0]->studiensemester_kurzbz;*/
-
-		// TODO sync when updateamum changes
+		$params = array($this->_startdatum);
 
 		// get students with outstanding Buchungen not sent to DVUH yet
 		$qry = "SELECT DISTINCT person_id, kto.studiensemester_kurzbz
@@ -143,7 +137,7 @@ class JQMSchedulerLib
 					JOIN public.tbl_konto kto USING(person_id)
 					JOIN public.tbl_studiensemester USING(studiensemester_kurzbz)
 					JOIN public.tbl_prestudent ps USING (person_id)
-					JOIN public.tbl_student using(prestudent_id)
+					JOIN public.tbl_student USING (prestudent_id)
 					JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
 					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 				WHERE ps.bismelden = true
@@ -152,10 +146,10 @@ class JQMSchedulerLib
 					AND kto.buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
 					AND kto.buchungsnr_verweis IS NULL
 					AND kto.betrag < 0
-/*					AND NOT EXISTS (SELECT 1 FROM public.tbl_konto ggb /* no Gegenbuchung yet */
-									WHERE ggb.person_id = kto.person_id
-									AND ggb.buchungsnr_verweis = kto.buchungsnr
-									LIMIT 1)*/
+				/*					AND NOT EXISTS (SELECT 1 FROM public.tbl_konto ggb /* no Gegenbuchung yet */
+													WHERE ggb.person_id = kto.person_id
+													AND ggb.buchungsnr_verweis = kto.buchungsnr
+													LIMIT 1)*/
 					AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* not yet sent to DVUH */
 									WHERE buchungsnr = kto.buchungsnr
 									AND betrag < 0
@@ -163,20 +157,51 @@ class JQMSchedulerLib
 					AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
 					AND tbl_studiensemester.ende >= ?::date";
 
+		if (isset($lastJobTime))
+		{
+			$qry .= " UNION
+				SELECT DISTINCT pers.person_id, pss.studiensemester_kurzbz
+				FROM public.tbl_person pers
+					JOIN public.tbl_prestudent ps USING (person_id)
+					JOIN public.tbl_student USING(prestudent_id)
+					JOIN public.tbl_benutzer ben ON (tbl_student.student_uid = ben.uid)
+					JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id
+					JOIN public.tbl_studiensemester ON pss.studiensemester_kurzbz = tbl_studiensemester.studiensemester_kurzbz
+					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
+					LEFT JOIN (
+						SELECT person_id, MAX(updateamum) AS updateamum, MAX(insertamum) AS insertamum
+						FROM public.tbl_kontakt
+						GROUP BY person_id
+					) AS ktkt ON pers.person_id = ktkt.person_id
+					LEFT JOIN (
+						SELECT person_id, MAX(updateamum) AS updateamum, MAX(insertamum) AS insertamum
+						FROM public.tbl_adresse
+						GROUP BY person_id
+						) AS adr ON pers.person_id = adr.person_id
+				WHERE ps.bismelden = true
+					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
+					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
+					AND tbl_studiensemester.ende >= ?::date
+					AND (pers.insertamum >= ? OR ktkt.insertamum >= ? OR adr.insertamum >= ?/* modified */
+										OR pers.updateamum >= ? OR ktkt.updateamum >= ? OR adr.updateamum >= ?)";
+
+			$params = array_merge($params, array_pad(array($this->_startdatum), 7, $lastJobTime));
+		}
+
 		$dbModel = new DB_Model();
 
-		$maToSyncResult = $dbModel->execReadOnlyQuery(
+		$studToSyncResult = $dbModel->execReadOnlyQuery(
 			$qry,
-			array($this->_startdatum)
+			$params
 		);
 
 		// If error occurred while retrieving students from database then return the error
-		if (isError($maToSyncResult)) return $maToSyncResult;
+		if (isError($studToSyncResult)) return $studToSyncResult;
 
 		// If students are present
-		if (hasData($maToSyncResult))
+		if (hasData($studToSyncResult))
 		{
-			$jobInput = json_encode(getData($maToSyncResult));
+			$jobInput = json_encode(getData($studToSyncResult));
 		}
 
 		$result = success($jobInput);
@@ -237,8 +262,6 @@ class JQMSchedulerLib
 		$jobInput = null;
 		$result = null;
 
-		// TODO sync when updateamum changes
-
 		$params = array($this->_startdatum);
 
 		// get students with vorschreibung which have no Studiumsmeldung or have a data change
@@ -267,8 +290,8 @@ class JQMSchedulerLib
 
 		if (isset($lastJobTime))
 		{
-			$qry .= " OR pss.insertamum > ? OR ps.insertamum > ? OR mob.insertamum > ? OR bisio.insertamum > ? /* modified */
-						OR pss.updateamum > ? OR ps.updateamum > ? OR mob.updateamum > ? OR bisio.updateamum > ?";
+			$qry .= " OR pss.insertamum >= ? OR ps.insertamum >= ? OR mob.insertamum >= ? OR bisio.insertamum >= ? /* modified */
+						OR pss.updateamum >= ? OR ps.updateamum >= ? OR mob.updateamum >= ? OR bisio.updateamum >= ?";
 			$params = array_merge($params, array_pad(array(), 8, $lastJobTime));
 		}
 

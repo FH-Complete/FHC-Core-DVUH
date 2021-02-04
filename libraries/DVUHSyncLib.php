@@ -140,7 +140,6 @@ class DVUHSyncLib
 			if (isset($stammdaten->bpk))
 				$studentinfo['bpk'] = $stammdaten->bpk;
 
-
 			return success(
 				array(
 					'matrikelnummer' => $stammdaten->matr_nr,

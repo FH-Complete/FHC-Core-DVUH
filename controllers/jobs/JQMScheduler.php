@@ -86,9 +86,21 @@ class JQMScheduler extends JQW_Controller
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendCharge');
 
-		// If an error occured then log it
-		$jobInputResult = $this->jqmschedulerlib->sendCharge();
+		// if there are previous jobs, only send data changed after the previous job
+		$prevJobsResult = $this->getJobsByTypeStatus(JQMSchedulerLib::JOB_TYPE_SEND_CHARGE, JobsQueueLib::STATUS_DONE);
 
+		$lastjobtime = null;
+
+		if (hasData($prevJobsResult))
+		{
+			$lastJobsData = getData($prevJobsResult);
+
+			$lastjobtime = $lastJobsData[0]->starttime;
+		}
+
+		$jobInputResult = $this->jqmschedulerlib->sendCharge($lastjobtime);
+
+		// If an error occured then log it
 		if (isError($jobInputResult))
 		{
 			$this->logError(getError($jobInputResult));
