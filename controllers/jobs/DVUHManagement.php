@@ -3,7 +3,7 @@
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * Example JOB
+ * Controller for initialising all DVUH jobs
  */
 class DVUHManagement extends JQW_Controller
 {
@@ -19,6 +19,9 @@ class DVUHManagement extends JQW_Controller
 	//------------------------------------------------------------------------------------------------------------------
 	// Public methods
 
+	/**
+	 * Initialises requestMatrikelnummer job
+	 */
 	public function requestMatrikelnummer()
 	{
 		$jobType = 'DVUHRequestMatrikelnummer';
@@ -167,7 +170,7 @@ class DVUHManagement extends JQW_Controller
 					$sendPaymentResult = $this->dvuhmanagementlib->sendPayment($person_id, $studiensemester);
 
 					if (isError($sendPaymentResult))
-						$this->logError("An error occurred while sending charge, person Id $person_id, studiensemester $studiensemester", getError($sendPaymentResult));
+						$this->logError("An error occurred while sending payment, person Id $person_id, studiensemester $studiensemester", getError($sendPaymentResult));
 					elseif (hasData($sendPaymentResult))
 					{
 						$sendPaymentItems = getData($sendPaymentResult);

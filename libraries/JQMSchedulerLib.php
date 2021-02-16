@@ -31,50 +31,51 @@ class JQMSchedulerLib
 	// --------------------------------------------------------------------------------------------
 	// Public methods
 
-	public function requestMatrikelnummer()
+	public function requestMatrikelnummer($studiensemester_kurzbz)
 	{
 		$jobInput = null;
 		$result = null;
 
 		// get current semester
-		$studiensemesterResult = $this->_ci->StudiensemesterModel->getAktOrNextSemester();
+/*		$studiensemesterResult = $this->_ci->StudiensemesterModel->getAktOrNextSemester();
 
 		if (hasData($studiensemesterResult))
 		{
 			$studiensemester = getData($studiensemesterResult)[0]->studiensemester_kurzbz;
+			$studiensemester = $studiensemester_kurzbz;*/
 
-			// get students with no Matrikelnr
-			$qry = "SELECT DISTINCT person_id, pss.studiensemester_kurzbz
-					FROM public.tbl_person pers
-						JOIN public.tbl_prestudent ps USING (person_id)
-						JOIN public.tbl_student USING(prestudent_id)
-						JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
-						LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-					WHERE ps.bismelden = true
-						AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-						AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
-						AND pers.matr_nr IS NULL
-						AND pss.studiensemester_kurzbz = ?";
+		// get students with no Matrikelnr
+		$qry = "SELECT DISTINCT person_id, pss.studiensemester_kurzbz
+				FROM public.tbl_person pers
+					JOIN public.tbl_prestudent ps USING (person_id)
+					JOIN public.tbl_student USING(prestudent_id)
+					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
+					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
+				WHERE ps.bismelden = true
+					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
+					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
+					AND pers.matr_nr IS NULL
+					AND pss.studiensemester_kurzbz = ?";
 
-			$dbModel = new DB_Model();
+		$dbModel = new DB_Model();
 
-			$maToSyncResult = $dbModel->execReadOnlyQuery(
-				$qry, array($studiensemester)
-			);
+		$maToSyncResult = $dbModel->execReadOnlyQuery(
+			$qry, array($studiensemester_kurzbz)
+		);
 
-			// If error occurred while retrieving students from database then return the error
-			if (isError($maToSyncResult)) return $maToSyncResult;
+		// If error occurred while retrieving students from database then return the error
+		if (isError($maToSyncResult)) return $maToSyncResult;
 
-			// If students are present
-			if (hasData($maToSyncResult))
-			{
-				$jobInput = json_encode(getData($maToSyncResult));
-			}
-
-			$result = success($jobInput);
+		// If students are present
+		if (hasData($maToSyncResult))
+		{
+			$jobInput = json_encode(getData($maToSyncResult));
 		}
+
+		$result = success($jobInput);
+/*		}
 		else
-			$result = error('No Studiensemester found');
+			$result = error('No Studiensemester found');*/
 
 		return $result;
 	}

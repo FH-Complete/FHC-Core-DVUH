@@ -24,12 +24,12 @@ class JQMScheduler extends JQW_Controller
 	/**
 	 *
 	 */
-	public function requestMatrikelnummer()
+	public function requestMatrikelnummer($studiensemester_kurzbz)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->requestMatrikelnummer');
 
 		// If an error occured then log it
-		$jobInputResult = $this->jqmschedulerlib->requestMatrikelnummer();
+		$jobInputResult = $this->jqmschedulerlib->requestMatrikelnummer($studiensemester_kurzbz);
 
 		if (isError($jobInputResult))
 		{

@@ -90,7 +90,7 @@ var DVUHMenu = {
 				method = 'get';
 				break;
 			case 'getBpkByPersonId':
-				html = '<h4>Stammdaten und Matrikelnummer melden (ohne Vorschreibung)</h4>';
+				html = '<h4>BPK ermitteln</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
 				method = 'get';
 				break;

@@ -50,6 +50,11 @@ class DVUHSyncLib
 				$addr['strasse'] = $adresse->strasse;
 				$addr['staat'] = $adresse->nation;
 
+				$addrCheck = $this->_checkAdresse($addr);
+
+				if (isError($addrCheck))
+					return error("Adresse invalid: " . getError($addrCheck));
+
 				if ($adresse->zustelladresse)
 				{
 					if (is_null($zustellInsertamum) || $adresse->insertamum > $zustellInsertamum)
@@ -117,10 +122,7 @@ class DVUHSyncLib
 				$geschlecht = 'W';
 
 			$studentinfo = array(
-				'matrikelnummer' => $stammdaten->matr_nr,
 				'adressen' => $adressen,
-				'akadgrad' => $stammdaten->titelpre,
-				'akadgradnach' => $stammdaten->titelpost,
 				'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
 				'emailliste' => $emailliste,
 				'geburtsdatum' => $stammdaten->gebdatum,
@@ -130,6 +132,21 @@ class DVUHSyncLib
 				'geburtsland' => $stammdaten->geburtsnation_code,
 				'vorname' => $stammdaten->vorname,
 			);
+
+			foreach ($studentinfo as $idx => $item)
+			{
+				if (!isset($item) || isEmptyString($item))
+					return error('Stammdaten missing: ' . $idx);
+			}
+
+			if (isset($stammdaten->matr_nr))
+				$studentinfo['matrikelnummer'] = $stammdaten->matr_nr;
+
+			if (isset($stammdaten->titelpre))
+				$studentinfo['akadgrad'] = $stammdaten->titelpre;
+
+			if (isset($stammdaten->titelpost))
+				$studentinfo['akadgradnach'] = $stammdaten->titelpost;
 
 			if (isset($stammdaten->svnr))
 				$studentinfo['svnr'] = $stammdaten->svnr;
@@ -180,11 +197,11 @@ class DVUHSyncLib
 				       ps.gsstudientyp_kurzbz,
 				       (SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
-							AND (status_kurzbz='Student' OR status_kurzbz='Unterbrecher')
+							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
 							ORDER BY datum asc LIMIT 1) AS beginndatum,	
 				       	(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
-							AND (status_kurzbz='Absolvent' OR status_kurzbz='Abbrecher')
+							AND status_kurzbz IN ('Absolvent', 'Abbrecher')
 							ORDER BY datum desc LIMIT 1) AS beendigungsdatum
 				  FROM public.tbl_prestudent ps
 				  JOIN public.tbl_student using(prestudent_id)
@@ -366,7 +383,7 @@ class DVUHSyncLib
 							return error('Berufstätigkeitcode fehlt');
 
 						// TODO: there is no code 0 - use 1 instead?
-						$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code == '0' ? '1' : $prestudentstatus->berufstaetigkeit_code;
+						$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code == '0' ? null : $prestudentstatus->berufstaetigkeit_code;
 
 						$studiengang = array(
 							'disloziert' => 'N', // J,N,j,n
@@ -381,6 +398,12 @@ class DVUHSyncLib
 							'zugangsberechtigung' => $zugangsberechtigung,
 							'zulassungsdatum' => $prestudentstatus->beginndatum
 						);
+
+						foreach ($studiengang as $idx => $item)
+						{
+							if (!isset($item) || isEmptyString($item))
+								return error('Studydata missing: ' . $idx);
+						}
 
 						if (isset($berufstaetigkeit_code))
 							$studiengang['berufstaetigkeit_code'] = $berufstaetigkeit_code;
@@ -400,16 +423,15 @@ class DVUHSyncLib
 						$studiengaenge[] = $studiengang;
 					}
 				}
+				$resultObj->studiengaenge = $studiengaenge;
+				$resultObj->lehrgaenge = $lehrgaenge;
+				$resultObj->prestudent_ids = $prestudent_ids;
 			}
 			else
 			{
 				return error('Keine aktiven Studenten für das gegebene Semester');
 			}
 		}
-
-		$resultObj->studiengaenge = $studiengaenge;
-		$resultObj->lehrgaenge = $lehrgaenge;
-		$resultObj->prestudent_ids = $prestudent_ids;
 
 		return success($resultObj);
 	}
@@ -692,10 +714,10 @@ class DVUHSyncLib
 					$mobilitaet['aufenthaltfoerderungcode'] = $aufenthaltfoerderung_code_arr;
 
 				if (!isEmptyString($ioitem->ects_angerechnet))
-					$mobilitaet['ectsangerechnet'] = (integer) $ioitem->ects_angerechnet; // conversion, DVUH needs integer
+					$mobilitaet['ectsangerechnet'] = number_format($ioitem->ects_angerechnet, 1); // conversion, DVUH needs integer
 
 				if (!isEmptyString($ioitem->ects_erworben))
-					$mobilitaet['ectserworben'] = (integer) $ioitem->ects_erworben;
+					$mobilitaet['ectserworben'] = number_format($ioitem->ects_erworben, 1);
 
 				$mobilitaeten[] = $mobilitaet;
 			}
@@ -857,5 +879,24 @@ class DVUHSyncLib
 		$datetime2 = new DateTime($datum2);
 		$interval = $datetime1->diff($datetime2);
 		return $interval->days;
+	}
+
+	private function _checkAdresse($addr)
+	{
+		$result = success(true);
+
+		if (!isset($addr['ort']) || isEmptyString($addr['ort']))
+			$result = error('Ort missing');
+
+		if (!isset($addr['plz']) || isEmptyString($addr['plz']))
+			$result = error('Plz missing');
+
+		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']))
+			$result = error('Strasse missing');
+
+		if (!isset($addr['staat']) || isEmptyString($addr['staat']))
+			$result = error('Nation missing');
+
+		return $result;
 	}
 }

@@ -318,7 +318,7 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$infos[] = 'Stammdaten successfully saved in DVUH';
+				$infos[] = "Stammdaten for person_id $person_id successfully saved in DVUH";
 				$result = $this->_getResponseArr($infos, $xmlstr);
 
 				// write Stammdatenmeldung in FHC db
