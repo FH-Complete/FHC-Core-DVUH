@@ -22,7 +22,7 @@ class JQMScheduler extends JQW_Controller
 	// Public methods
 
 	/**
-	 *
+	 * Creates jobs queue entries for requestMatrikelnummer job
 	 */
 	public function requestMatrikelnummer($studiensemester_kurzbz)
 	{
@@ -82,6 +82,9 @@ class JQMScheduler extends JQW_Controller
 		$this->logInfo('End job queue scheduler FHC-Core-DVUH->sendMasterdata');
 	}*/
 
+	/**
+	 * Creates jobs queue entries for sendCharge job
+	 */
 	public function sendCharge()
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendCharge');

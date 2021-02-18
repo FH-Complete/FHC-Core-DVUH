@@ -1,6 +1,9 @@
 <?php
 
-
+/**
+ * Library for retrieving data from FHC for DVUH.
+ * Extrats data from FHC db, performs BIS-Meldung checks and puts data in DVUH form.
+ */
 class DVUHSyncLib
 {
 	private $_ci;
@@ -25,6 +28,11 @@ class DVUHSyncLib
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 	}
 
+	/**
+	 * Retrieves Stammdaten inkl. contacts for a person, performs checks, prepares data for DVUH.
+	 * @param $person_id
+	 * @return object success with studentinfo or error
+	 */
 	public function getStammdatenData($person_id)
 	{
 		$stammdaten = $this->_ci->PersonModel->getPersonStammdaten($person_id);
@@ -168,6 +176,13 @@ class DVUHSyncLib
 			return error("keine Stammdaten gefunden");
 	}
 
+	/**
+	 * Retrieves studydata for a person and semester, performs checks, prepares data for DVUH.
+	 * @param int $person_id
+	 * @param string $semester
+	 * @param int $prestudent_id optionally, retrieve only data for one prestudent of the person
+	 * @return object success with studentinfo or error
+	 */
 	public function getStudyData($person_id, $semester, $prestudent_id = null)
 	{
 		$resultObj = new stdClass();
@@ -436,6 +451,11 @@ class DVUHSyncLib
 		return success($resultObj);
 	}
 
+	/**
+	 * Converts semester in DVUH format to FHC format
+	 * @param string $semester
+	 * @return string semester in FHC format
+	 */
 	public function convertSemesterToFHC($semester)
 	{
 		if (!preg_match("/^\d{4}(S|W)$/", $semester))
@@ -444,6 +464,11 @@ class DVUHSyncLib
 		return mb_substr($semester, -1).'S'.mb_substr($semester, 0,4);
 	}
 
+	/**
+	 * Gets Ausbildungssemester code for a prestudentstatus.
+	 * @param object $prestudentstatus with semesterinfo
+	 * @return error or success with ausbildungssemester
+	 */
 	private function _getAusbildungssemester($prestudentstatus)
 	{
 		$ausbildungssemester = $prestudentstatus->ausbildungssemester > $prestudentstatus->studiengang_maxsemester
@@ -484,6 +509,12 @@ class DVUHSyncLib
 		return success($ausbildungssemester);
 	}
 
+	/**
+	 * Gets gemeinsame Studien data for a prestudent.
+	 * @param object $prestudentstatus with gsinfo
+	 * @param string $semester for getting previous semester for Absolventen
+	 * @return object error or success with gsdata
+	 */
 	private function _getGemeinsameStudien($prestudentstatus, $semester)
 	{
 		$prestudent_id = $prestudentstatus->prestudent_id;
@@ -564,6 +595,12 @@ class DVUHSyncLib
 		}
 	}
 
+	/**
+	 * Gets Mobilität  data for a prestudent. (e.g. Incoming)
+	 * @param string $studiensem ester for getting previous semester for Absolventen
+	 * @param object $prestudentstatus with gsinfo
+	 * @return object error or success with mobilitaetdata
+	 */
 	private function _getMobilitaet($studiensemester, $prestudentstatus)
 	{
 		$this->_ci->StudiensemesterModel->addSelect('start, ende');
@@ -726,6 +763,11 @@ class DVUHSyncLib
 		return success($mobilitaeten);
 	}
 
+	/**
+	 * Gets Orgformcode for an orgform_kurzbz.
+	 * @param string $orgform_kurzbz
+	 * @return error or success with code
+	 */
 	private function _getOrgformcode($orgform_kurzbz)
 	{
 		$orgform_code_array = array();
@@ -755,6 +797,12 @@ class DVUHSyncLib
 			return error("Fehler beim Holen der Orgform");
 	}
 
+	/**
+	 * Gets standort for a prestudent in a Studiengang.
+	 * @param int $prestudent_id
+	 * @param int $studiengang_kz
+	 * @return object with standortcode
+	 */
 	private function _getStandort($prestudent_id, $studiengang_kz)
 	{
 		$student_standort = $this->_ci->config->item('fhc_dvuh_sync_student_standort');
@@ -776,6 +824,11 @@ class DVUHSyncLib
 		return success($standortcode);
 	}
 
+	/**
+	 * Gets DVUH statuscode for FHC status_kurzbz.
+	 * @param string $status_kurzbz
+	 * @return object with FHC statuscode
+	 */
 	private function _getStatuscode($status_kurzbz)
 	{
 		if ($status_kurzbz == "Student" || $status_kurzbz == "Outgoing"
@@ -804,6 +857,12 @@ class DVUHSyncLib
 		return success($studstatuscode);
 	}
 
+	/**
+	 * Gets ZGV info in DVUH format for a prestudentstatus.
+	 * @param object $prestudentstatus with FHC zgvinfo
+	 * @param string $gebdatum for date check
+	 * @return object
+	 */
 	private function _getZgv($prestudentstatus, $gebdatum)
 	{
 		$zugangsberechtigung = null;
@@ -835,6 +894,12 @@ class DVUHSyncLib
 		return success($zugangsberechtigung);
 	}
 
+	/**
+	 * Gets ZGV master info in DVUH format for a prestudentstatus.
+	 * @param object $prestudentstatus with FHC zgvinfo
+	 * @param string $gebdatum for date check
+	 * @return object
+	 */
 	private function _getZgvMaster($prestudentstatus, $gebdatum)
 	{
 		$zugangsberechtigungMA = null;
@@ -873,6 +938,12 @@ class DVUHSyncLib
 		return success($zugangsberechtigungMA);
 	}
 
+	/**
+	 * Helper function for returning difference between two dates in days.
+	 * @param string $datum1
+	 * @param string $datum2
+	 * @return false|int
+	 */
 	private function _dateDiff($datum1, $datum2)
 	{
 		$datetime1 = new DateTime($datum1);
@@ -881,6 +952,11 @@ class DVUHSyncLib
 		return $interval->days;
 	}
 
+	/**
+	 * Checks an adress for validity.
+	 * @param object $addr
+	 * @return error or success with true/false (valid or not)
+	 */
 	private function _checkAdresse($addr)
 	{
 		$result = success(true);

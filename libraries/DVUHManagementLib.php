@@ -1,6 +1,10 @@
 <?php
 
 
+/**
+ * Contains logic for interaction of FHC with DVUH.
+ * This includes initializing webservice calls for modifiying data in DVUH, and updating data in FHC accordingly.
+ */
 class DVUHManagementLib
 {
 	const STATUS_PAID_OTHER_UNIV = '8';
@@ -45,6 +49,15 @@ class DVUHManagementLib
 		$this->_dbModel = new DB_Model(); // get db
 	}
 
+	/**
+	 * Checks if student has a Matrikelnummer assigned in DVUH.
+	 * If yes, existing Matrnr is saved in FHC.
+	 * If no, new Matrnr is requested and saved with active=false in FHC.
+	 * Sends Stammdatenmeldung (see saveAndUpdateMatrikelnummer).
+	 * @param int $person_id
+	 * @param string $studiensemester_kurzbz executed for a certain semester
+	 * @return object error or success with infos
+	 */
 	public function requestMatrikelnummer($person_id, $studiensemester_kurzbz)
 	{
 		$result = null;
@@ -178,6 +191,14 @@ class DVUHManagementLib
 		return $result;
 	}
 
+	/**
+	 * Sends master data to DVUH. If present, charges are sent with the master data.
+	 * @param int $person_id
+	 * @param string $studiensemester_kurzbz executed for a certain semester
+	 * @param string $matrikelnummer
+	 * @param bool $preview if true, only data to post and infos are returned
+	 * @return object error or success with infos
+	 */
 	public function sendMasterData($person_id, $studiensemester_kurzbz, $matrikelnummer = null, $preview = false)
 	{
 		$infos = array();
@@ -220,7 +241,6 @@ class DVUHManagementLib
 
 		// TODO get Kaution and add it to Studiengebuehr
 
-
 		$vorschreibung = array();
 
 		if (isError($buchungenResult))
@@ -245,7 +265,7 @@ class DVUHManagementLib
 				{
 					foreach ($buchungen as $buchung)
 					{
-						if ($buchung->buchungstyp_kurzbz == 'OEH')
+						if ($buchung->buchungstyp_kurzbz == 'OEH' && !$preview)
 						{
 							// set Buchungen to 0 since they don't need to be paid anymore
 							$nullifyResult = $this->_nullifyBuchung($buchung);
@@ -300,7 +320,7 @@ class DVUHManagementLib
 			if (isError($postData))
 				return $postData;
 
-			return $this->_getResponseArr(null, getData($postData));
+			return $this->_getResponseArr($infos, getData($postData));
 		}
 
 		$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
@@ -370,6 +390,13 @@ class DVUHManagementLib
 		return $result;
 	}
 
+	/**
+	 * Sends payment to DVUH, one request for each payment type. Performs checks before payment.
+	 * @param int $person_id
+	 * @param string $studiensemester_kurzbz executed for a certain semester
+	 * @param bool $preview if true, only data to post and infos are returned
+	 * @return object error or success with infos
+	 */
 	public function sendPayment($person_id, $studiensemester_kurzbz, $preview = false)
 	{
 		$result = null;
@@ -379,7 +406,7 @@ class DVUHManagementLib
 
 		// get paid Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
-								SELECT matr_nr, buchungsnr, buchungsdatum, betrag, buchungsnr_verweis, zahlungsreferenz, buchungstyp_kurzbz, studiensemester_kurzbz
+								SELECT matr_nr, buchungsnr, buchungsdatum, betrag, buchungsnr_verweis, zahlungsreferenz, buchungstyp_kurzbz, studiensemester_kurzbz, matr_nr
 								FROM public.tbl_konto
 								JOIN public.tbl_person using(person_id)
 								WHERE person_id = ?
@@ -403,7 +430,6 @@ class DVUHManagementLib
 		);
 
 		// TODO get Kaution and add it to Studiengebuehr
-		// TODO check if paid on other university
 
 		// calculate values for ÖH-Beitrag, studiengebühr
 		if (hasData($buchungenResult))
@@ -462,6 +488,33 @@ class DVUHManagementLib
 				else
 					return $this->_getResponseArr(array("Buchung $buchungsnr: no charge sent to DVUH before the payment"));
 
+				// check if already paid on other university
+				$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $buchung->matr_nr);
+
+				if (isError($paidOtherUniv))
+					return $paidOtherUniv;
+
+				if (hasData($paidOtherUniv))
+				{
+					$paidData = getData($paidOtherUniv)[0];
+					if ($paidData == true)
+					{
+						/*foreach ($buchungen as $buchung)
+						{
+							if ($buchung->buchungstyp_kurzbz == 'OEH')
+							{
+								// set Buchungen to 0 since they don't need to be paid anymore
+								$nullifyResult = $this->_nullifyBuchung($buchung);
+
+								if (isError($nullifyResult))
+									return $nullifyResult;
+							}
+						}*/
+
+						return error("Buchung $buchungsnr: in FHC bereits bezahlt, in DVUH wurde aber von anderer BE bezahlt");
+					}
+				}
+
 				$payment = new stdClass();
 				$payment->be = $this->_be;
 				$payment->matrikelnummer = $buchung->matr_nr;
@@ -478,6 +531,7 @@ class DVUHManagementLib
 
 			//TODO check: Sum of Betrag to send must be equal to sum of Betrag of Stammdatenmeldungen
 
+			// preview - only show date to be sent
 			if ($preview)
 			{
 				$resultarr = array();
@@ -540,6 +594,14 @@ class DVUHManagementLib
 		return $this->_getResponseArr($infos, $zahlungenResArr);
 	}
 
+	/**
+	 * Sends study data for prestudents to DVUH, activates Matrikelnummer in FHC.
+	 * @param string $studiensemester executed for a certain semester
+	 * @param int $person_id
+	 * @param int $prestudent_id optionally, send only data for one prestudent. person_id or prestudent_id must be given!
+	 * @param false $preview if true, only data to post and infos are returned
+	 * @return object error or success with infos
+	 */
 	public function sendStudyData($studiensemester, $person_id = null, $prestudent_id = null, $preview = false)
 	{
 		if (!isset($person_id))
@@ -626,6 +688,14 @@ class DVUHManagementLib
 		return $result;
 	}
 
+	/**
+	 * Saves masterdata with Matrikelnr in DVUH, sets Matrikelnr in DVUH.
+	 * @param int $person_id
+	 * @param string $studiensemester_kurzbz semester for which stammdaten are sent
+	 * @param string $matrikelnummer
+	 * @param bool $matr_aktiv wether Matrnr is already active (or not yet valid)
+	 * @return object
+	 */
 	private function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv)
 	{
 		$sendMasterDataResult = $this->sendMasterdata($person_id, $studiensemester_kurzbz, $matrikelnummer);
@@ -664,6 +734,13 @@ class DVUHManagementLib
 		return $result;
 	}
 
+	/**
+	 * Updates a Matrikelnummer in FHC database
+	 * @param int $person_id
+	 * @param string $matrikelnummer
+	 * @param bool $matr_aktiv
+	 * @return object success or error
+	 */
 	private function _updateMatrikelnummer($person_id, $matrikelnummer, $matr_aktiv)
 	{
 		$updateResult = $this->_ci->PersonModel->update($person_id, array('matr_nr' => $matrikelnummer, 'matr_aktiv' => $matr_aktiv));
@@ -680,6 +757,13 @@ class DVUHManagementLib
 		}
 	}
 
+	/**
+	 * Checks if student already paid charges on another university for the semesterby calling feed.
+	 * @param int $person_id
+	 * @param string $studiensemester_kurzbz
+	 * @param string $matrikelnummer filter by matrikelnummmer
+	 * @return object success with true/false or error
+	 */
 	private function _checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $matrikelnummer = null)
 	{
 		$erstelltSeitResult = $this->_ci->StudiensemesterModel->load($studiensemester_kurzbz);
@@ -759,6 +843,11 @@ class DVUHManagementLib
 		return $result;
 	}
 
+	/**
+	 * Sets a Buchung in FHC to 0 and creates a Gegenbuchung with 0.
+	 * @param object $buchung contains buchungsdata
+	 * @return object success or error
+	 */
 	private function _nullifyBuchung($buchung)
 	{
 		$buchungNullify = $this->_ci->KontoModel->update(array('buchungsnr' => $buchung->buchungsnr), array('betrag' => 0));
@@ -788,6 +877,11 @@ class DVUHManagementLib
 			return error("Error when nullify Buchung");
 	}
 
+	/**
+	 * Converts a Studiensemester from FHC format to DVUH format.
+	 * @param string $semester
+	 * @return string DVUH semester
+	 */
 	private function _convertSemesterToDVUH($semester)
 	{
 		if (!preg_match("/^(S|W)S\d{4}$/", $semester))
@@ -796,11 +890,23 @@ class DVUHManagementLib
 		return mb_substr($semester, 2, strlen($semester) - 2).mb_substr($semester, 0,1);
 	}
 
+	/**
+	 * Wraps a string as Info object.
+	 * @param string $str
+	 * @return object object for holding info strings
+	 */
 	private function _getInfoObj($str)
 	{
 		return success(array('info' => $str));
 	}
 
+	/**
+	 * Constructs response array consisting of information and the result itself.
+	 * Info is passed for logging/displaying.
+	 * @param array $infos
+	 * @param object $result
+	 * @return object response object with result and infos
+	 */
 	private function _getResponseArr($infos, $result = null)
 	{
 		$responseArr = array();

@@ -20,7 +20,7 @@ class DVUHManagement extends JQW_Controller
 	// Public methods
 
 	/**
-	 * Initialises requestMatrikelnummer job
+	 * Initialises requestMatrikelnummer job, handles job queue, logs infos/errors
 	 */
 	public function requestMatrikelnummer()
 	{
@@ -78,6 +78,9 @@ class DVUHManagement extends JQW_Controller
 		$this->logInfo('DVUHRequestMatrikelnummer job stop');
 	}
 
+	/**
+	 * Initialises sendCharge job, handles job queue, logs infos/errors
+	 */
 	public function sendCharge()
 	{
 		$jobType = 'DVUHSendCharge';
@@ -137,6 +140,9 @@ class DVUHManagement extends JQW_Controller
 		$this->logInfo('DVUHSendCharge job stop');
 	}
 
+	/**
+	 * Initialises sendPayment job, handles job queue, logs infos/errors
+	 */
 	public function sendPayment()
 	{
 		$jobType = 'DVUHSendPayment';
@@ -203,6 +209,9 @@ class DVUHManagement extends JQW_Controller
 		$this->logInfo('DVUHSendPayment job stop');
 	}
 
+	/**
+	 * Initialises sendStudyData job, handles job queue, logs infos/errors
+	 */
 	public function sendStudyData()
 	{
 		$jobType = 'DVUHSendStudyData';
@@ -265,6 +274,11 @@ class DVUHManagement extends JQW_Controller
 		$this->logInfo('DVUHSendStudyData job stop');
 	}
 
+	/**
+	 * Extracts input data from jobs.
+	 * @param $jobs
+	 * @return array with jobinput
+	 */
 	private function _getInputObjArray($jobs)
 	{
 		$mergedUsersArray = array();

@@ -31,6 +31,11 @@ class JQMSchedulerLib
 	// --------------------------------------------------------------------------------------------
 	// Public methods
 
+	/**
+	 * Gets students for input of requestMatrikelnummer job.
+	 * @param $studiensemester_kurzbz string semester for which Matrikelnr should be requested and Stammdaten should be sent
+	 * @return object students
+	 */
 	public function requestMatrikelnummer($studiensemester_kurzbz)
 	{
 		$jobInput = null;
@@ -73,9 +78,6 @@ class JQMSchedulerLib
 		}
 
 		$result = success($jobInput);
-/*		}
-		else
-			$result = error('No Studiensemester found');*/
 
 		return $result;
 	}
@@ -125,7 +127,12 @@ class JQMSchedulerLib
 		return $result;
 	}*/
 
-	public function sendCharge($lastJobTime)
+	/**
+	 * Gets students for input of sendCharge job.
+	 * @param $lastJobTime string start date of last job
+	 * @return object students
+	 */
+	public function sendCharge($lastJobTime = null)
 	{
 		$jobInput = null;
 		$result = null;
@@ -151,13 +158,14 @@ class JQMSchedulerLib
 													WHERE ggb.person_id = kto.person_id
 													AND ggb.buchungsnr_verweis = kto.buchungsnr
 													LIMIT 1)*/
-					AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* not yet sent to DVUH */
+					AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* charge not yet sent to DVUH */
 									WHERE buchungsnr = kto.buchungsnr
 									AND betrag < 0
 									LIMIT 1)
 					AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
 					AND tbl_studiensemester.ende >= ?::date";
 
+		// get persons modified after last job run
 		if (isset($lastJobTime))
 		{
 			$qry .= " UNION
@@ -210,6 +218,10 @@ class JQMSchedulerLib
 		return $result;
 	}
 
+	/**
+	 * Gets students for input of sendPayment job.
+	 * @return object students
+	 */
 	public function sendPayment()
 	{
 		$jobInput = null;
@@ -258,7 +270,12 @@ class JQMSchedulerLib
 		return $result;
 	}
 
-	public function sendStudyData($lastJobTime)
+	/**
+	 * Gets students for input of sendStudyData job.
+	 * @param $lastJobTime string start date of last job
+	 * @return object students
+	 */
+	public function sendStudyData($lastJobTime = null)
 	{
 		$jobInput = null;
 		$result = null;
@@ -279,7 +296,7 @@ class JQMSchedulerLib
 					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
 					AND pss.status_kurzbz IN ('Student', 'Incoming', 'Diplomand')
 					AND tbl_studiensemester.ende >= ?::date
-					AND EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen zlg /* Vorschreibung sent */
+					AND EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen zlg /* charge sent */
 									JOIN public.tbl_konto kto USING (buchungsnr)
 									WHERE kto.person_id = ps.person_id
 									AND kto.studiensemester_kurzbz = pss.studiensemester_kurzbz

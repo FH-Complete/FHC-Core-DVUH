@@ -56,6 +56,10 @@ class DVUHAuthLib
 			return false;
 	}
 
+	/**
+	 * Retrieves active connection from config.
+	 * @return object the connection
+	 */
 	private function _getConnection()
 	{
 		$activeConnectionName = $this->_ci->config->item(DVUHClientLib::ACTIVE_CONNECTION);
@@ -63,6 +67,10 @@ class DVUHAuthLib
 		return $connectionsArray[$activeConnectionName];
 	}
 
+	/**
+	 * Retrieves token service url needed for authentication.
+	 * @return string
+	 */
 	private function _getTokenServiceURL()
 	{
 		$conn = $this->_getConnection();
@@ -70,7 +78,7 @@ class DVUHAuthLib
 	}
 
 	/**
-	 * Performs a remote web service call with the given name and parameters
+	 * Performs a remote web service authentication.
 	 */
 	private function _authenticate()
 	{
