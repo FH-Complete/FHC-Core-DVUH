@@ -140,20 +140,19 @@ class JQMSchedulerLib
 		$params = array($this->_startdatum);
 
 		// get students with outstanding Buchungen not sent to DVUH yet
-		$qry = "SELECT DISTINCT person_id, kto.studiensemester_kurzbz
+		$qry = "SELECT DISTINCT pers.person_id, kto.studiensemester_kurzbz
 				FROM public.tbl_person pers
-					JOIN public.tbl_konto kto USING(person_id)
-					JOIN public.tbl_studiensemester USING(studiensemester_kurzbz)
 					JOIN public.tbl_prestudent ps USING (person_id)
 					JOIN public.tbl_student USING (prestudent_id)
-					JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
+					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+					JOIN public.tbl_studiensemester USING (studiensemester_kurzbz)
 					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
+					LEFT JOIN public.tbl_konto kto ON pers.person_id = kto.person_id AND kto.buchungstyp_kurzbz IN ('Studiengebuehr','OEH') 
+                                                    AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz AND kto.buchungsnr_verweis IS NULL
+													AND kto.betrag < 0
 				WHERE ps.bismelden = true
 					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
-					AND kto.buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
-					AND kto.buchungsnr_verweis IS NULL
-					AND kto.betrag < 0
+					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 				/*					AND NOT EXISTS (SELECT 1 FROM public.tbl_konto ggb /* no Gegenbuchung yet */
 													WHERE ggb.person_id = kto.person_id
 													AND ggb.buchungsnr_verweis = kto.buchungsnr
@@ -162,8 +161,7 @@ class JQMSchedulerLib
 									WHERE buchungsnr = kto.buchungsnr
 									AND betrag < 0
 									LIMIT 1)
-					AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
-					AND tbl_studiensemester.ende >= ?::date";
+					AND tbl_studiensemester.ende >= ?";
 
 		// get persons modified after last job run
 		if (isset($lastJobTime))
@@ -186,10 +184,10 @@ class JQMSchedulerLib
 						SELECT person_id, MAX(updateamum) AS updateamum, MAX(insertamum) AS insertamum
 						FROM public.tbl_adresse
 						GROUP BY person_id
-						) AS adr ON pers.person_id = adr.person_id
+					) AS adr ON pers.person_id = adr.person_id
 				WHERE ps.bismelden = true
 					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
+					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 					AND tbl_studiensemester.ende >= ?::date
 					AND (pers.insertamum >= ? OR ktkt.insertamum >= ? OR adr.insertamum >= ?/* modified */
 										OR pers.updateamum >= ? OR ktkt.updateamum >= ? OR adr.updateamum >= ?)";
@@ -238,7 +236,7 @@ class JQMSchedulerLib
 					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 				WHERE ps.bismelden = true
 					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
+					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 					AND kto.buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
 					AND kto.buchungsnr_verweis IS NOT NULL
 					AND kto.betrag > 0
@@ -294,7 +292,7 @@ class JQMSchedulerLib
 					LEFT JOIN bis.tbl_mobilitaet mob ON ps.prestudent_id = mob.prestudent_id
 				WHERE ps.bismelden = true
 					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-					AND pss.status_kurzbz IN ('Student', 'Incoming', 'Diplomand')
+					AND pss.status_kurzbz IN ('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 					AND tbl_studiensemester.ende >= ?::date
 					AND EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen zlg /* charge sent */
 									JOIN public.tbl_konto kto USING (buchungsnr)

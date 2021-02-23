@@ -49,6 +49,9 @@ class DVUHManagementLib
 		$this->_dbModel = new DB_Model(); // get db
 	}
 
+	// --------------------------------------------------------------------------------------------
+	// Public methods
+
 	/**
 	 * Checks if student has a Matrikelnummer assigned in DVUH.
 	 * If yes, existing Matrnr is saved in FHC.
@@ -353,7 +356,8 @@ class DVUHManagementLib
 				if (isError($stammdatenSaveResult))
 					$result = error("Stammdaten save in DVUH successfull, error when saving Stammdaten in FHC");
 
-				if (isset($vorschreibung['OEH']) && isset($vorschreibung['oehbuchungsnr']))
+				if (isset($vorschreibung['OEH']) && isset($vorschreibung['oehbuchungsnr'])
+					&& $vorschreibung['OEH'] < 0)
 				{
 					// save date, Buchungsnr and Betrag in sync table
 					$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
@@ -368,7 +372,8 @@ class DVUHManagementLib
 						$result = error("Stammdaten save in DVUH successfull, error when saving OEH-Beitrag Zahlung in FHC");
 				}
 
-				if (isset($vorschreibung['Studiengebuehr']) && isset($vorschreibung['studiengebuehrbuchungsnr']))
+				if (isset($vorschreibung['Studiengebuehr']) && isset($vorschreibung['studiengebuehrbuchungsnr'])
+					&& $vorschreibung['Studiengebuehr'] < 0)
 				{
 					// save date, Buchungsnr and Betrag in sync table
 					$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
@@ -489,7 +494,7 @@ class DVUHManagementLib
 					return $this->_getResponseArr(array("Buchung $buchungsnr: no charge sent to DVUH before the payment"));
 
 				// check if already paid on other university
-				$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $buchung->matr_nr);
+/*				$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $buchung->matr_nr);
 
 				if (isError($paidOtherUniv))
 					return $paidOtherUniv;
@@ -511,9 +516,9 @@ class DVUHManagementLib
 							}
 						}*/
 
-						return error("Buchung $buchungsnr: in FHC bereits bezahlt, in DVUH wurde aber von anderer BE bezahlt");
+						/*return error("Buchung $buchungsnr: in FHC bereits bezahlt, in DVUH wurde aber von anderer BE bezahlt");
 					}
-				}
+				}*/
 
 				$payment = new stdClass();
 				$payment->be = $this->_be;
@@ -687,6 +692,9 @@ class DVUHManagementLib
 
 		return $result;
 	}
+
+	// --------------------------------------------------------------------------------------------
+	// Private methods
 
 	/**
 	 * Saves masterdata with Matrikelnr in DVUH, sets Matrikelnr in DVUH.

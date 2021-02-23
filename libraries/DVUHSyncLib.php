@@ -28,6 +28,9 @@ class DVUHSyncLib
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 	}
 
+	// --------------------------------------------------------------------------------------------
+	// Public methods
+
 	/**
 	 * Retrieves Stammdaten inkl. contacts for a person, performs checks, prepares data for DVUH.
 	 * @param $person_id
@@ -202,7 +205,7 @@ class DVUHSyncLib
 			$semester = $this->convertSemesterToFHC($semester);
 
 			// Meldung pro Student, Studium und Semester
-			$active_status = array(/*'Aufgenommener',*/ 'Student', 'Incoming', 'Diplomand');
+			$active_status = array(/*'Aufgenommener',*/ 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent');
 
 			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
 				       stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
@@ -242,6 +245,7 @@ class DVUHSyncLib
 				$params[] = $prestudent_id;
 			}
 
+			// newest prestudentstatus, but no future prestudentstati
 			$qry .= ' ORDER BY prestudent_id, (CASE WHEN pss.datum < NOW() THEN 1 ELSE 2 END), pss.datum DESC, pss.insertamum DESC';
 
 			$prestudentstatusesResult = $this->_dbModel->execReadOnlyQuery($qry, $params);
@@ -463,6 +467,9 @@ class DVUHSyncLib
 
 		return mb_substr($semester, -1).'S'.mb_substr($semester, 0,4);
 	}
+
+	// --------------------------------------------------------------------------------------------
+	// Private methods
 
 	/**
 	 * Gets Ausbildungssemester code for a prestudentstatus.
@@ -837,15 +844,15 @@ class DVUHSyncLib
 		{
 			$studstatuscode = 1;
 		}
-		else if($status_kurzbz == "Unterbrecher" )
+		elseif ($status_kurzbz == "Unterbrecher" )
 		{
 			$studstatuscode = 2;
 		}
-		else if($status_kurzbz == "Absolvent" )
+		elseif ($status_kurzbz == "Absolvent" )
 		{
 			$studstatuscode = 3;
 		}
-		else if($status_kurzbz == "Abbrecher" )
+		elseif ($status_kurzbz == "Abbrecher" )
 		{
 			$studstatuscode = 4;
 		}
