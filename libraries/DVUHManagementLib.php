@@ -254,6 +254,7 @@ class DVUHManagementLib
 		{
 			$buchungen = getData($buchungenResult);
 
+			// check if already paid on another university
 			$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $matrikelnummer);
 
 			if (isError($paidOtherUniv))
@@ -626,7 +627,7 @@ class DVUHManagementLib
 		}
 
 		$result = null;
-
+		$fhc_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 		$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester);
 
 		if ($preview)
@@ -677,7 +678,7 @@ class DVUHManagementLib
 					$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
 						array(
 							'prestudent_id' => $syncedPrestudentId,
-							'studiensemester_kurzbz' => $studiensemester,
+							'studiensemester_kurzbz' => $fhc_studiensemester,
 							'meldedatum' => date('Y-m-d')
 						)
 					);

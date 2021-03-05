@@ -38,7 +38,7 @@ DO $$
 DO $$
     BEGIN
         ALTER TABLE sync.tbl_dvuh_stammdaten
-            ADD CONSTRAINT tbl_dvuh_stammdaten_studiensemester__kurzbz_fkey FOREIGN KEY (prestudent_id)
+            ADD CONSTRAINT tbl_dvuh_stammdaten_studiensemester__kurzbz_fkey FOREIGN KEY (studiensemester_kurzbz)
                 REFERENCES public.tbl_studiensemester(studiensemester_kurzbz) ON UPDATE CASCADE ON DELETE RESTRICT;
     EXCEPTION WHEN OTHERS THEN NULL;
     END $$;
