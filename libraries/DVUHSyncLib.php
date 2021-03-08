@@ -314,6 +314,7 @@ class DVUHSyncLib
 						$lehrgang = array(
 							'lehrgangsnr' => $dvuh_stgkz,
 							'perskz' => $perskz,
+							'vornachperskz' => $perskz,
 							'studstatuscode' => $studstatuscode,
 							'zugangsberechtigung' => $zugangsberechtigung,
 							'zulassungsdatum' => $prestudentstatus->beginndatum
@@ -410,10 +411,10 @@ class DVUHSyncLib
 							'bmwfwfoerderrelevant' => $bmffoerderrelevant,
 							'orgformcode' => $orgformcode,
 							'perskz' => $perskz,
+							'vornachperskz' => $perskz, // TODO should actually be optional?
 							'standortcode' => $standortcode,
 							'stgkz' => $dvuh_stgkz, // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
 							'studstatuscode' => $studstatuscode,
-							//'vornachperskz' => '1910331006',
 							'zugangsberechtigung' => $zugangsberechtigung,
 							'zulassungsdatum' => $prestudentstatus->beginndatum
 						);
@@ -758,7 +759,7 @@ class DVUHSyncLib
 					$mobilitaet['aufenthaltfoerderungcode'] = $aufenthaltfoerderung_code_arr;
 
 				if (!isEmptyString($ioitem->ects_angerechnet))
-					$mobilitaet['ectsangerechnet'] = number_format($ioitem->ects_angerechnet, 1); // conversion, DVUH needs integer
+					$mobilitaet['ectsangerechnet'] = number_format($ioitem->ects_angerechnet, 1);
 
 				if (!isEmptyString($ioitem->ects_erworben))
 					$mobilitaet['ectserworben'] = number_format($ioitem->ects_erworben, 1);

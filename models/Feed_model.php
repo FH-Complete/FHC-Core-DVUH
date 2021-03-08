@@ -42,4 +42,17 @@ class Feed_model extends DVUHClientModel
 
 		return $result;
 	}
+
+	/**
+	 * Gets feed content using alternate url provided by a feed.
+	 * @param string $url excluding base url
+	 * @param array $callParametersArray get params
+	 * @return object
+	 */
+	public function getFeedContent($url, $callParametersArray)
+	{
+		$this->_url = $url;
+
+		return $this->_call('GET', $callParametersArray);
+	}
 }

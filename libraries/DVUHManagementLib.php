@@ -8,6 +8,7 @@
 class DVUHManagementLib
 {
 	const STATUS_PAID_OTHER_UNIV = '8';
+	const KONTOSTAND_FEED_TYPE = 'at.gv.brz.rg.stubei.rws.schema.kontostandantwort';
 
 	private $_be;
 	private $_matrnr_statuscodes = array(
@@ -249,7 +250,7 @@ class DVUHManagementLib
 		if (isError($buchungenResult))
 			return $buchungenResult;
 
-		// calculate values for ÖH-Beitrag, studiengebühr
+		// calculate values for ÖH-Beitrag, Studiengebühr
 		if (hasData($buchungenResult))
 		{
 			$buchungen = getData($buchungenResult);
@@ -767,7 +768,7 @@ class DVUHManagementLib
 	}
 
 	/**
-	 * Checks if student already paid charges on another university for the semesterby calling feed.
+	 * Checks if student already paid charges on another university for the semester by calling feed.
 	 * @param int $person_id
 	 * @param string $studiensemester_kurzbz
 	 * @param string $matrikelnummer filter by matrikelnummmer
@@ -800,54 +801,49 @@ class DVUHManagementLib
 				return error("No Person found when checking for payment");
 		}
 
-		$content = 'true';
-		$markread = 'false';
+		$feeds = $this->_ci->feedreaderlib->getFeedsByType(
+			$this->_be,
+			date("Y-m-d", strtotime("-7 days")), // TODO set erstelltSeit correctly
+			self::KONTOSTAND_FEED_TYPE,
+			array('matrikelnummer' => $matrikelnummer)
+		);
 
-		$queryResult = $this->_ci->FeedModel->get($this->_be, $content, $erstelltSeit, $markread);
+		if (isError($feeds))
+			return $feeds;
 
-		if (isError($queryResult))
-			return $queryResult;
-
-		if (hasData($queryResult))
+		if (hasData($feeds))
 		{
 			$result = null;
 
-			$feeds = $this->_ci->feedreaderlib->parseFeeds(getData($queryResult), $matrikelnummer);
+			$feedData = getData($feeds);
 
-			if (isError($feeds))
-				$result = $feeds;
-			elseif (hasData($feeds))
+			$lastFeedDate = '';
+			$lastStatus = '';
+
+			foreach ($feedData as $feed)
 			{
-				$feedData = getData($feeds);
+				$status = $this->_ci->xmlreaderlib->parseXml($feed->contentXml, array('bezahlstatus', 'semester'));
 
-				$lastFeedDate = '';
-				$lastStatus = '';
-
-				foreach ($feedData as $feed)
+				if (hasData($status))
 				{
-					$status = $this->_ci->xmlreaderlib->parseXml($feed->contentXml, array('bezahlstatus', 'semester'));
+					$statusdata = getData($status);
 
-					if (hasData($status))
-					{
-						$statusdata = getData($status);
-
-						if ($statusdata->semester[0] == $this->_convertSemesterToDVUH($studiensemester_kurzbz)
-							&& ($lastFeedDate == '' || $feed->published > $lastFeedDate))
-							{
-								$lastFeedDate = $feed->published;
-								$lastStatus = $statusdata->bezahlstatus[0];
-							}
-					}
+					if ($statusdata->semester[0] == $this->_convertSemesterToDVUH($studiensemester_kurzbz)
+						&& ($lastFeedDate == '' || $feed->published > $lastFeedDate))
+						{
+							$lastFeedDate = $feed->published;
+							$lastStatus = $statusdata->bezahlstatus[0];
+						}
 				}
-
-				if ($lastStatus == self::STATUS_PAID_OTHER_UNIV)
-					$result = success(array(true));
-				else
-					$result = success(array(false));
 			}
+
+			if ($lastStatus == self::STATUS_PAID_OTHER_UNIV)
+				$result = success(array(true));
 			else
 				$result = success(array(false));
 		}
+		else
+			$result = success(array(false));
 
 		return $result;
 	}

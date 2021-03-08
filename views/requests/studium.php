@@ -117,7 +117,7 @@
 			<standortcode>'.$studiengang['standortcode'].'</standortcode>
 			<stgkz>'.$studiengang['stgkz'].'</stgkz>
 			<studstatuscode>'.$studiengang['studstatuscode'].'</studstatuscode>';
-		if(isset($studiengang['vonnachperskz']))
+		if(isset($studiengang['vornachperskz']))
 		{
 			echo '
 			<vornachperskz>'.$studiengang['vornachperskz'].'</vornachperskz>';

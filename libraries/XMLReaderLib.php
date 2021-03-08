@@ -1,6 +1,8 @@
 <?php
 
-
+/**
+ * Functionality for parsing DVUH XML
+ */
 class XMLReaderLib
 {
 	const MATRNR_NAMESPACE = 'http://www.brz.gv.at/datenverbund-unis';
@@ -8,6 +10,13 @@ class XMLReaderLib
 
 	private $_error_categories = array('Z', 'P', 'Y');
 
+	/**
+	 * parses xml, finds given parameters in xml by provided names and returns the values.
+	 * @param string $xmlstr
+	 * @param mixed $searchparams one parameter as string or multiple parameters as array of strings
+	 * @param string $namespace
+	 * @return object success with results or error
+	 */
 	public function parseXml($xmlstr, $searchparams, $namespace = null)
 	{
 		$result = null;
@@ -53,6 +62,11 @@ class XMLReaderLib
 		return $result;
 	}
 
+	/**
+	 * Parses XML for blocking errors (as defined by DVUH).
+	 * @param string $xmlstr
+	 * @return object array with errors on success, error otherwise
+	 */
 	public function parseXmlDvuhError($xmlstr)
 	{
 		$result = null;
@@ -91,6 +105,13 @@ class XMLReaderLib
 		return $result;
 	}
 
+	/**
+	 * Parses DVUH XML, checks if XML contains DVUH-specific errors.
+	 * If no errors found, finds given parameters in xml by provided names and returns the values.
+	 * @param string $xmlstr
+	 * @param array $searchparams one parameter as string or multiple parameters as array of strings
+	 * @return object success with results or error
+	 */
 	public function parseXmlDvuh($xmlstr, $searchparams)
 	{
 		$result = null;
