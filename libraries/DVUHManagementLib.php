@@ -298,12 +298,12 @@ class DVUHManagementLib
 						$vorschreibung['valutadatum'] = $buchung->valutadatum;
 						$vorschreibung['valutadatumnachfrist'] =
 							date('Y-m-d', strtotime($buchung->valutadatum . ' + ' . $valutadatumnachfrist_days . ' days'));
-						$vorschreibung['oehbuchungsnr'] = $buchung->buchungsnr;
+						$vorschreibung['origoehbuchung'][] = $buchung;
 					}
 					elseif ($buchung->buchungstyp_kurzbz == 'Studiengebuehr')
 					{
-						$vorschreibung['studiengebuehrnachfrist'] = ($buchung->betrag - $studiengebuehrnachfrist_euros);
-						$vorschreibung['studiengebuehrbuchungsnr'] = $buchung->buchungsnr;
+						$vorschreibung['studiengebuehrnachfrist'] = $vorschreibung[$buchung->buchungstyp_kurzbz] - $studiengebuehrnachfrist_euros;
+						$vorschreibung['origstudiengebuehrbuchung'][] = $buchung;
 					}
 				}
 			}
@@ -358,36 +358,42 @@ class DVUHManagementLib
 				if (isError($stammdatenSaveResult))
 					$result = error("Stammdaten save in DVUH successfull, error when saving Stammdaten in FHC");
 
-				if (isset($vorschreibung['OEH']) && isset($vorschreibung['oehbuchungsnr'])
+				if (isset($vorschreibung['OEH']) && isset($vorschreibung['origoehbuchung'])
 					&& $vorschreibung['OEH'] < 0)
 				{
-					// save date, Buchungsnr and Betrag in sync table
-					$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
-						array(
-							'buchungsdatum' => date('Y-m-d'),
-							'buchungsnr' => $vorschreibung['oehbuchungsnr'],
-							'betrag' => $vorschreibung['OEH']
-						)
-					);
+					foreach ($vorschreibung['origoehbuchung'] as $bchng)
+					{
+						// save date, Buchungsnr and Betrag in sync table
+						$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
+							array(
+								'buchungsdatum' => date('Y-m-d'),
+								'buchungsnr' => $bchng->buchungsnr,
+								'betrag' => $bchng->betrag
+							)
+						);
 
-					if (isError($zahlungSaveResult))
-						$result = error("Stammdaten save in DVUH successfull, error when saving OEH-Beitrag Zahlung in FHC");
+						if (isError($zahlungSaveResult))
+							$result = error("Stammdaten save in DVUH successfull, error when saving OEH-Beitrag Zahlung in FHC");
+					}
 				}
 
-				if (isset($vorschreibung['Studiengebuehr']) && isset($vorschreibung['studiengebuehrbuchungsnr'])
+				if (isset($vorschreibung['Studiengebuehr']) && isset($vorschreibung['origstudiengebuehrbuchung'])
 					&& $vorschreibung['Studiengebuehr'] < 0)
 				{
-					// save date, Buchungsnr and Betrag in sync table
-					$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
-						array(
-							'buchungsdatum' => date('Y-m-d'),
-							'buchungsnr' => $vorschreibung['studiengebuehrbuchungsnr'],
-							'betrag' => $vorschreibung['Studiengebuehr']
-						)
-					);
+					foreach ($vorschreibung['origstudiengebuehrbuchung'] as $bchng)
+					{
+						// save date, Buchungsnr and Betrag in sync table
+						$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
+							array(
+								'buchungsdatum' => date('Y-m-d'),
+								'buchungsnr' => $bchng->buchungsnr,
+								'betrag' => $bchng->betrag
+							)
+						);
 
-					if (isError($zahlungSaveResult))
-						$result = error("Stammdaten save in DVUH successfull, error when saving Studiengebuehr Zahlung in FHC");
+						if (isError($zahlungSaveResult))
+							$result = error("Stammdaten save in DVUH successfull, error when saving Studiengebuehr Zahlung in FHC");
+					}
 				}
 			}
 		}
