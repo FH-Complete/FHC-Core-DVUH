@@ -135,7 +135,6 @@ class DVUHSyncLib
 				'geschlecht' => $geschlecht,
 				'nachname' => $stammdaten->nachname,
 				'staatsbuergerschaft' => $stammdaten->staatsbuergerschaft_code,
-				'geburtsland' => $stammdaten->geburtsnation_code,
 				'vorname' => $stammdaten->vorname,
 			);
 
@@ -708,9 +707,6 @@ class DVUHSyncLib
 						$this->_ci->AufenthaltfoerderungModel->addOrder('tbl_aufenthaltfoerderung.aufenthaltfoerderung_code');
 						$bisio_foerderung_result = $this->_ci->AufenthaltfoerderungModel->loadWhere(array('bisio_id' => $bisio_id));
 
-/*						$bisio_foerderung = new bisio();
-						$bisio_foerderung->getFoerderungen($rowio->bisio_id);*/
-
 						// ... mindestens 1 Aufenthaltfoerderung melden, wenn Auslandsaufenthalt >= 29 Tage
 						if ((!hasData($bisio_foerderung_result)) && $adauer >= 29)
 						{
@@ -767,7 +763,7 @@ class DVUHSyncLib
 					'zweck' => $zweck_code_arr
 				);
 
-				if (isset($aufenthaltfoerderung_code_arr) && count($aufenthaltfoerderung_code_arr) > 1)
+				if (isset($aufenthaltfoerderung_code_arr) && count($aufenthaltfoerderung_code_arr) > 0)
 					$mobilitaet['aufenthaltfoerderungcode'] = $aufenthaltfoerderung_code_arr;
 
 				if (!isEmptyString($ioitem->ects_angerechnet))
