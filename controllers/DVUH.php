@@ -28,7 +28,8 @@ class DVUH extends Auth_Controller
 				'postCharge'=>'admin:r',
 				'postStudium'=>'admin:r',
 				'postPayment'=>'admin:r',
-				'postMatrikelkorrektur'=>'admin:r'
+				'postMatrikelkorrektur'=>'admin:r',
+				'postErnpmeldung'=>'admin:r'
 			)
 		);
 
@@ -234,8 +235,6 @@ class DVUH extends Auth_Controller
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
-
 		$json = $this->dvuhmanagementlib->sendMasterdata($person_id, $semester, null, $preview);
 
 		$this->outputJson($json);
@@ -250,8 +249,6 @@ class DVUH extends Auth_Controller
 
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
-
-		$this->load->model('extensions/FHC-Core-DVUH/Zahlung_model', 'ZahlungModel');
 
 		$json = $this->dvuhmanagementlib->sendPayment($person_id, $semester, $preview);
 
@@ -270,6 +267,27 @@ class DVUH extends Auth_Controller
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
 		$json = $this->dvuhmanagementlib->sendStudyData($semester, $person_id, $prestudent_id,  $preview);
+
+		$this->outputJson($json);
+	}
+
+	public function postErnpmeldung()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$writeonerror = isset($data['writeonerror']) ? $data['writeonerror'] : null;
+		$ausgabedatum = isset($data['ausgabedatum']) ? $data['ausgabedatum'] : null;
+		$ausstellBehoerde = isset($data['ausstellBehoerde']) ? $data['ausstellBehoerde'] : null;
+		$ausstellland = isset($data['ausstellland']) ? $data['ausstellland'] : null;
+		$dokumentnr = isset($data['dokumentnr']) ? $data['dokumentnr'] : null;
+		$dokumenttyp = isset($data['dokumenttyp']) ? $data['dokumenttyp'] : null;
+
+		$json = $this->dvuhmanagementlib->sendMatrikelErnpMeldung($person_id, $writeonerror, $ausgabedatum,
+			$ausstellBehoerde, $ausstellland, $dokumentnr, $dokumenttyp, $preview);
 
 		$this->outputJson($json);
 	}

@@ -145,6 +145,20 @@ var DVUHMenu = {
 				method = 'post';
 				writePreviewButton = true;
 				break;
+			case 'postErnpmeldung':
+				html = '<h4>ERnP-Meldung durchführen</h4>';
+				html = '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
+					'wenn für die Person keine BPK ermittelt werden kann.<br />Beim Punkt "BPK ermitteln" sollte dementsprechend keine BPK zurückgegeben werden. ' +
+					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein BPK vorhanden.</b><br /><br />';
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: YYYY-MM-DD', 10)
+					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
+					+ DVUHMenu._getTextfieldHtml('ausstellland', 'Ausstellland', '1-3 Stellen Codex (zb D für Deutschland)', 3)
+					+ DVUHMenu._getTextfieldHtml('dokumentnr', 'Dokumentnr', '1 bis 255 Stellen', 255)
+					+ DVUHMenu._getDropdownHtml('dokumenttyp', 'Dokumenttyp', {'REISEP': 'Reisepass', 'PERSAUSW': 'Personalausweis'}, 'REISEP')
+				method = 'post';
+				writePreviewButton = true;
+				break;
 		}
 
 		// reset Gui
@@ -261,6 +275,30 @@ var DVUHMenu = {
 					'</div>'+
 					'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
 				'</div>';
+	},
+	_getDropdownHtml: function(name, title, values, selectedValue, hint)
+	{
+		if (!hint)
+			hint = '';
+
+		var html = '<div class="form-group">' +
+					'<label class="col-lg-2 control-label" for="'+name+'">'+title+'</label>' +
+					'<div class="col-lg-5">'+
+					'<select class="form-control" name="'+name+'">';
+
+		$.each(values, function(idx, value)
+			{
+				var selected = selectedValue === value ? ' selected' : '';
+				html += '<option value="'+idx+'"'+selected+'>'+value+'</option>';
+			}
+		)
+
+		html += '</select>' +
+			'</div>' +
+			'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
+			'</div>';
+
+		return html;
 	},
 	_getFormData: function()
 	{

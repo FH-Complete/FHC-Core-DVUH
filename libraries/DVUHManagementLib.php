@@ -26,6 +26,7 @@ class DVUHManagementLib
 
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->model('crm/Prestudent_model', 'PrestudentModel');
@@ -37,6 +38,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Zahlung_model', 'ZahlungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStammdaten_model', 'DVUHStammdatenModel');
@@ -198,18 +200,18 @@ class DVUHManagementLib
 	/**
 	 * Sends master data to DVUH. If present, charges are sent with the master data.
 	 * @param int $person_id
-	 * @param string $studiensemester_kurzbz executed for a certain semester
+	 * @param string $studiensemester executed for a certain semester
 	 * @param string $matrikelnummer
 	 * @param bool $preview if true, only data to post and infos are returned
 	 * @return object error or success with infos
 	 */
-	public function sendMasterData($person_id, $studiensemester_kurzbz, $matrikelnummer = null, $preview = false)
+	public function sendMasterData($person_id, $studiensemester, $matrikelnummer = null, $preview = false)
 	{
 		$infos = array();
 
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
-		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester_kurzbz);
+		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 
 		// get offene Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
@@ -406,16 +408,16 @@ class DVUHManagementLib
 	/**
 	 * Sends payment to DVUH, one request for each payment type. Performs checks before payment.
 	 * @param int $person_id
-	 * @param string $studiensemester_kurzbz executed for a certain semester
+	 * @param string $studiensemester executed for a certain semester
 	 * @param bool $preview if true, only data to post and infos are returned
 	 * @return object error or success with infos
 	 */
-	public function sendPayment($person_id, $studiensemester_kurzbz, $preview = false)
+	public function sendPayment($person_id, $studiensemester, $preview = false)
 	{
 		$result = null;
 		$infos = array();
 		$zahlungenResArr = array();
-		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester_kurzbz);
+		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 
 		// get paid Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
@@ -697,6 +699,67 @@ class DVUHManagementLib
 		}
 		else
 			$result = error('Error when sending study data');
+
+		return $result;
+	}
+
+	/**
+	 * Sends Matrikelmeldung with ERnP to DVUH. Checks if data is missing.
+	 * @param $person_id
+	 * @param string $writeonerror
+	 * @param string $ausgabedatum Y-m-d
+	 * @param string $ausstellBehoerde
+	 * @param string $ausstellland country code
+	 * @param int $dokumentnr
+	 * @param string $dokumenttyp e.g. Reisepass, Personalausweis
+	 * @param false $preview if true, only data to post and infos are returned
+	 * @return object error or success
+	 */
+	public function sendMatrikelErnpMeldung($person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
+										$ausstellland, $dokumentnr, $dokumenttyp, $preview = false)
+	{
+		$infos = array();
+
+		$requiredFields = array('ausgabedatum', 'ausstellBehoerde', 'ausstellland', 'dokumentnr', 'dokumenttyp');
+
+		foreach ($requiredFields as $requiredField)
+		{
+			if (!isset($$requiredField))
+				return error("Data missing: ".ucfirst($requiredField));
+		}
+
+		if ($preview)
+		{
+			$postData = $this->_ci->MatrikelmeldungModel->retrievePostData($this->_be, $person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
+				$ausstellland, $dokumentnr, $dokumenttyp);
+
+			if (isError($postData))
+				return $postData;
+
+			return $this->_getResponseArr($infos, getData($postData));
+		}
+
+		$matrikelmeldungResult = $this->_ci->MatrikelmeldungModel->post($this->_be, $person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
+			$ausstellland, $dokumentnr, $dokumenttyp);
+
+		if (isError($matrikelmeldungResult))
+			$result = $matrikelmeldungResult;
+		elseif (hasData($matrikelmeldungResult))
+		{
+			$xmlstr = getData($matrikelmeldungResult);
+
+			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+
+			if (isError($parsedObj))
+				$result = $parsedObj;
+			else
+			{
+				$infos[] = 'Personenmeldung successful';
+				$result = $this->_getResponseArr($infos, $xmlstr);
+			}
+		}
+		else
+			$result = error("Error when sending Matrikelmeldung");
 
 		return $result;
 	}

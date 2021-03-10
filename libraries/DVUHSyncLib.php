@@ -125,16 +125,11 @@ class DVUHSyncLib
 				}
 			}
 
-			$geschlecht = 'X';
-
-			if ($stammdaten->geschlecht == 'm')
-				$geschlecht = 'M';
-			elseif ($stammdaten->geschlecht == 'w')
-				$geschlecht = 'W';
+			$geschlecht = $this->convertGeschlechtToDVUH($stammdaten->geschlecht);
 
 			$studentinfo = array(
 				'adressen' => $adressen,
-				'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
+				'beitragsstatus' => 'X', // X gilt nur für FHs, Bei Uni anders
 				'emailliste' => $emailliste,
 				'geburtsdatum' => $stammdaten->gebdatum,
 				'geschlecht' => $geschlecht,
@@ -467,6 +462,23 @@ class DVUHSyncLib
 			return $semester;
 
 		return mb_substr($semester, -1).'S'.mb_substr($semester, 0,4);
+	}
+
+	/**
+	 * Converts geschlecht from FHC to DVUH format.
+	 * @param string $fhcgeschlecht
+	 * @return string geschlecht in DVUH format
+	 */
+	public function convertGeschlechtToDVUH($fhcgeschlecht)
+	{
+		$dvuh_geschlecht = 'X';
+
+		if ($fhcgeschlecht == 'm')
+			$dvuh_geschlecht = 'M';
+		elseif ($fhcgeschlecht == 'w')
+			$dvuh_geschlecht = 'W';
+
+		return $dvuh_geschlecht;
 	}
 
 	// --------------------------------------------------------------------------------------------

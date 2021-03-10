@@ -69,19 +69,11 @@ class Stammdaten_model extends DVUHClientModel
 			$result = error('personID nicht gesetzt');
 		elseif (isEmptyString($semester))
 			$result = error('Semester nicht gesetzt');
-		/*		elseif (isEmptyString($oehbeitrag))
-					$result = error('ÖH-Beitrag nicht gesetzt');
-				elseif (isEmptyString($studiengebuehr))
-					$result = error('Studiengebührt nicht gesetzt');
-				elseif (isEmptyString($valutadatum))
-					$result = error('Valudadatum nicht gesetzt');
-				elseif (isEmptyString($valutadatumnachfrist))
-					$result = error('Valudadatumnachfrist nicht gesetzt');*/
 		else
 		{
 			$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 
-			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id, $semester);
+			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id);
 
 			if (isError($stammdatenDataResult))
 				$result = $stammdatenDataResult;
@@ -96,7 +88,7 @@ class Stammdaten_model extends DVUHClientModel
 						"be" => $be,
 						"semester" => $semester
 					),
-					"studentinfo" => $stammdatenData['studentinfo'],
+					"studentinfo" => $stammdatenData['studentinfo']
 				);
 
 				$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
@@ -117,7 +109,6 @@ class Stammdaten_model extends DVUHClientModel
 					'valutadatum' => $valutadatum,
 					'valutadatumnachfrist' => $valutadatumnachfrist
 				);
-				//}
 
 				$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
 
