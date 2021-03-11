@@ -40,6 +40,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStammdaten_model', 'DVUHStammdatenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
@@ -212,6 +213,7 @@ class DVUHManagementLib
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
+		$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester_kurzbz);
 
 		// get offene Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
@@ -258,7 +260,7 @@ class DVUHManagementLib
 			$buchungen = getData($buchungenResult);
 
 			// check if already paid on another university
-			$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $matrikelnummer);
+			$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester);
 
 			if (isError($paidOtherUniv))
 				return $paidOtherUniv;
@@ -312,7 +314,6 @@ class DVUHManagementLib
 		}
 
 		// send Stammdatenmeldung
-		$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester_kurzbz);
 		$oehbeitrag = isset($vorschreibung['OEH']) ? $vorschreibung['OEH'] * -100 : null;
 		$studiengebuehr = isset($vorschreibung['Studiengebuehr']) ? $vorschreibung['Studiengebuehr'] * -100 : null;
 		$valutdatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
@@ -843,7 +844,7 @@ class DVUHManagementLib
 	 * @param string $matrikelnummer filter by matrikelnummmer
 	 * @return object success with true/false or error
 	 */
-	private function _checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $matrikelnummer = null)
+/*	private function _checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $matrikelnummer = null)
 	{
 		$erstelltSeitResult = $this->_ci->StudiensemesterModel->load($studiensemester_kurzbz);
 
@@ -913,6 +914,56 @@ class DVUHManagementLib
 		}
 		else
 			$result = success(array(false));
+
+		return $result;
+	}*/
+
+	/**
+	 * Checks if student already paid charges on another university for the semester by calling kontostand.
+	 * @param int $person_id
+	 * @param string $dvuh_studiensemester
+	 * @return object success with true/false or error
+	 */
+	private function _checkIfPaidOtherUniv($person_id, $dvuh_studiensemester)
+	{
+		$this->_ci->PersonModel->addSelect('matr_nr');
+		$matrikelnummerRes = $this->_ci->PersonModel->load($person_id);
+
+		if (isError($matrikelnummerRes))
+			return $matrikelnummerRes;
+
+		if (hasData($matrikelnummerRes))
+		{
+			$matrikelnummer = getData($matrikelnummerRes)[0]->matr_nr;
+
+			$kontostandRes = $this->_ci->KontostaendeModel->get($this->_be, $dvuh_studiensemester, $matrikelnummer);
+
+			if (isError($kontostandRes))
+				$result = $kontostandRes;
+			elseif (hasData($kontostandRes))
+			{
+				$statusRes = $this->_ci->xmlreaderlib->parseXml(getData($kontostandRes), array('bezahlstatus'));
+
+				if (hasData($statusRes))
+				{
+					$status = getData($statusRes);
+
+					if (!isEmptyArray($status->bezahlstatus))
+					{
+						if ($status->bezahlstatus[0] == self::STATUS_PAID_OTHER_UNIV)
+							$result = success(array(true));
+						else
+							$result = success(array(false));
+					}
+					else
+						$result = success(array(false));
+				}
+				else
+					$result = error('Error when parsing Kontostand');
+			}
+			else
+				$result = success(array(false));
+		}
 
 		return $result;
 	}

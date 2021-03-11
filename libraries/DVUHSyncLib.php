@@ -308,7 +308,7 @@ class DVUHSyncLib
 						$lehrgang = array(
 							'lehrgangsnr' => $dvuh_stgkz,
 							'perskz' => $perskz,
-							'vornachperskz' => $perskz,
+							//'vornachperskz' => $perskz,
 							'studstatuscode' => $studstatuscode,
 							'zugangsberechtigung' => $zugangsberechtigung,
 							'zulassungsdatum' => $prestudentstatus->beginndatum
@@ -405,7 +405,7 @@ class DVUHSyncLib
 							'bmwfwfoerderrelevant' => $bmffoerderrelevant,
 							'orgformcode' => $orgformcode,
 							'perskz' => $perskz,
-							'vornachperskz' => $perskz, // TODO should actually be optional?
+							//'vornachperskz' => $perskz,
 							'standortcode' => $standortcode,
 							'stgkz' => $dvuh_stgkz, // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
 							'studstatuscode' => $studstatuscode,
