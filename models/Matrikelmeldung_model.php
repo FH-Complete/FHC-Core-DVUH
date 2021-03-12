@@ -67,6 +67,8 @@ class Matrikelmeldung_model extends DVUHClientModel
 						$lastZgvdatum = getData($lastZgvdatumRes)[0]->zgvdatum;
 				}
 
+				$svnr = isset($stammdatenData->svnr) ? $stammdatenData->svnr : $stammdatenData->ersatzkennzeichen;
+
 				$params = array(
 					"uuid" => getUUID()
 				);
@@ -93,7 +95,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 					'nachname' => $stammdatenData->nachname,
 					'plz' => $stammdatenData->adressen[0]->plz,
 					'staat' => $stammdatenData->adressen[0]->nation,
-					'svnr' => $stammdatenData->svnr,
+					'svnr' => $svnr,
 					'vorname' => $stammdatenData->vorname,
 					'writeonerror' => $writeonerror,
 					'matura' => $lastZgvdatum

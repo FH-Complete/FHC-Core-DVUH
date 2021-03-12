@@ -72,8 +72,11 @@ class Pruefebpk_model extends DVUHClientModel
 		{
 			$stammdatenData = getData($stammdatenDataResult)['studentinfo'];
 
+			$akadgrad = isset($stammdatenData['akadgrad']) ? $stammdatenData['akadgrad'] : null;
+			$akadgradnach = isset($stammdatenData['akadgradnach']) ? $stammdatenData['akadgradnach'] : null;
+
 			return $this->get($stammdatenData['vorname'], $stammdatenData['nachname'], $stammdatenData['geburtsdatum'],
-				$stammdatenData['geschlecht'], null, null, null, $stammdatenData['akadgrad'], $stammdatenData['akadgradnach']);
+				$stammdatenData['geschlecht'], null, null, null, $akadgrad, $akadgradnach);
 		}
 	}
 }
