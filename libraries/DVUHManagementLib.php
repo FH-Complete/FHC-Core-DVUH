@@ -39,6 +39,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Zahlung_model', 'ZahlungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
@@ -213,7 +214,7 @@ class DVUHManagementLib
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
-		$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester_kurzbz);
+		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester_kurzbz);
 
 		// get offene Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
@@ -534,7 +535,7 @@ class DVUHManagementLib
 				$payment = new stdClass();
 				$payment->be = $this->_be;
 				$payment->matrikelnummer = $buchung->matr_nr;
-				$payment->semester = $this->_convertSemesterToDVUH($buchung->studiensemester_kurzbz);
+				$payment->semester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($buchung->studiensemester_kurzbz);
 				$payment->zahlungsart = '1';
 				$payment->centbetrag = $buchung->betrag * 100;
 				$payment->eurobetrag = $buchung->betrag;
@@ -638,7 +639,7 @@ class DVUHManagementLib
 
 		$result = null;
 		$fhc_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
-		$dvuh_studiensemester = $this->_convertSemesterToDVUH($studiensemester);
+		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
 		if ($preview)
 		{
@@ -761,6 +762,70 @@ class DVUHManagementLib
 		}
 		else
 			$result = error("Error when sending Matrikelmeldung");
+
+		return $result;
+	}
+
+	/**
+	 * Sends Pruefungsaktivitaeten to DVUH.
+	 * @param int $person_id
+	 * @param string $studiensemester
+	 * @param bool $preview
+	 * @return object error or success
+	 */
+	public function sendPruefungsaktivitaeten($person_id, $studiensemester, $preview = false)
+	{
+		$infos = array();
+
+		$requiredFields = array('person_id', 'studiensemester');
+
+		foreach ($requiredFields as $requiredField)
+		{
+			if (!isset($$requiredField))
+				return error("Data missing: ".ucfirst($requiredField));
+		}
+
+		$no_pruefungen_info = "Keine Pruefungsaktivitäten vorhanden";
+
+		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
+
+		if ($preview)
+		{
+			$postData = $this->_ci->PruefungsaktivitaetenModel->retrievePostData($this->_be, $person_id, $studiensemester_kurzbz);
+
+			if (isError($postData))
+				return $postData;
+
+			if (!hasData($postData))
+				$infos[] = $no_pruefungen_info;
+
+			$postData = getData($postData);
+			return $this->_getResponseArr($infos, $postData);
+		}
+
+		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz);
+
+		if (isError($pruefungsaktivitaetenResult))
+			$result = $pruefungsaktivitaetenResult;
+		elseif (hasData($pruefungsaktivitaetenResult))
+		{
+			$xmlstr = getData($pruefungsaktivitaetenResult);
+
+			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+
+			if (isError($parsedObj))
+				$result = $parsedObj;
+			else
+			{
+				$infos[] = 'Pruefungsaktivitätenmeldung successful';
+				$result = $this->_getResponseArr($infos, $xmlstr);
+			}
+		}
+		else
+		{
+			$infos[] = $no_pruefungen_info;
+			$result = $this->_getResponseArr($infos, null);
+		}
 
 		return $result;
 	}
@@ -898,7 +963,7 @@ class DVUHManagementLib
 				{
 					$statusdata = getData($status);
 
-					if ($statusdata->semester[0] == $this->_convertSemesterToDVUH($studiensemester_kurzbz)
+					if ($statusdata->semester[0] == $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester_kurzbz)
 						&& ($lastFeedDate == '' || $feed->published > $lastFeedDate))
 						{
 							$lastFeedDate = $feed->published;
@@ -1000,19 +1065,6 @@ class DVUHManagementLib
 		}
 		else
 			return error("Error when nullify Buchung");
-	}
-
-	/**
-	 * Converts a Studiensemester from FHC format to DVUH format.
-	 * @param string $semester
-	 * @return string DVUH semester
-	 */
-	private function _convertSemesterToDVUH($semester)
-	{
-		if (!preg_match("/^(S|W)S\d{4}$/", $semester))
-			return $semester;
-
-		return mb_substr($semester, 2, strlen($semester) - 2).mb_substr($semester, 0,1);
 	}
 
 	/**

@@ -23,13 +23,15 @@ class DVUH extends Auth_Controller
 				'getFullstudent'=>'admin:r',
 				'getBpk' =>'admin:r',
 				'getBpkByPersonId' =>'admin:r',
+				'getPruefungsaktivitaeten' =>'admin:r',
 				'reserveMatrikelnummer'=>'admin:r',
 				'postMasterData'=>'admin:r',
 				'postCharge'=>'admin:r',
 				'postStudium'=>'admin:r',
 				'postPayment'=>'admin:r',
 				'postMatrikelkorrektur'=>'admin:r',
-				'postErnpmeldung'=>'admin:r'
+				'postErnpmeldung'=>'admin:r',
+				'postPruefungsaktivitaeten'=>'admin:r'
 			)
 		);
 
@@ -206,6 +208,25 @@ class DVUH extends Auth_Controller
 		$this->outputJson($json);
 	}
 
+	public function getPruefungsaktivitaeten()
+	{
+		$json = null;
+
+		$data = $this->input->get('data');
+
+		$be = $this->config->item('fhc_dvuh_be_code');
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
+
+		$this->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
+
+		$json = $this->PruefungsaktivitaetenModel->get(
+			$be, $semester, $matrikelnummer
+		);
+
+		$this->outputJson($json);
+	}
+
 	//------------------------------------------------------------------------------------------------------------------
 	// POST methods
 
@@ -309,6 +330,21 @@ class DVUH extends Auth_Controller
 		$json = $this->MatrikelkorrekturModel->post(
 			$be, $matrikelnummer, $semester, $matrikelalt
 		);
+
+		$this->outputJson($json);
+	}
+
+	public function postPruefungsaktivitaeten()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+
+		$json = $this->dvuhmanagementlib->sendPruefungsaktivitaeten($person_id, $semester, $preview);
 
 		$this->outputJson($json);
 	}

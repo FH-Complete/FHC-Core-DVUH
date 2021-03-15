@@ -464,6 +464,19 @@ class DVUHSyncLib
 	}
 
 	/**
+	 * Converts semester in FHC format to DVUH format
+	 * @param string $semester
+	 * @return string semester in DVUH format
+	 */
+	public function convertSemesterToDVUH($semester)
+	{
+		if (!preg_match("/^(S|W)S\d{4}$/", $semester))
+			return $semester;
+
+		return mb_substr($semester, 2, strlen($semester) - 2).mb_substr($semester, 0,1);
+	}
+
+	/**
 	 * Converts geschlecht from FHC to DVUH format.
 	 * @param string $fhcgeschlecht
 	 * @return string geschlecht in DVUH format

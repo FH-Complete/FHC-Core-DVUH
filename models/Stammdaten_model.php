@@ -14,6 +14,8 @@ class Stammdaten_model extends DVUHClientModel
 	{
 		parent::__construct();
 		$this->_url = '/rws/0.5/stammdaten.xml';
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	/**
@@ -71,8 +73,6 @@ class Stammdaten_model extends DVUHClientModel
 			$result = error('Semester nicht gesetzt');
 		else
 		{
-			$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
-
 			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id);
 
 			if (isError($stammdatenDataResult))

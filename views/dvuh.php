@@ -94,6 +94,8 @@ $this->load->view('templates/FHC-Header', array(
 									<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten abfragen</a></li>
 									<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
 									<li id="getFullstudent"><a href="javascript:void(0)">Detaillierte Studiendaten abfragen</a></li>
+									<li id="getPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten abfragen</a></li>
+									<li id="postPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten melden</a></li>
 								</ul>
 							</div>
 						</div>

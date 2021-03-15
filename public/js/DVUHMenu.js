@@ -94,6 +94,12 @@ var DVUHMenu = {
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
 				method = 'get';
 				break;
+			case 'getPruefungsaktivitaeten':
+				html = '<h4>Pr&uuml;fungsaktivit&auml;ten abfragen</h4>';
+				html += DVUHMenu._getSemesterRow()
+					+ DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', 'optional', 8)
+				method = 'get';
+				break;
 			case 'reserveMatrikelnummer':
 				html = '<h4>Matrikelnummer reservieren</h4>';
 				html += DVUHMenu._getStudienjahrRow();
@@ -156,6 +162,13 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('ausstellland', 'Ausstellland', '1-3 Stellen Codex (zb D für Deutschland)', 3)
 					+ DVUHMenu._getTextfieldHtml('dokumentnr', 'Dokumentnr', '1 bis 255 Stellen', 255)
 					+ DVUHMenu._getDropdownHtml('dokumenttyp', 'Dokumenttyp', {'REISEP': 'Reisepass', 'PERSAUSW': 'Personalausweis'}, 'REISEP')
+				method = 'post';
+				writePreviewButton = true;
+				break;
+			case 'postPruefungsaktivitaeten':
+				html = '<h4>Prüfungsaktivitäten-Meldung durchführen</h4>';
+				html = DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				writePreviewButton = true;
 				break;
@@ -449,10 +462,19 @@ var DVUHMenu = {
 		if (typeof xmlString !== 'string')
 			return '';
 
-		var xmlDoc = jQuery.parseXML(xmlString);
+		var parseErrorHtml = "<span class='text-danger'>error when parsing xml string</span>";
+
+		try
+		{
+			var xmlDoc = jQuery.parseXML(xmlString);
+		}
+		catch(e)
+		{
+			return parseErrorHtml;
+		}
 
 		if (!xmlDoc)
-			return "error when parsing xml string!";
+			return parseErrorHtml;
 
 		var xml = $( xmlDoc.documentElement );
 
