@@ -48,14 +48,22 @@ $this->load->view('templates/FHC-Header', array(
 						<div class="panel panel-default">
 							<div class="panel-heading">Matrikelnummermanagement</div>
 							<div class="panel-body">
-								<ul class="list-unstyled dvuhMenu">
-									<li id="getBpkByPersonId"><a href="javascript:void(0)">BPK ermitteln</a></li>
-									<li id="getBpk"><a href="javascript:void(0)">BPK manuell ermitteln</a></li>
-									<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
-									<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Matrikelnummerreservierungen anzeigen</a></li>
-									<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
-									<li id="postMatrikelkorrektur"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
-								</ul>
+								<div class="row">
+									<div class="col-lg-6 menucolumn">
+										<ul class="list-unstyled dvuhMenu">
+											<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
+											<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Reservierungen anzeigen</a></li>
+											<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
+											<li id="postMatrikelkorrektur"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
+										</ul>
+									</div>
+									<div class="col-lg-6 menucolumn">
+										<ul class="list-unstyled dvuhMenu">
+											<li id="getBpkByPersonId"><a href="javascript:void(0)">BPK ermitteln</a></li>
+											<li id="getBpk"><a href="javascript:void(0)">BPK manuell ermitteln</a></li>
+										</ul>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -90,13 +98,21 @@ $this->load->view('templates/FHC-Header', array(
 						<div class="panel panel-default mx-auto">
 							<div class="panel-heading">Studiumsdatenmanagement</div>
 							<div class="panel-body">
-								<ul class="list-unstyled dvuhMenu">
-									<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten abfragen</a></li>
-									<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
-									<li id="getFullstudent"><a href="javascript:void(0)">Detaillierte Studiendaten abfragen</a></li>
-									<li id="getPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten abfragen</a></li>
-									<li id="postPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten melden</a></li>
-								</ul>
+								<div class="row">
+									<div class="col-lg-6 menucolumn">
+										<ul class="list-unstyled dvuhMenu">
+											<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten abfragen</a></li>
+											<li id="getFullstudent"><a href="javascript:void(0)">Detaillierte Studiendaten abfragen</a></li>
+											<li id="getPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten abfragen</a></li>
+										</ul>
+									</div>
+									<div class="col-lg-6 menucolumn">
+										<ul class="list-unstyled dvuhMenu">
+											<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
+											<li id="postPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten melden</a></li>
+										</ul>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>

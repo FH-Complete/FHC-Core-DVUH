@@ -6,12 +6,23 @@
     padding: 8px;
 }
 
-.first-row div.panel {
-    height: 165px;
+@media (min-width: 1200px) {
+    .first-row div.panel {
+        height: 128px;
+    }
+    .second-row div.panel {
+        height: 108px;
+    }
 }
 
-.second-row div.panel {
-    height: 140px;
+@media (min-width: 1200px) and (max-width: 1269px) {
+    .second-row div.panel {
+        height: 128px;
+    }
+}
+
+.menucolumn {
+    padding-right: 0;
 }
 
 label.form-hint {
