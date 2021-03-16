@@ -216,7 +216,7 @@ class DVUHManagementLib
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester_kurzbz);
 
-		// get offene Buchungen
+		// get Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
 								SELECT person_id, studiengang_kz, buchungsdatum, mahnspanne, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
 								       studiensemester_kurzbz, buchungstext, buchungsnr_verweis, TO_CHAR(buchungsdatum + (mahnspanne::text || ' days')::INTERVAL, 'yyyy-mm-dd') as valutadatum
@@ -229,13 +229,13 @@ class DVUHManagementLib
 								  					WHERE kto.person_id = tbl_konto.person_id
 								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
 								      				LIMIT 1)*/
-								  AND NOT EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
+/*								  AND NOT EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
 									WHERE buchungsnr = (SELECT kto.buchungsnr FROM public.tbl_konto kto
 								  					WHERE kto.person_id = tbl_konto.person_id
 								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
 								      				LIMIT 1)
 									AND betrag > 0
-									LIMIT 1)
+									LIMIT 1)*/
 								  AND EXISTS (SELECT 1 FROM public.tbl_prestudent
 								      			JOIN public.tbl_prestudentstatus USING (prestudent_id)
 								      			WHERE tbl_prestudent.person_id = tbl_konto.person_id
