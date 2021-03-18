@@ -13,6 +13,6 @@ class Rohdaten_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/rws/0.5/rohdaten';
+		$this->_url = '/0.5/rohdaten';
 	}
 }

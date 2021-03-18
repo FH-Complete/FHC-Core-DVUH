@@ -11,6 +11,8 @@ abstract class DVUHClientModel extends CI_Model
 	{
 		parent::__construct();
 		$this->load->helper('extensions/FHC-Core-DVUH/hlp_uuid_helper');
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHClientLib');
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -21,8 +23,6 @@ abstract class DVUHClientModel extends CI_Model
 	 */
 	protected function _call($method, $getParametersArray, $postData = null)
 	{
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHClientLib');
-
 		// Checks if the url is valid
 		if ($this->_url == null || trim($this->_url) == '')
 		{

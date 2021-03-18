@@ -13,7 +13,7 @@ class Feed_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/rws/0.5/feed.xml';
+		$this->_url = '/0.5/feed.xml';
 	}
 
 	/**

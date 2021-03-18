@@ -9,6 +9,7 @@ class DVUHClientLib
 {
 	// Configs parameters names
 	const ACTIVE_CONNECTION = 'fhc_dvuh_active_connection';
+	const URLPATH = 'fhc_dvuh_path';
 	const CONNECTIONS = 'fhc_dvuh_connections';
 
 	const MISSING_REQUIRED_PARAMETERS = 'ERR001';
@@ -17,6 +18,7 @@ class DVUHClientLib
 	const REQUEST_FAILED = 'ERR004';
 
 	private $_connectionsArray;		// connections array
+	private $_urlPath;				// url path
 
 	private $_error;				// true if an error occurred
 	private $_errorMessage;			// contains the error message
@@ -109,6 +111,7 @@ class DVUHClientLib
 		$activeConnectionName = $this->_ci->config->item(self::ACTIVE_CONNECTION);
 		$connectionsArray = $this->_ci->config->item(self::CONNECTIONS);
 
+		$this->_urlPath = '/'.$this->_ci->config->item(self::URLPATH);
 		$this->_connectionsArray = $connectionsArray[$activeConnectionName];
 	}
 
@@ -134,7 +137,7 @@ class DVUHClientLib
 			$url .= '?'.implode('&', $params);
 		}
 
-		curl_setopt($curl, CURLOPT_URL, $this->_connectionsArray['portal'].$url);
+		curl_setopt($curl, CURLOPT_URL, $this->_connectionsArray['portal'].$this->_urlPath.$url);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);

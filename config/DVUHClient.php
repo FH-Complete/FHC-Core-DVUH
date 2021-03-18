@@ -6,6 +6,9 @@ $config['fhc_dvuh_be_type'] = 'FH';
 // BE Code
 $config['fhc_dvuh_be_code'] = DVB_BILDUNGSEINRICHTUNG_CODE;
 
+// Url path, rws or sandbox
+$config['fhc_dvuh_path'] = 'rws';
+
 // Connection Details
 $config['fhc_dvuh_active_connection'] = 'TESTING'; // the used configuration set of the chosen connection
 

@@ -13,7 +13,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/rws/0.5/matrikelmeldung.xml';
+		$this->_url = '/0.5/matrikelmeldung.xml';
 	}
 
 	public function post($be, $person_id, $writeonerror = null, $ausgabedatum = null, $ausstellBehoerde = null,
