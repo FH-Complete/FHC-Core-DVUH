@@ -97,16 +97,16 @@ class DVUHSyncLib
 			$adressen[] = $heimatAdresse;
 
 			// private mail
-			/*				foreach ($stammdaten->kontakte as $kontakt)
-							{
-								if ($kontakt->kontakttyp == 'email')
-								{
-									$knt = array();
-									$knt['emailadresse'] = $kontakt->kontakt;
-									$knt['emailtyp'] = 'PR';
-									$emailliste[] = $knt;
-								}
-							}*/
+			foreach ($stammdaten->kontakte as $kontakt)
+			{
+				if ($kontakt->kontakttyp == 'email')
+				{
+					$knt = array();
+					$knt['emailadresse'] = $kontakt->kontakt;
+					$knt['emailtyp'] = 'PR';
+					$emailliste[] = $knt;
+				}
+			}
 
 			// business mail
 			$this->_ci->BenutzerModel->addSelect('uid');
@@ -133,6 +133,7 @@ class DVUHSyncLib
 				'emailliste' => $emailliste,
 				'geburtsdatum' => $stammdaten->gebdatum,
 				'geschlecht' => $geschlecht,
+				'matrikelnummer' => $stammdaten->matr_nr,
 				'nachname' => $stammdaten->nachname,
 				'staatsbuergerschaft' => $stammdaten->staatsbuergerschaft_code,
 				'vorname' => $stammdaten->vorname,
@@ -143,9 +144,6 @@ class DVUHSyncLib
 				if (!isset($item) || isEmptyString($item))
 					return error('Stammdaten missing: ' . $idx);
 			}
-
-			if (isset($stammdaten->matr_nr))
-				$studentinfo['matrikelnummer'] = $stammdaten->matr_nr;
 
 			if (isset($stammdaten->titelpre))
 				$studentinfo['akadgrad'] = $stammdaten->titelpre;

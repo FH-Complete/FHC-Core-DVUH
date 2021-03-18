@@ -219,7 +219,11 @@ class DVUHManagementLib
 		// get Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
 								SELECT person_id, studiengang_kz, buchungsdatum, mahnspanne, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
-								       studiensemester_kurzbz, buchungstext, buchungsnr_verweis, TO_CHAR(buchungsdatum + (mahnspanne::text || ' days')::INTERVAL, 'yyyy-mm-dd') as valutadatum
+								       studiensemester_kurzbz, buchungstext, TO_CHAR(buchungsdatum + (mahnspanne::text || ' days')::INTERVAL, 'yyyy-mm-dd') as valutadatum,
+										(SELECT count(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
+								  					WHERE kto.person_id = tbl_konto.person_id
+								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
+								      				LIMIT 1) AS bezahlt
 								FROM public.tbl_konto
 								WHERE person_id = ?
 								  AND studiensemester_kurzbz = ?
@@ -260,56 +264,43 @@ class DVUHManagementLib
 		{
 			$buchungen = getData($buchungenResult);
 
-			// check if already paid on another university
-			$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester);
+			// check if paid on another university - if yes, Vorschreibung might not be necessary
+			$paidOtherUnivRes = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester);
 
-			if (isError($paidOtherUniv))
-				return $paidOtherUniv;
+			if (isError($paidOtherUnivRes))
+				return $paidOtherUnivRes;
 
-			$paidData = false;
-
-			if (hasData($paidOtherUniv))
+			$paidOtherUniv = false;
+			if (hasData($paidOtherUnivRes))
 			{
-				$paidData = getData($paidOtherUniv)[0];
-				if ($paidData == true)
-				{
-					foreach ($buchungen as $buchung)
-					{
-						if ($buchung->buchungstyp_kurzbz == 'OEH' && !$preview)
-						{
-							// set Buchungen to 0 since they don't need to be paid anymore
-							$nullifyResult = $this->_nullifyBuchung($buchung);
-
-							if (isError($nullifyResult))
-								return $nullifyResult;
-						}
-					}
-
-					$infos[] = "Already paid in other university";
-				}
+				$paidOtherUniv = getData($paidOtherUnivRes)[0];
 			}
 
-			if ($paidData === false)
+			if ($paidOtherUniv === true)
+				$infos[] = "Already paid in other university";
+			foreach ($buchungen as $buchung)
 			{
-				foreach ($buchungen as $buchung)
+				// if already paid on other university but not at own university -> not send Vorschreibung
+				if ($paidOtherUniv === true && $buchung->bezahlt == '0')
+					continue;
+
+				// add Vorschreibung
+				if (!isset($vorschreibung[$buchung->buchungstyp_kurzbz]))
+					$vorschreibung[$buchung->buchungstyp_kurzbz] = 0;
+
+				$vorschreibung[$buchung->buchungstyp_kurzbz] += $buchung->betrag;
+
+				if ($buchung->buchungstyp_kurzbz == 'OEH')
 				{
-					if (!isset($vorschreibung[$buchung->buchungstyp_kurzbz]))
-						$vorschreibung[$buchung->buchungstyp_kurzbz] = 0;
-
-					$vorschreibung[$buchung->buchungstyp_kurzbz] += $buchung->betrag;
-
-					if ($buchung->buchungstyp_kurzbz == 'OEH')
-					{
-						$vorschreibung['valutadatum'] = $buchung->valutadatum;
-						$vorschreibung['valutadatumnachfrist'] =
-							date('Y-m-d', strtotime($buchung->valutadatum . ' + ' . $valutadatumnachfrist_days . ' days'));
-						$vorschreibung['origoehbuchung'][] = $buchung;
-					}
-					elseif ($buchung->buchungstyp_kurzbz == 'Studiengebuehr')
-					{
-						$vorschreibung['studiengebuehrnachfrist'] = $vorschreibung[$buchung->buchungstyp_kurzbz] - $studiengebuehrnachfrist_euros;
-						$vorschreibung['origstudiengebuehrbuchung'][] = $buchung;
-					}
+					$vorschreibung['valutadatum'] = $buchung->valutadatum;
+					$vorschreibung['valutadatumnachfrist'] =
+						date('Y-m-d', strtotime($buchung->valutadatum . ' + ' . $valutadatumnachfrist_days . ' days'));
+					$vorschreibung['origoehbuchung'][] = $buchung;
+				}
+				elseif ($buchung->buchungstyp_kurzbz == 'Studiengebuehr')
+				{
+					$vorschreibung['studiengebuehrnachfrist'] = $vorschreibung[$buchung->buchungstyp_kurzbz] - $studiengebuehrnachfrist_euros;
+					$vorschreibung['origstudiengebuehrbuchung'][] = $buchung;
 				}
 			}
 		}
@@ -317,14 +308,14 @@ class DVUHManagementLib
 		// send Stammdatenmeldung
 		$oehbeitrag = isset($vorschreibung['OEH']) ? $vorschreibung['OEH'] * -100 : null;
 		$studiengebuehr = isset($vorschreibung['Studiengebuehr']) ? $vorschreibung['Studiengebuehr'] * -100 : null;
-		$valutdatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
-		$valutdatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
+		$valutadatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
+		$valutadatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
 		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist']  * -100 : null;
 
 		if ($preview)
 		{
 			$postData = $this->_ci->StammdatenModel->retrievePostData($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
-				$studiengebuehr, $valutdatum, $valutdatumnachfrist, $studiengebuehrnachfrist);
+				$studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
 
 			if (isError($postData))
 				return $postData;
@@ -333,7 +324,7 @@ class DVUHManagementLib
 		}
 
 		$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
-			$studiengebuehr, $valutdatum, $valutdatumnachfrist, $studiengebuehrnachfrist);
+			$studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
 
 		if (isError($stammdatenResult))
 			$result = $stammdatenResult;
@@ -348,7 +339,6 @@ class DVUHManagementLib
 			else
 			{
 				$infos[] = "Stammdaten for person_id $person_id successfully saved in DVUH";
-				$result = $this->_getResponseArr($infos, $xmlstr);
 
 				// write Stammdatenmeldung in FHC db
 				$stammdatenSaveResult = $this->_ci->DVUHStammdatenModel->insert(
@@ -399,6 +389,18 @@ class DVUHManagementLib
 							$result = error("Stammdaten save in DVUH successfull, error when saving Studiengebuehr Zahlung in FHC");
 					}
 				}
+
+				// check if already paid on another university and nullify open buchung
+				if (isset($buchungen))
+				{
+					$paidOtherUnivRes = $this->_checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $buchungen, $infos);
+
+					if (isError($paidOtherUnivRes))
+						return $paidOtherUnivRes;
+				}
+
+				if (!isset($result))
+					$result = $this->_getResponseArr($infos, $xmlstr);
 			}
 		}
 		else
@@ -903,6 +905,52 @@ class DVUHManagementLib
 	}
 
 	/**
+	 * Checks if paid on another university, and nullifys Buchung if yes.
+	 * @param int $person_id
+	 * @param string $dvuh_studiensemester
+	 * @param array $buchungen contains Buchung to nullify
+	 * @param array $infos for adding log infos
+	 * @return object success or error with boolean (paid or not)
+	 */
+	private function _checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $buchungen, &$infos)
+	{
+		// check if already paid on another university
+		$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester);
+
+		if (isError($paidOtherUniv))
+			return $paidOtherUniv;
+
+		$isPaid = false;
+
+		if (hasData($paidOtherUniv))
+		{
+			$isPaid = getData($paidOtherUniv)[0];
+			if ($isPaid == true)
+			{
+				$alreadyPaidStr = 'Already paid in other university.';
+				foreach ($buchungen as $buchung)
+				{
+					if ($buchung->buchungstyp_kurzbz == 'OEH' && $buchung->bezahlt == '0')
+					{
+						// set Buchungen to 0 since they don't need to be paid anymore
+						$nullifyResult = $this->_nullifyBuchung($buchung);
+
+						if (isError($nullifyResult))
+							return $nullifyResult;
+
+						$alreadyPaidStr .= 'Buchung nullified.';
+					}
+				}
+
+				if (!in_array($alreadyPaidStr, $infos))
+					$infos[] = $alreadyPaidStr;
+			}
+		}
+
+		return success(array($isPaid));
+	}
+
+	/**
 	 * Checks if student already paid charges on another university for the semester by calling feed.
 	 * @param int $person_id
 	 * @param string $studiensemester_kurzbz
@@ -1040,7 +1088,11 @@ class DVUHManagementLib
 	 */
 	private function _nullifyBuchung($buchung)
 	{
-		$buchungNullify = $this->_ci->KontoModel->update(array('buchungsnr' => $buchung->buchungsnr), array('betrag' => 0));
+		$andereBeBezahltTxt = 'An anderer Bildungseinrichtung bezahlt';
+		$buchungNullify = $this->_ci->KontoModel->update(
+			array('buchungsnr' => $buchung->buchungsnr),
+			array('betrag' => 0, 'anmerkung' => $andereBeBezahltTxt)
+		);
 
 		if (hasData($buchungNullify))
 		{
@@ -1054,7 +1106,8 @@ class DVUHManagementLib
 					"buchungstyp_kurzbz" => $buchung->buchungstyp_kurzbz,
 					"buchungsnr_verweis" => $buchung->buchungsnr,
 					"insertvon" => 'dvuhJob',
-					"insertamum" => date('Y-m-d H:i:s')
+					"insertamum" => date('Y-m-d H:i:s'),
+					'anmerkung' => $andereBeBezahltTxt
 				)
 			);
 
