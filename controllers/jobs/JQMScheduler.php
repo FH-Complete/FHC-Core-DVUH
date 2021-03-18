@@ -90,7 +90,7 @@ class JQMScheduler extends JQW_Controller
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendCharge');
 
 		// if there are previous jobs, only send data changed after the previous job
-		$prevJobsResult = $this->getJobsByTypeStatus(JQMSchedulerLib::JOB_TYPE_SEND_CHARGE, JobsQueueLib::STATUS_DONE);
+/*		$prevJobsResult = $this->getJobsByTypeStatus(JQMSchedulerLib::JOB_TYPE_SEND_CHARGE, JobsQueueLib::STATUS_DONE);
 
 		$lastjobtime = null;
 
@@ -99,9 +99,9 @@ class JQMScheduler extends JQW_Controller
 			$lastJobsData = getData($prevJobsResult);
 
 			$lastjobtime = $lastJobsData[0]->starttime;
-		}
+		}*/
 
-		$jobInputResult = $this->jqmschedulerlib->sendCharge($lastjobtime);
+		$jobInputResult = $this->jqmschedulerlib->sendCharge();
 
 		// If an error occured then log it
 		if (isError($jobInputResult))
@@ -159,7 +159,7 @@ class JQMScheduler extends JQW_Controller
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendStudyData');
 
-		$prevJobsResult = $this->getJobsByTypeStatus(JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA, JobsQueueLib::STATUS_DONE);
+/*		$prevJobsResult = $this->getJobsByTypeStatus(JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA, JobsQueueLib::STATUS_DONE);
 
 		$lastjobtime = null;
 
@@ -167,9 +167,9 @@ class JQMScheduler extends JQW_Controller
 		{
 			$lastJobsData = getData($prevJobsResult);
 			$lastjobtime = $lastJobsData[0]->starttime;
-		}
+		}*/
 
-		$jobInputResult = $this->jqmschedulerlib->sendStudyData($lastjobtime);
+		$jobInputResult = $this->jqmschedulerlib->sendStudyData();
 
 		// If an error occured then log it
 		if (isError($jobInputResult))
