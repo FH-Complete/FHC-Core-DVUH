@@ -5,13 +5,14 @@
  */
 class XMLReaderLib
 {
-	const MATRNR_NAMESPACE = 'http://www.brz.gv.at/datenverbund-unis';
+	const DVUH_NAMESPACE = 'http://www.brz.gv.at/datenverbund-unis';
 	const ERRORLIST_TAG = 'fehlerliste';
 
 	private $_error_categories = array('Z', 'P', 'Y');
+	private $_warning_categories = array('A', 'B');
 
 	/**
-	 * parses xml, finds given parameters in xml by provided names and returns the values.
+	 * Parses xml, finds given parameters in xml by provided names and returns the values.
 	 * @param string $xmlstr
 	 * @param mixed $searchparams one parameter as string or multiple parameters as array of strings
 	 * @param string $namespace
@@ -52,7 +53,6 @@ class XMLReaderLib
 			}
 
 			$result = success($resultObj);
-
 		}
 		else
 		{
@@ -67,7 +67,29 @@ class XMLReaderLib
 	 * @param string $xmlstr
 	 * @return object array with errors on success, error otherwise
 	 */
-	public function parseXmlDvuhError($xmlstr)
+	public function parseXmlDvuhBlockingErrors($xmlstr)
+	{
+		return $this->_parseXmlDvuhError($xmlstr, $this->_error_categories);
+	}
+
+	/**
+	 * Parses XML for non-blocking errors (as defined by DVUH).
+	 * @param string $xmlstr
+	 * @return object array with errors on success, error otherwise
+	 */
+	public function parseXmlDvuhWarnings($xmlstr)
+	{
+/*		var_dump($this->_parseXmlDvuhError($xmlstr, $this->_warning_categories));
+		die();*/
+		return $this->_parseXmlDvuhError($xmlstr, $this->_warning_categories);
+	}
+
+	/**
+	 * Parses XML for blocking errors (as defined by DVUH).
+	 * @param string $xmlstr
+	 * @return object array with errors on success, error otherwise
+	 */
+	private function _parseXmlDvuhError($xmlstr, $error_categories)
 	{
 		$result = null;
 		$resultarr = array();
@@ -77,7 +99,7 @@ class XMLReaderLib
 
 		if ($loadres)
 		{
-			$elements = $doc->getElementsByTagNameNs(self::MATRNR_NAMESPACE, self::ERRORLIST_TAG);
+			$elements = $doc->getElementsByTagNameNs(self::DVUH_NAMESPACE, self::ERRORLIST_TAG);
 
 			$errObjects = $elements[0]->childNodes;
 
@@ -90,9 +112,8 @@ class XMLReaderLib
 					$errResultobj->{$errAttr->tagName} = $errAttr->nodeValue;
 				}
 
-				if (in_array($errResultobj->kategorie, $this->_error_categories))
+				if (in_array($errResultobj->kategorie, $error_categories))
 					$resultarr[] = $errResultobj->fehlernummer . ': ' . $errResultobj->fehlertext . ' ' . $errResultobj->massnahme;
-
 			}
 
 			$result = success($resultarr);
@@ -115,14 +136,14 @@ class XMLReaderLib
 	public function parseXmlDvuh($xmlstr, $searchparams)
 	{
 		$result = null;
-		$errors = $this->parseXmlDvuhError($xmlstr);
+		$errors = $this->parseXmlDvuhBlockingErrors($xmlstr);
 
 		if (isError($errors))
 			$result = $errors;
 		elseif (hasData($errors))
 			$result = error('Error(s) occured: ' . implode(',', getData($errors)));
 		else
-			$result = $this->parseXml($xmlstr, $searchparams, self::MATRNR_NAMESPACE);
+			$result = $this->parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE);
 
 		return $result;
 	}

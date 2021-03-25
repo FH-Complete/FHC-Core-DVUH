@@ -60,7 +60,7 @@ class DVUHManagement extends JQW_Controller
 					{
 						$requestMatrnrArr = getData($requestMatrnrResult);
 
-						$this->_logInfos($requestMatrnrArr);
+						$this->_logInfosAndWarnings($requestMatrnrArr);
 					}
 				}
 			}
@@ -119,7 +119,7 @@ class DVUHManagement extends JQW_Controller
 					{
 						$sendCharge = getData($sendChargeResult);
 
-						$this->_logInfos($sendCharge);
+						$this->_logInfosAndWarnings($sendCharge);
 
 						if (isset($sendCharge['result']))
 							$this->logInfo("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
@@ -182,7 +182,7 @@ class DVUHManagement extends JQW_Controller
 						$sendPaymentItems = getData($sendPaymentResult);
 
 
-						$this->_logInfos($sendPaymentItems);
+						$this->_logInfosAndWarnings($sendPaymentItems);
 
 						if (isset($sendPaymentItems['result']) && is_array($sendPaymentItems['result']))
 						{
@@ -242,7 +242,6 @@ class DVUHManagement extends JQW_Controller
 					$this->logError("An error occurred while sending study data, invalid parameters passed to queue");
 				else
 				{
-
 					$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
 
 					if (isError($sendStudyDataResult))
@@ -251,7 +250,7 @@ class DVUHManagement extends JQW_Controller
 					{
 						$sendStudyData = getData($sendStudyDataResult);
 
-						$this->_logInfos($sendStudyData);
+						$this->_logInfosAndWarnings($sendStudyData);
 
 						if (isset($sendStudyData['result']))
 						{
@@ -299,13 +298,25 @@ class DVUHManagement extends JQW_Controller
 		return $mergedUsersArray;
 	}
 
-	private function _logInfos($infos)
+	/**
+	 * Extracts infos and warnings from a result and logs them.
+	 * @param array $resultarr
+	 */
+	private function _logInfosAndWarnings($resultarr)
 	{
-		if (isset($infos['infos']) && is_array($infos['infos']))
+		if (isset($resultarr['infos']) && is_array($resultarr['infos']))
 		{
-			foreach ($infos['infos'] as $info)
+			foreach ($resultarr['infos'] as $info)
 			{
 				$this->logInfo($info);
+			}
+		}
+
+		if (isset($resultarr['warnings']) && is_array($resultarr['warnings']))
+		{
+			foreach ($resultarr['warnings'] as $warning)
+			{
+				$this->logWarning($warning);
 			}
 		}
 	}

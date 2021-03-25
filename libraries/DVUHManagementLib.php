@@ -140,7 +140,7 @@ class DVUHManagementLib
 						if (hasData($studienjahrResult))
 						{
 							$sj = getData($studienjahrResult)[0];
-							$sj = substr($sj->studienjahr_kurzbz, 0, 4)/* . 'a'*/;
+							$sj = substr($sj->studienjahr_kurzbz, 0, 4);
 
 							// reserve new Matrikelnummer
 							$anzahl = 1;
@@ -400,7 +400,7 @@ class DVUHManagementLib
 				}
 
 				if (!isset($result))
-					$result = $this->_getResponseArr($infos, $xmlstr);
+					$result = $this->_getResponseArr($infos, $xmlstr, true);
 			}
 		}
 		else
@@ -610,7 +610,7 @@ class DVUHManagementLib
 		else
 			return $this->_getResponseArr(array("No Buchungen found"));
 
-		return $this->_getResponseArr($infos, $zahlungenResArr);
+		return $this->_getResponseArr($infos, $zahlungenResArr, true);
 	}
 
 	/**
@@ -667,7 +667,7 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$result = $this->_getResponseArr(array('Study data successfully saved in DVUH'), $xmlstr);
+				$result = $this->_getResponseArr(array('Study data successfully saved in DVUH'), $xmlstr, true);
 
 				// activate Matrikelnr
 				$matrNrActivationResult = $this->_ci->PersonModel->update(
@@ -759,7 +759,7 @@ class DVUHManagementLib
 			else
 			{
 				$infos[] = 'Personenmeldung successful';
-				$result = $this->_getResponseArr($infos, $xmlstr);
+				$result = $this->_getResponseArr($infos, $xmlstr, true);
 			}
 		}
 		else
@@ -820,7 +820,7 @@ class DVUHManagementLib
 			else
 			{
 				$infos[] = 'Pruefungsaktivitätenmeldung successful';
-				$result = $this->_getResponseArr($infos, $xmlstr);
+				$result = $this->_getResponseArr($infos, $xmlstr, true);
 			}
 		}
 		else
@@ -1135,13 +1135,35 @@ class DVUHManagementLib
 	 * Info is passed for logging/displaying.
 	 * @param array $infos
 	 * @param object $result
+	 * @param bool $getWarningsFromResult if true, parse the result for warnings and include them in response
 	 * @return object response object with result and infos
 	 */
-	private function _getResponseArr($infos, $result = null)
+	private function _getResponseArr($infos, $result = null, $getWarningsFromResult = false)
 	{
 		$responseArr = array();
 		$responseArr['infos'] = isset($infos) ? $infos : array();
 		$responseArr['result'] = $result;
+		$responseArr['warnings'] = array();
+
+		if ($getWarningsFromResult === true && !isEmptyString($result))
+		{
+			if (!is_array($result))
+				$result = array(success($result));
+
+			foreach ($result as $xmlstr)
+			{
+				if (hasData($xmlstr))
+				{
+					$xmlstr = getData($xmlstr);
+					$warningsRes = $this->_ci->xmlreaderlib->parseXmlDvuhWarnings($xmlstr);
+
+					if (isError($warningsRes))
+						$responseArr['infos'] = 'error when parsing warnings';
+					elseif (hasData($warningsRes))
+						$responseArr['warnings'] = getData($warningsRes);
+				}
+			}
+		}
 
 		return success($responseArr);
 	}
