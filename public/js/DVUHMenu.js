@@ -153,7 +153,7 @@ var DVUHMenu = {
 				break;
 			case 'postErnpmeldung':
 				html = '<h4>ERnP-Meldung durchführen</h4>';
-				html = '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
+				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
 					'wenn für die Person keine BPK ermittelt werden kann.<br />Beim Punkt "BPK ermitteln" sollte dementsprechend keine BPK zurückgegeben werden. ' +
 					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein BPK vorhanden.</b><br /><br />';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
@@ -167,7 +167,7 @@ var DVUHMenu = {
 				break;
 			case 'postPruefungsaktivitaeten':
 				html = '<h4>Prüfungsaktivitäten-Meldung durchführen</h4>';
-				html = DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				writePreviewButton = true;
