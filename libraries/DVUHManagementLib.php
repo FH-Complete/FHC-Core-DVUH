@@ -222,8 +222,7 @@ class DVUHManagementLib
 								       studiensemester_kurzbz, buchungstext, TO_CHAR(buchungsdatum + (mahnspanne::text || ' days')::INTERVAL, 'yyyy-mm-dd') as valutadatum,
 										(SELECT count(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
 								  					WHERE kto.person_id = tbl_konto.person_id
-								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
-								      				LIMIT 1) AS bezahlt
+								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr) AS bezahlt
 								FROM public.tbl_konto
 								WHERE person_id = ?
 								  AND studiensemester_kurzbz = ?
@@ -265,7 +264,7 @@ class DVUHManagementLib
 			$buchungen = getData($buchungenResult);
 
 			// check if paid on another university - if yes, Vorschreibung might not be necessary
-			$paidOtherUnivRes = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester);
+			$paidOtherUnivRes = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester, $matrikelnummer);
 
 			if (isError($paidOtherUnivRes))
 				return $paidOtherUnivRes;
@@ -393,7 +392,7 @@ class DVUHManagementLib
 				// check if already paid on another university and nullify open buchung
 				if (isset($buchungen))
 				{
-					$paidOtherUnivRes = $this->_checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $buchungen, $infos);
+					$paidOtherUnivRes = $this->_checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $matrikelnummer, $buchungen, $infos);
 
 					if (isError($paidOtherUnivRes))
 						return $paidOtherUnivRes;
@@ -912,10 +911,10 @@ class DVUHManagementLib
 	 * @param array $infos for adding log infos
 	 * @return object success or error with boolean (paid or not)
 	 */
-	private function _checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $buchungen, &$infos)
+	private function _checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $matrikelnummer, $buchungen, &$infos)
 	{
 		// check if already paid on another university
-		$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester);
+		$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester, $matrikelnummer);
 
 		if (isError($paidOtherUniv))
 			return $paidOtherUniv;
@@ -1037,46 +1036,50 @@ class DVUHManagementLib
 	 * @param string $dvuh_studiensemester
 	 * @return object success with true/false or error
 	 */
-	private function _checkIfPaidOtherUniv($person_id, $dvuh_studiensemester)
+	private function _checkIfPaidOtherUniv($person_id, $dvuh_studiensemester, $matrikelnummer = null)
 	{
-		$this->_ci->PersonModel->addSelect('matr_nr');
-		$matrikelnummerRes = $this->_ci->PersonModel->load($person_id);
-
-		if (isError($matrikelnummerRes))
-			return $matrikelnummerRes;
-
-		if (hasData($matrikelnummerRes))
+		if (!isset($matrikelnummer))
 		{
-			$matrikelnummer = getData($matrikelnummerRes)[0]->matr_nr;
+			$this->_ci->PersonModel->addSelect('matr_nr');
+			$matrikelnummerRes = $this->_ci->PersonModel->load($person_id);
 
-			$kontostandRes = $this->_ci->KontostaendeModel->get($this->_be, $dvuh_studiensemester, $matrikelnummer);
+			if (isError($matrikelnummerRes))
+				return $matrikelnummerRes;
 
-			if (isError($kontostandRes))
-				$result = $kontostandRes;
-			elseif (hasData($kontostandRes))
+			if (hasData($matrikelnummerRes))
 			{
-				$statusRes = $this->_ci->xmlreaderlib->parseXml(getData($kontostandRes), array('bezahlstatus'));
+				$matrikelnummer = getData($matrikelnummerRes)[0]->matr_nr;
+			}
+		}
 
-				if (hasData($statusRes))
+		$kontostandRes = $this->_ci->KontostaendeModel->get($this->_be, $dvuh_studiensemester, $matrikelnummer);
+
+		if (isError($kontostandRes))
+			$result = $kontostandRes;
+		elseif (hasData($kontostandRes))
+		{
+			$statusRes = $this->_ci->xmlreaderlib->parseXml(getData($kontostandRes), array('bezahlstatus'));
+
+			if (hasData($statusRes))
+			{
+				$status = getData($statusRes);
+
+				if (!isEmptyArray($status->bezahlstatus))
 				{
-					$status = getData($statusRes);
-
-					if (!isEmptyArray($status->bezahlstatus))
-					{
-						if ($status->bezahlstatus[0] == self::STATUS_PAID_OTHER_UNIV)
-							$result = success(array(true));
-						else
-							$result = success(array(false));
-					}
+					if ($status->bezahlstatus[0] == self::STATUS_PAID_OTHER_UNIV)
+						$result = success(array(true));
 					else
 						$result = success(array(false));
 				}
 				else
-					$result = error('Error when parsing Kontostand');
+					$result = success(array(false));
 			}
 			else
-				$result = success(array(false));
+				$result = error('Error when parsing Kontostand');
 		}
+		else
+			$result = success(array(false));
+
 
 		return $result;
 	}

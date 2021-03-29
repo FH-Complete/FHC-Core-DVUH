@@ -15,7 +15,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = '/0.5/pruefungsaktivitaeten.xml';
 
-		$this->load->model('education/Pruefung_model', 'PruefungModel');
+		$this->load->model('education/Zeugnisnote_model', 'ZeugnisnoteModel');
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
@@ -59,7 +59,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 			$result = error('personID nicht gesetzt');
 		else
 		{
-			$pruefungDataResult = $this->PruefungModel->getByPerson($person_id, $studiensemester);
+			$pruefungDataResult = $this->ZeugnisnoteModel->getByPerson($person_id, $studiensemester);
 			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
 			if (isError($pruefungDataResult))

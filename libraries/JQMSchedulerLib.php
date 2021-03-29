@@ -238,7 +238,7 @@ class JQMSchedulerLib
 										JOIN public.tbl_konto kto USING (buchungsnr)
 										WHERE kto.person_id = ps.person_id
 										AND kto.studiensemester_kurzbz = pss.studiensemester_kurzbz
-										AND zlg.betrag < 0
+										AND zlg.betrag <= 0
 										LIMIT 1)
 						   GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
 							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum

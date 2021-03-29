@@ -476,7 +476,7 @@ var DVUHMenu = {
 		if (!xmlDoc)
 			return parseErrorHtml;
 
-		var xml = $( xmlDoc.documentElement );
+		var xml = $(xmlDoc.documentElement);
 
 		var xmlResultNodeString = {xmlString: ''};
 
@@ -487,7 +487,21 @@ var DVUHMenu = {
 	_printXmlNode(xmlNode, xmlResultNodeString, level = 0)
 	{
 		var margin = 18 * level;
-		xmlResultNodeString.xmlString += '<span style="margin-left: '+margin+'px">&lt;' + xmlNode.nodeName + '&gt;</span><br />';
+
+		// get attributes
+		var attrstr = '';
+		if (xmlNode.attributes.length)
+		{
+			for (var ai = 0; ai < xmlNode.attributes.length; ai++)
+			{
+				var attr = xmlNode.attributes[ai];
+				attrstr += ' '+attr.nodeName+'="'+attr.nodeValue+'"';
+			}
+		}
+
+		// opening tag
+		xmlResultNodeString.xmlString += '<span style="margin-left: '+margin+'px">&lt;' + xmlNode.nodeName + attrstr+'&gt;</span><br />';
+
 		if (xmlNode.children.length)
 		{
 			++level;
@@ -499,8 +513,9 @@ var DVUHMenu = {
 		else
 		{
 			var textmargin = margin + 10;
-			xmlResultNodeString.xmlString += '<span style="margin-left: ' + textmargin + 'px">' + xmlNode.textContent + '</span><br />';
+			xmlResultNodeString.xmlString += '<span style="margin-left: '+textmargin+'px">' + xmlNode.textContent + '</span><br />';
 		}
+		// closing tag
 		xmlResultNodeString.xmlString += '<span style="margin-left: '+margin+'px">&lt;/' + xmlNode.nodeName + '&gt;</span><br />';
 	},
 	_setScrollToTop()

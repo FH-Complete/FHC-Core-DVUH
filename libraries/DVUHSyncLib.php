@@ -55,6 +55,10 @@ class DVUHSyncLib
 
 			foreach ($stammdaten->adressen as $adresse)
 			{
+				// only Heimat- or Zustelladressen are sent to DVUH
+				if (!$adresse->zustelladresse && !$adresse->heimatadresse)
+					continue;
+
 				$addr = array();
 				$addr['ort'] = $adresse->ort;
 				$addr['plz'] = $adresse->plz;
@@ -133,7 +137,7 @@ class DVUHSyncLib
 				'emailliste' => $emailliste,
 				'geburtsdatum' => $stammdaten->gebdatum,
 				'geschlecht' => $geschlecht,
-				'matrikelnummer' => $stammdaten->matr_nr,
+				/*'matrikelnummer' => $stammdaten->matr_nr,*/
 				'nachname' => $stammdaten->nachname,
 				'staatsbuergerschaft' => $stammdaten->staatsbuergerschaft_code,
 				'vorname' => $stammdaten->vorname,
@@ -144,6 +148,9 @@ class DVUHSyncLib
 				if (!isset($item) || isEmptyString($item))
 					return error('Stammdaten missing: ' . $idx);
 			}
+
+			if (isset($stammdaten->matr_nr))
+				$studentinfo['matr_nr'] = $stammdaten->matr_nr;
 
 			if (isset($stammdaten->titelpre))
 				$studentinfo['akadgrad'] = $stammdaten->titelpre;

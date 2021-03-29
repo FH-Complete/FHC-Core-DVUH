@@ -1,7 +1,7 @@
 <?php
 
 // payments and students studying before this date will be ignored
-$config['fhc_dvuh_sync_startdatum'] = '2020-09-01';
+$config['fhc_dvuh_sync_startdatum'] = '2021-02-01';
 
 $config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 0; // Nachfrist in days after valutadatum for payments
 $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; //in euros and cents to be added to studiengebuehr when Nachfrist is set

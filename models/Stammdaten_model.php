@@ -81,38 +81,45 @@ class Stammdaten_model extends DVUHClientModel
 			{
 				$stammdatenData = getData($stammdatenDataResult);
 
-				$params = array(
-					"uuid" => getUUID(),
-					"studierendenkey" => array(
-						"matrikelnummer" => isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'],
-						"be" => $be,
-						"semester" => $semester
-					),
-					"studentinfo" => $stammdatenData['studentinfo']
-				);
+				$matrikelnummer = isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'];
 
-				$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
-				$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
-				$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
+				if (isEmptyString($matrikelnummer))
+					$result = error('Matrikelnummer nicht gesetzt');
+				else
+				{
+					$params = array(
+						"uuid" => getUUID(),
+						"studierendenkey" => array(
+							"matrikelnummer" => $matrikelnummer,
+							"be" => $be,
+							"semester" => $semester
+						),
+						"studentinfo" => $stammdatenData['studentinfo']
+					);
 
-				// valutadatum?? Buchungsdatum + Mahnspanne
-				$valutadatum = isset($valutadatum) ? $valutadatum : date_format(date_create(), 'Y-m-d');
-				$valutadatumnachfrist = isset($valutadatumnachfrist) ? $valutadatumnachfrist : date_format(date_create(), 'Y-m-d');
+					$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
+					$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
+					$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
 
-				$params["vorschreibung"] = array(
-					'oehbeitrag' => $oehbeitrag, // IN CENT!!
-					'sonderbeitrag' => '0',
-					'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
-					'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
-					'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
-					'studiengebuehrnachfrist' => $studiengebuehrnachfrist, //  in CENT!!!
-					'valutadatum' => $valutadatum,
-					'valutadatumnachfrist' => $valutadatumnachfrist
-				);
+					// valutadatum?? Buchungsdatum + Mahnspanne
+					$valutadatum = isset($valutadatum) ? $valutadatum : date_format(date_create(), 'Y-m-d');
+					$valutadatumnachfrist = isset($valutadatumnachfrist) ? $valutadatumnachfrist : date_format(date_create(), 'Y-m-d');
 
-				$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
+					$params["vorschreibung"] = array(
+						'oehbeitrag' => $oehbeitrag, // IN CENT!!
+						'sonderbeitrag' => '0',
+						'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
+						'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
+						'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
+						'studiengebuehrnachfrist' => $studiengebuehrnachfrist, //  in CENT!!!
+						'valutadatum' => $valutadatum,
+						'valutadatumnachfrist' => $valutadatumnachfrist
+					);
 
-				$result = success($postData);
+					$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
+
+					$result = success($postData);
+				}
 			}
 		}
 
