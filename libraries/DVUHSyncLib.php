@@ -307,6 +307,16 @@ class DVUHSyncLib
 						$zugangsberechtigungMA = getData($zugangsberechtigungMAResult);
 					}
 
+					// standortcode
+					$standortcode = $this->_getStandort($prestudent_id, $studiengang_kz);
+
+					if (isError($standortcode))
+						return $standortcode;
+					if (hasData($standortcode))
+					{
+						$standortcode = getData($standortcode);
+					}
+
 					// lehrgang
 					if ($prestudentstatus->studiengang_typ == 'l')
 					{
@@ -314,6 +324,7 @@ class DVUHSyncLib
 							'lehrgangsnr' => $dvuh_stgkz,
 							'perskz' => $perskz,
 							//'vornachperskz' => $perskz,
+							'standortcode' => $standortcode,
 							'studstatuscode' => $studstatuscode,
 							'zugangsberechtigung' => $zugangsberechtigung,
 							'zulassungsdatum' => $prestudentstatus->beginndatum

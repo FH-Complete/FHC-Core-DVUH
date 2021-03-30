@@ -19,6 +19,7 @@
 			echo '
 					<lehrgangsnr>'.$lehrgang['lehrgangsnr'].'</lehrgangsnr>
 					<perskz>'.$lehrgang['perskz'].'</perskz>
+					<standortcode>'.$lehrgang['standortcode'].'</standortcode>
 					<studstatuscode>'.$lehrgang['studstatuscode'].'</studstatuscode>';
 			if(isset($lehrgang['zugangsberechtigung']))
 			{
@@ -49,7 +50,7 @@
 		foreach ($studiengaenge as $studiengang):
 		echo '
 		<studiengang disloziert="'.$studiengang['disloziert'].'">
-			<ausbildungssemester>'.$studiengang['ausbildungssemester']."</ausbildungssemester>\n";
+			<ausbildungssemester>'.$studiengang['ausbildungssemester'].'</ausbildungssemester>\n';
 
 		if(isset($studiengang['beendigungsdatum']) && $studiengang['beendigungsdatum']!='')
 		{
