@@ -412,8 +412,7 @@ class DVUHSyncLib
 						if (isEmptyString($prestudentstatus->berufstaetigkeit_code) && $orgformcode != '1' ) // wenn nicht Vollzeit
 							return error('Berufstätigkeitcode fehlt');
 
-						// TODO: there is no code 0 - use 1 instead?
-						$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code == '0' ? null : $prestudentstatus->berufstaetigkeit_code;
+						$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
 
 						$studiengang = array(
 							'disloziert' => 'N', // J,N,j,n
