@@ -60,7 +60,7 @@ class DVUHManagement extends JQW_Controller
 					{
 						$requestMatrnrArr = getData($requestMatrnrResult);
 
-						$this->_logInfosAndWarnings($requestMatrnrArr);
+						$this->_logInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
 					}
 				}
 			}
@@ -119,7 +119,7 @@ class DVUHManagement extends JQW_Controller
 					{
 						$sendCharge = getData($sendChargeResult);
 
-						$this->_logInfosAndWarnings($sendCharge);
+						$this->_logInfosAndWarnings($sendCharge, array('person_id' => $person_id));
 
 						if (isset($sendCharge['result']))
 							$this->logInfo("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
@@ -182,7 +182,7 @@ class DVUHManagement extends JQW_Controller
 						$sendPaymentItems = getData($sendPaymentResult);
 
 
-						$this->_logInfosAndWarnings($sendPaymentItems);
+						$this->_logInfosAndWarnings($sendPaymentItems, array('person_id' => $person_id));
 
 						if (isset($sendPaymentItems['result']) && is_array($sendPaymentItems['result']))
 						{
@@ -250,7 +250,7 @@ class DVUHManagement extends JQW_Controller
 					{
 						$sendStudyData = getData($sendStudyDataResult);
 
-						$this->_logInfosAndWarnings($sendStudyData);
+						$this->_logInfosAndWarnings($sendStudyData, array('prestudent_id' => $prestudent_id));
 
 						if (isset($sendStudyData['result']))
 						{
@@ -302,13 +302,20 @@ class DVUHManagement extends JQW_Controller
 	 * Extracts infos and warnings from a result and logs them.
 	 * @param array $resultarr
 	 */
-	private function _logInfosAndWarnings($resultarr)
+	private function _logInfosAndWarnings($resultarr, $idArr)
 	{
 		if (isset($resultarr['infos']) && is_array($resultarr['infos']))
 		{
 			foreach ($resultarr['infos'] as $info)
 			{
-				$this->logInfo($info);
+				$infoTxt = $info;
+
+				foreach ($idArr as $idname => $idvalue)
+				{
+					$infoTxt .= ", $idname: $idvalue";
+				}
+
+				$this->logInfo($infoTxt);
 			}
 		}
 
@@ -316,7 +323,14 @@ class DVUHManagement extends JQW_Controller
 		{
 			foreach ($resultarr['warnings'] as $warning)
 			{
-				$this->logWarning($warning);
+				$warningTxt = $warning;
+
+				foreach ($idArr as $idname => $idvalue)
+				{
+					$warningTxt .= ", $idname: $idvalue";
+				}
+
+				$this->logWarning($warningTxt);
 			}
 		}
 	}

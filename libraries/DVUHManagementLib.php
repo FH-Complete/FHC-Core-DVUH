@@ -186,7 +186,7 @@ class DVUHManagementLib
 					else
 					{
 						if (!isEmptyString($statusmeldung))
-							$result = $this->_getResponseArr(array($statusmeldung));
+							$result = $this->_getResponseArr(null, array($statusmeldung));
 						else
 							$result = error("unknown statuscode");
 					}
@@ -194,7 +194,7 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = $this->_getInfoObj("No valid person found for Matrikelnummer request");
+			$result = $this->_getResponseArr(null, array("No valid person found for Matrikelnummer request"));
 
 		return $result;
 	}
@@ -210,11 +210,12 @@ class DVUHManagementLib
 	public function sendMasterData($person_id, $studiensemester, $matrikelnummer = null, $preview = false)
 	{
 		$infos = array();
+		$warnings = array();
 
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
-		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester_kurzbz);
+		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
 		// get Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
@@ -276,7 +277,7 @@ class DVUHManagementLib
 			}
 
 			if ($paidOtherUniv === true)
-				$infos[] = "Already paid in other university";
+				$warnings[] = "Already paid in other university";
 			foreach ($buchungen as $buchung)
 			{
 				// if already paid on other university but not at own university -> not send Vorschreibung
@@ -319,7 +320,7 @@ class DVUHManagementLib
 			if (isError($postData))
 				return $postData;
 
-			return $this->_getResponseArr($infos, getData($postData));
+			return $this->_getResponseArr(getData($postData), $infos, $warnings);
 		}
 
 		$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
@@ -399,7 +400,7 @@ class DVUHManagementLib
 				}
 
 				if (!isset($result))
-					$result = $this->_getResponseArr($infos, $xmlstr, true);
+					$result = $this->_getResponseArr($xmlstr, $infos, $warnings, true);
 			}
 		}
 		else
@@ -504,7 +505,11 @@ class DVUHManagementLib
 						return error("Buchung: $buchungsnr: payment not equal to charge amount");
 				}
 				else
-					return $this->_getResponseArr(array("Buchung $buchungsnr: no charge sent to DVUH before the payment"));
+					return $this->_getResponseArr(
+						null,
+						null,
+						array("Buchung $buchungsnr: no charge sent to DVUH before the payment")
+					);
 
 				// check if already paid on other university
 /*				$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $buchung->matr_nr);
@@ -564,7 +569,7 @@ class DVUHManagementLib
 					$resultarr[] = $postData;
 				}
 
-				return $this->_getResponseArr(null, $resultarr);
+				return $this->_getResponseArr($resultarr);
 			}
 
 			foreach ($paymentsToSend as $payment)
@@ -607,9 +612,9 @@ class DVUHManagementLib
 			}
 		}
 		else
-			return $this->_getResponseArr(array("No Buchungen found"));
+			return $this->_getResponseArr(null, array("No Buchungen found"));
 
-		return $this->_getResponseArr($infos, $zahlungenResArr, true);
+		return $this->_getResponseArr($zahlungenResArr, $infos, null, true);
 	}
 
 	/**
@@ -649,7 +654,7 @@ class DVUHManagementLib
 			if (isError($postData))
 				return $postData;
 
-			return $this->_getResponseArr(null, getData($postData));
+			return $this->_getResponseArr(getData($postData));
 		}
 
 		$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
@@ -666,7 +671,12 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$result = $this->_getResponseArr(array('Study data successfully saved in DVUH'), $xmlstr, true);
+				$result = $this->_getResponseArr(
+					$xmlstr,
+					array('Study data successfully saved in DVUH'),
+					null,
+					true
+				);
 
 				// activate Matrikelnr
 				$matrNrActivationResult = $this->_ci->PersonModel->update(
@@ -739,7 +749,7 @@ class DVUHManagementLib
 			if (isError($postData))
 				return $postData;
 
-			return $this->_getResponseArr($infos, getData($postData));
+			return $this->_getResponseArr(getData($postData), $infos);
 		}
 
 		$matrikelmeldungResult = $this->_ci->MatrikelmeldungModel->post($this->_be, $person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
@@ -758,7 +768,12 @@ class DVUHManagementLib
 			else
 			{
 				$infos[] = 'Personenmeldung successful';
-				$result = $this->_getResponseArr($infos, $xmlstr, true);
+				$result = $this->_getResponseArr(
+					$xmlstr,
+					$infos,
+					null,
+					true
+				);
 			}
 		}
 		else
@@ -801,7 +816,7 @@ class DVUHManagementLib
 				$infos[] = $no_pruefungen_info;
 
 			$postData = getData($postData);
-			return $this->_getResponseArr($infos, $postData);
+			return $this->_getResponseArr($postData, $infos);
 		}
 
 		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz);
@@ -819,13 +834,18 @@ class DVUHManagementLib
 			else
 			{
 				$infos[] = 'Pruefungsaktivitätenmeldung successful';
-				$result = $this->_getResponseArr($infos, $xmlstr, true);
+				$result = $this->_getResponseArr(
+					$xmlstr,
+					$infos,
+					null,
+					true
+				);
 			}
 		}
 		else
 		{
 			$infos[] = $no_pruefungen_info;
-			$result = $this->_getResponseArr($infos, null);
+			$result = $this->_getResponseArr(null, $infos);
 		}
 
 		return $result;
@@ -1124,29 +1144,20 @@ class DVUHManagementLib
 	}
 
 	/**
-	 * Wraps a string as Info object.
-	 * @param string $str
-	 * @return object object for holding info strings
-	 */
-	private function _getInfoObj($str)
-	{
-		return success(array('info' => $str));
-	}
-
-	/**
 	 * Constructs response array consisting of information and the result itself.
 	 * Info is passed for logging/displaying.
-	 * @param array $infos
-	 * @param object $result
+	 * @param object $result main response data
+	 * @param array $infos array with info strings
+	 * @param array $warnings array with warning strings
 	 * @param bool $getWarningsFromResult if true, parse the result for warnings and include them in response
-	 * @return object response object with result and infos
+	 * @return object response object with result, infos and warnings
 	 */
-	private function _getResponseArr($infos, $result = null, $getWarningsFromResult = false)
+	private function _getResponseArr($result, $infos = null, $warnings = null, $getWarningsFromResult = false)
 	{
 		$responseArr = array();
 		$responseArr['infos'] = isset($infos) ? $infos : array();
 		$responseArr['result'] = $result;
-		$responseArr['warnings'] = array();
+		$responseArr['warnings'] = isset($warnings) ? $warnings : array();
 
 		if ($getWarningsFromResult === true && !isEmptyString($result))
 		{
@@ -1161,8 +1172,9 @@ class DVUHManagementLib
 					$warningsRes = $this->_ci->xmlreaderlib->parseXmlDvuhWarnings($xmlstr);
 
 					if (isError($warningsRes))
-						$responseArr['infos'] = 'error when parsing warnings';
-					elseif (hasData($warningsRes))
+						return error('error when parsing warnings');
+
+					if (hasData($warningsRes))
 						$responseArr['warnings'] = getData($warningsRes);
 				}
 			}

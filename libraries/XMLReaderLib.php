@@ -85,7 +85,7 @@ class XMLReaderLib
 	}
 
 	/**
-	 * Parses XML for blocking errors (as defined by DVUH).
+	 * Parses XML for errors (as defined by DVUH).
 	 * @param string $xmlstr
 	 * @return object array with errors on success, error otherwise
 	 */
