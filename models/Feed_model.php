@@ -24,13 +24,15 @@ class Feed_model extends DVUHClientModel
 	 * @param $erstelltSeit Date of Feed start (Format: 1990-01-01)
 	 * @param $markread 'true'|'false' defines if the entries are marked as read
 	 */
-	public function get($be,  $content, $erstelltSeit, $markread)
+	public function get($be,  $content = null, $erstelltSeit = null, $markread = null)
 	{
 		$callParametersArray = array(
 			'be' => $be,
-			'content' => $content,
 			'uuid' => getUUID()
 		);
+
+		if (!is_null($content))
+			$callParametersArray['content'] = $content;
 
 		if (!is_null($erstelltSeit))
 			$callParametersArray['erstelltSeit'] = $erstelltSeit;

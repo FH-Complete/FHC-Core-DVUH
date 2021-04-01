@@ -18,11 +18,11 @@ class FeedReaderLib
 	 * Gets feeds filtered by type.
 	 * @param string $be
 	 * @param string $erstelltSeit
-	 * @param string $type
+	 * @param array $types
 	 * @param string $contentFilters filters (name and value) applied on feed content
 	 * @return object
 	 */
-	public function getFeedsByType($be, $erstelltSeit, $type, $contentFilters)
+	public function getFeedsByType($be, $erstelltSeit, $types, $contentFilters)
 	{
 		$feeds = $this->_ci->FeedModel->get($be, 'false', $erstelltSeit, 'false');
 
@@ -33,18 +33,18 @@ class FeedReaderLib
 		{
 			$feedxml = getData($feeds);
 
-			return $this->parseFeeds($feedxml, $type, $contentFilters);
+			return $this->parseFeeds($feedxml, $types, $contentFilters);
 		}
 	}
 
 	/**
 	 * Parse an XML feed string, create feed objects.
 	 * @param string $feedxml
-	 * @param string $type
-	 * @param array $contentFilters filters (name and value) applied on feed content
+	 * @param array $types for filtering by type in feed title
+	 * @param array $contentFilters filters (name and value) applied on feed content, if no match, feed entry is excluded.
 	 * @return object feed entry objects
 	 */
-	public function parseFeeds($feedxml, $type = null, $contentFilters = array())
+	public function parseFeeds($feedxml, $types = null, $contentFilters = array())
 	{
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$portal = $this->_ci->config->item('fhc_dvuh_connections')[$this->_ci->config->item('fhc_dvuh_active_connection')]['portal'];
@@ -73,9 +73,9 @@ class FeedReaderLib
 				{
 					if (isset($child->tagName))
 					{
-						if (!isEmptyString($type) && $child->tagName == 'title')
+						if (!isEmptyArray($types) && $child->tagName == 'title')
 						{
-							if ($child->nodeValue != $type)
+							if (!in_array($child->nodeValue, $types))
 								continue 2; // skip to next entry if not of searched type
 						}
 						elseif ($child->tagName == 'content')
@@ -156,7 +156,7 @@ class FeedReaderLib
 							$filter_res = $this->_getNode($child, $field);
 
 							if (!isEmptyString($value) && isset($filter_res) && !strstr($filter_res, $value))
-								$filtered = true; // continue elements loop if not matching filter criteria
+								$filtered = true; // do not include if not matching filter criteria
 						}
 					}
 				}
@@ -172,7 +172,7 @@ class FeedReaderLib
 	}
 
 	/**
-	 * Create feed content string out of DVUH-specific data.
+	 * Create formatted feed content string out of DVUH-specific data.
 	 * @param object $rootel root xml element containing data
 	 * @param string $contentStr content string to create
 	 * @param int $level recursion level
