@@ -30,7 +30,7 @@ $this->load->view('templates/FHC-Header', array(
 				</div>
 			</div>
 			<div class="row">
-				<div class="col-lg-12">
+				<div class="col-xs-10">
 					Diese Seite stellt die Schnittstellen zum Datenverbund für Universitäten und Hochschulen zur
 					Verfügung.&nbsp;
 					<span class="btn-group">
@@ -39,6 +39,9 @@ $this->load->view('templates/FHC-Header', array(
 							<span class="fa fa-caret-down" id="toggleMenuCaret"></span>
 						</button>
 					</span>
+				</div>
+				<div class="col-xs-2 text-right">
+					Umgebung: <strong><?php echo $environment ?></strong>
 				</div>
 			</div>
 			<br />

@@ -23,10 +23,5 @@ $config['fhc_dvuh_connections'] = array(
 		'portal' => DVB_PORTAL,
 		'username' => DVB_USERNAME,
 		'password' => DVB_PASSWORD
-	),
-/*	'TESTING' => array(
-		'portal' => 'https://stubei-q.portal.at',
-		'username' => 'test.webservice@technikum-wien.at',
-		'password' => DVB_PASSWORD
-	)*/
+	)
 );
