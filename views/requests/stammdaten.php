@@ -70,7 +70,7 @@
 ?>
 		<vorname><?php echo $studentinfo['vorname']; ?></vorname>
 	</stammdaten>
-	<?php if (isset($vorschreibung)): ?>
+	<?php if(isset($vorschreibung)): ?>
 	<vorschreibung>
 		<oehbeitrag><?php echo $vorschreibung['oehbeitrag']; ?></oehbeitrag>
 		<sonderbeitrag><?php echo $vorschreibung['sonderbeitrag']; ?></sonderbeitrag>

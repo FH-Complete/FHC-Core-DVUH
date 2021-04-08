@@ -40,8 +40,12 @@
 					</zugangsberechtigungMA>';
 			}
 
-			echo '<zulassungsdatum>'.$lehrgang['zulassungsdatum'].'</zulassungsdatum>
-				</lehrgang>';
+			if(isset($lehrgang['zulassungsdatum']))
+			{
+				echo '<zulassungsdatum>'.$lehrgang['zulassungsdatum'].'</zulassungsdatum>';
+			}
+
+			echo '</lehrgang>';
 		endforeach;
 	}
 	// Studiengang
@@ -49,8 +53,12 @@
 	{
 		foreach ($studiengaenge as $studiengang):
 		echo '
-		<studiengang disloziert="'.$studiengang['disloziert'].'">
-			<ausbildungssemester>'.$studiengang['ausbildungssemester'].'</ausbildungssemester>\n';
+		<studiengang disloziert="'.$studiengang['disloziert'].'">';
+
+		if (isset($studiengang['ausbildungssemester']))
+		{
+			echo '\t\t\t<ausbildungssemester>' . $studiengang['ausbildungssemester'] . '</ausbildungssemester>\n';
+		}
 
 		if(isset($studiengang['beendigungsdatum']) && $studiengang['beendigungsdatum']!='')
 		{
@@ -114,10 +122,15 @@
 		}
 		echo '
 			<orgformcode>'.$studiengang['orgformcode'].'</orgformcode>
-			<perskz>'.$studiengang['perskz'].'</perskz>
-			<standortcode>'.$studiengang['standortcode'].'</standortcode>
+			<perskz>'.$studiengang['perskz'].'</perskz>';
+
+		if (isset($studiengang['standortcode']))
+			echo '<standortcode>'.$studiengang['standortcode'].'</standortcode>';
+
+		echo'
 			<stgkz>'.$studiengang['stgkz'].'</stgkz>
 			<studstatuscode>'.$studiengang['studstatuscode'].'</studstatuscode>';
+
 		if(isset($studiengang['vornachperskz']))
 		{
 			echo '
@@ -127,30 +140,43 @@
 		if(isset($studiengang['zugangsberechtigung']))
 		{
 			echo '
-			<zugangsberechtigung>
-				<datum>'.$studiengang['zugangsberechtigung']['datum'].'</datum>
-				<staat>'.$studiengang['zugangsberechtigung']['staat'].'</staat>
+			<zugangsberechtigung>';
+
+			if (isset($studiengang['zugangsberechtigung']['datum']))
+				echo '<datum>'.$studiengang['zugangsberechtigung']['datum'].'</datum>';
+
+			if (isset($studiengang['zugangsberechtigung']['staat']))
+				echo '<staat>'.$studiengang['zugangsberechtigung']['staat'].'</staat>';
+
+			echo '
 				<voraussetzung>'.$studiengang['zugangsberechtigung']['voraussetzung'].'</voraussetzung>
-			</zugangsberechtigung>
-			';
+			</zugangsberechtigung>';
 		}
 
 		if(isset($studiengang['zugangsberechtigungMA']))
 		{
 			echo '
 			<zugangsberechtigungMA>
-				<datum>'.$studiengang['zugangsberechtigungMA']['datum'].'</datum>
+				<datum>'.$studiengang['zugangsberechtigungMA']['datum'].'</datum>';
+
+			if (isset($studiengang['zugangsberechtigungMA']['staat']))
+				echo '<staat>'.$studiengang['zugangsberechtigungMA']['staat'].'</staat>';
+
+			echo '
 				<staat>'.$studiengang['zugangsberechtigungMA']['staat'].'</staat>
 				<voraussetzung>'.$studiengang['zugangsberechtigungMA']['voraussetzung'].'</voraussetzung>
 			</zugangsberechtigungMA>
 			';
 		}
-		echo '
-			<zulassungsdatum>'.$studiengang['zulassungsdatum'].'</zulassungsdatum>
-		</studiengang>';
+
+		if(isset($studiengang['zulassungsdatum']))
+		{
+			echo '<zulassungsdatum>'.$studiengang['zulassungsdatum'].'</zulassungsdatum>';
+		}
+
+		echo '</studiengang>';
 		endforeach;
 	}
 ?>
-
 	</studien>
 </studienanfrage>

@@ -81,10 +81,13 @@ class JQMSchedulerLib
 	 */
 	public function sendCharge()
 	{
+		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
+		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
+
 		$jobInput = null;
 		$result = null;
 
-		$params = array($this->_startdatum);
+		$params = array($all_buchungstypen, $this->_startdatum);
 
 		// get students not sent to DVUH yet
 		$qry = "SELECT DISTINCT persons.person_id, persons.studiensemester_kurzbz FROM (
@@ -97,7 +100,7 @@ class JQMSchedulerLib
 						JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 						JOIN public.tbl_studiensemester USING (studiensemester_kurzbz)
 						LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-						LEFT JOIN public.tbl_konto kto ON pers.person_id = kto.person_id AND kto.buchungstyp_kurzbz IN ('Studiengebuehr','OEH')
+						LEFT JOIN public.tbl_konto kto ON pers.person_id = kto.person_id AND kto.buchungstyp_kurzbz IN ?
 														AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz AND kto.buchungsnr_verweis IS NULL
 														AND kto.betrag < 0
 						LEFT JOIN sync.tbl_dvuh_stammdaten stammd ON pss.studiensemester_kurzbz = stammd.studiensemester_kurzbz AND pers.person_id = stammd.person_id
@@ -153,6 +156,9 @@ class JQMSchedulerLib
 	 */
 	public function sendPayment()
 	{
+		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
+		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
+
 		$jobInput = null;
 		$result = null;
 
@@ -168,7 +174,7 @@ class JQMSchedulerLib
 				WHERE ps.bismelden = true
 					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
 					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
-					AND kto.buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
+					AND kto.buchungstyp_kurzbz IN ?
 					AND kto.buchungsnr_verweis IS NOT NULL
 					AND kto.betrag > 0
 					AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
@@ -182,7 +188,7 @@ class JQMSchedulerLib
 
 		$maToSyncResult = $dbModel->execReadOnlyQuery(
 			$qry,
-			array($this->_startdatum)
+			array($all_buchungstypen, $this->_startdatum)
 		);
 
 		// If error occurred while retrieving students from database then return the error

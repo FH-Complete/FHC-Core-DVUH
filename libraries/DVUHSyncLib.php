@@ -137,7 +137,6 @@ class DVUHSyncLib
 				'emailliste' => $emailliste,
 				'geburtsdatum' => $stammdaten->gebdatum,
 				'geschlecht' => $geschlecht,
-				/*'matrikelnummer' => $stammdaten->matr_nr,*/
 				'nachname' => $stammdaten->nachname,
 				'staatsbuergerschaft' => $stammdaten->staatsbuergerschaft_code,
 				'vorname' => $stammdaten->vorname,
@@ -204,7 +203,7 @@ class DVUHSyncLib
 			$semester = $this->convertSemesterToFHC($semester);
 
 			// Meldung pro Student, Studium und Semester
-			$active_status = array(/*'Aufgenommener',*/ 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent');
+			$active_status = array('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent');
 
 			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
 				       stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
@@ -215,11 +214,11 @@ class DVUHSyncLib
 				       (SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
-							ORDER BY datum asc LIMIT 1) AS beginndatum,	
+							ORDER BY datum ASC LIMIT 1) AS beginndatum,	
 				       	(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Absolvent', 'Abbrecher')
-							ORDER BY datum desc LIMIT 1) AS beendigungsdatum
+							ORDER BY datum DESC LIMIT 1) AS beendigungsdatum
 				  FROM public.tbl_prestudent ps
 				  JOIN public.tbl_student using(prestudent_id)
 				  JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
@@ -272,7 +271,6 @@ class DVUHSyncLib
 					if (isEmptyString($perskz) || !preg_match("/^\d{10}$/", $perskz))
 						return error("Personenkennzeichen ungültig");
 
-
 					// studstatuscode
 					$studstatuscodeResult = $this->_getStatuscode($status_kurzbz);
 
@@ -287,34 +285,50 @@ class DVUHSyncLib
 					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
 					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
 
+					// booleans isIncoming and isAusserordentlich
+					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
+					// Ausserordnetlicher Studierender (4.Stelle in Personenkennzeichen = 9)
+					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
+
+					// zulassungsdatum (start date of studies)
+					$zulassungsdatum = $isIncoming || $isAusserordentlich ? null : $prestudentstatus->beginndatum;
+
 					// zgv
-					$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum);
+					$zugangsberechtigung = null;
+					$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich);
 
 					if (isError($zugangsberechtigungResult))
 						return $zugangsberechtigungResult;
+
 					if (hasData($zugangsberechtigungResult))
 					{
 						$zugangsberechtigung = getData($zugangsberechtigungResult);
 					}
 
 					// zgv master
-					$zugangsberechtigungMAResult = $this->_getZgvMaster($prestudentstatus, $gebdatum);
+					$zugangsberechtigungMa = null;
+					$zugangsberechtigungMAResult = $this->_getZgvMaster($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich);
 
 					if (isset($zugangsberechtigungMAResult) && isError($zugangsberechtigungMAResult))
 						return $zugangsberechtigungMAResult;
+
 					if (hasData($zugangsberechtigungMAResult))
 					{
 						$zugangsberechtigungMA = getData($zugangsberechtigungMAResult);
 					}
 
 					// standortcode
-					$standortcode = $this->_getStandort($prestudent_id, $studiengang_kz);
-
-					if (isError($standortcode))
-						return $standortcode;
-					if (hasData($standortcode))
+					if (!$isAusserordentlich)
 					{
-						$standortcode = getData($standortcode);
+						$standortcodeResult = $this->_getStandort($prestudent_id, $studiengang_kz);
+
+						if (isError($standortcodeResult))
+							return $standortcodeResult;
+
+						if (hasData($standortcodeResult))
+						{
+							$standortcode = getData($standortcodeResult);
+						}
 					}
 
 					// lehrgang
@@ -323,15 +337,24 @@ class DVUHSyncLib
 						$lehrgang = array(
 							'lehrgangsnr' => $dvuh_stgkz,
 							'perskz' => $perskz,
-							//'vornachperskz' => $perskz,
-							'standortcode' => $standortcode,
 							'studstatuscode' => $studstatuscode,
-							'zugangsberechtigung' => $zugangsberechtigung,
-							'zulassungsdatum' => $prestudentstatus->beginndatum
+							'zugangsberechtigung' => $zugangsberechtigung
 						);
+
+						foreach ($lehrgang as $idx => $item)
+						{
+							if (!isset($item) || isEmptyString($item))
+								return error('Lehrgangdata missing: ' . $idx);
+						}
+
+						if (isset($zulassungsdatum))
+							$lehrgang['zulassungsdatum'] = $zulassungsdatum;
 
 						if (isset($prestudentstatus->beendigungsdatum))
 							$lehrgang['beendigungsdatum'] = $prestudentstatus->beendigungsdatum;
+
+						if (isset($standortcode))
+							$lehrgang['standortcode'] = $standortcode;
 
 						if (isset($zugangsberechtigungMA))
 							$lehrgang['zugangsberechtigungMA'] = $zugangsberechtigungMA;
@@ -349,15 +372,15 @@ class DVUHSyncLib
 							$orgform_kurzbz = $prestudentstatus->studiengang_orgform;
 
 						// ausbildungssemester
-						$ausbildungssemesterResult = $this->_getAusbildungssemester($prestudentstatus);
+						if (!$isIncoming && !$isAusserordentlich)
+						{
+							$ausbildungssemesterResult = $this->_getAusbildungssemester($prestudentstatus);
 
-						if (isError($ausbildungssemesterResult))
-							return $ausbildungssemesterResult;
-						else
-							$ausbildungssemester = getData($ausbildungssemesterResult);
-
-						$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
-						$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
+							if (isError($ausbildungssemesterResult))
+								return $ausbildungssemesterResult;
+							else
+								$ausbildungssemester = getData($ausbildungssemesterResult);
+						}
 
 						// gemeinsame Studien
 						$gemeinsam = null;
@@ -388,7 +411,7 @@ class DVUHSyncLib
 						else
 							$bmffoerderrelevant = 'J';
 
-						// orgform code
+						// orgform code TODO - if ausserordentlich - remove? what if compulsory?
 						$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
 
 						if (isError($orgform_code))
@@ -398,34 +421,23 @@ class DVUHSyncLib
 							$orgformcode = getData($orgform_code);
 						}
 
-						// standortcode
-						$standortcode = $this->_getStandort($prestudent_id, $studiengang_kz);
-
-						if (isError($standortcode))
-							return $standortcode;
-						if (hasData($standortcode))
+						// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
+						if ($orgformcode != '1' && !$isAusserordentlich)
 						{
-							$standortcode = getData($standortcode);
+							if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
+								return error('Berufstätigkeitcode fehlt');
+
+							$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
 						}
-
-						// berufstätigkeitcode
-						if (isEmptyString($prestudentstatus->berufstaetigkeit_code) && $orgformcode != '1' ) // wenn nicht Vollzeit
-							return error('Berufstätigkeitcode fehlt');
-
-						$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
 
 						$studiengang = array(
 							'disloziert' => 'N', // J,N,j,n
-							'ausbildungssemester' => $ausbildungssemester,
 							'bmwfwfoerderrelevant' => $bmffoerderrelevant,
 							'orgformcode' => $orgformcode,
 							'perskz' => $perskz,
-							//'vornachperskz' => $perskz,
-							'standortcode' => $standortcode,
 							'stgkz' => $dvuh_stgkz, // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
 							'studstatuscode' => $studstatuscode,
-							'zugangsberechtigung' => $zugangsberechtigung,
-							'zulassungsdatum' => $prestudentstatus->beginndatum
+							'zugangsberechtigung' => $zugangsberechtigung
 						);
 
 						foreach ($studiengang as $idx => $item)
@@ -434,8 +446,17 @@ class DVUHSyncLib
 								return error('Studydata missing: ' . $idx);
 						}
 
+						if (isset($zulassungsdatum))
+							$studiengang['zulassungsdatum'] = $zulassungsdatum;
+
+						if (isset($ausbildungssemester))
+							$studiengang['ausbildungssemester'] = $ausbildungssemester;
+
 						if (isset($berufstaetigkeit_code))
 							$studiengang['berufstaetigkeit_code'] = $berufstaetigkeit_code;
+
+						if (isset($standortcode))
+							$studiengang['standortcode'] = $standortcode;
 
 						if (isset($gemeinsam))
 							$studiengang['gemeinsam'] = $gemeinsam;
@@ -660,7 +681,8 @@ class DVUHSyncLib
 		else
 			return error("no correct semester provided");
 
-		$ioResult = $this->_dbModel->execReadOnlyQuery("SELECT *
+		$ioResult = $this->_dbModel->execReadOnlyQuery(
+					"SELECT *
 					FROM bis.tbl_bisio WHERE student_uid=?
 					AND bis >= ? AND von <= ?;",
 					array($prestudentstatus->student_uid, $semester->start, $semester->ende)
@@ -680,6 +702,10 @@ class DVUHSyncLib
 				$avon = $ioitem->von;
 				$abis = $ioitem->bis;
 				$adauer = (is_null($avon) || is_null($abis)) ? null : $this->_dateDiff($avon, $abis);
+				if (strtotime($abis) < strtotime(date('Y-m-d')))
+					$aufenthalt_finished = true;
+				else
+					$aufenthalt_finished = false;
 
 				// Aufenthaltszweckcode --------------------------------------------------------------------------------
 				$this->_ci->ZweckModel->addSelect('tbl_zweck.zweck_code');
@@ -762,11 +788,6 @@ class DVUHSyncLib
 							}
 						}
 
-						if (strtotime($abis) < strtotime(date('Y-m-d')))
-							$aufenthalt_finished = true;
-						else
-							$aufenthalt_finished = false;
-
 						if (isEmptyString($ioitem->ects_erworben) && $adauer >= 29 && $aufenthalt_finished)
 						{
 							return error(
@@ -778,27 +799,32 @@ class DVUHSyncLib
 							return error(
 								"Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)");
 						}
+
+						$ects_erworben = $ioitem->ects_erworben;
+						$ects_angerechnet = $ioitem->ects_angerechnet;
 					}
 				}
 				else
 					return error('Bisio Zweck nicht gefunden');
 
 				$mobilitaet = array(
-					'bis' => $abis,
 					'programm' => $programm,
 					'staat' => $staat,
 					'von' => $avon,
 					'zweck' => $zweck_code_arr
 				);
 
+				if ($aufenthalt_finished)
+					$mobilitaet['bis'] = $abis;
+
 				if (isset($aufenthaltfoerderung_code_arr) && count($aufenthaltfoerderung_code_arr) > 0)
 					$mobilitaet['aufenthaltfoerderungcode'] = $aufenthaltfoerderung_code_arr;
 
-				if (!isEmptyString($ioitem->ects_angerechnet))
-					$mobilitaet['ectsangerechnet'] = number_format($ioitem->ects_angerechnet, 1);
+				if (isset($ects_angerechnet) && !isEmptyString($ects_angerechnet))
+					$mobilitaet['ectsangerechnet'] = number_format($ects_angerechnet, 1);
 
-				if (!isEmptyString($ioitem->ects_erworben))
-					$mobilitaet['ectserworben'] = number_format($ioitem->ects_erworben, 1);
+				if (isset($ects_erworben) && !isEmptyString($ects_erworben))
+					$mobilitaet['ectserworben'] = number_format($ects_erworben, 1);
 
 				$mobilitaeten[] = $mobilitaet;
 			}
@@ -907,7 +933,7 @@ class DVUHSyncLib
 	 * @param string $gebdatum for date check
 	 * @return object
 	 */
-	private function _getZgv($prestudentstatus, $gebdatum)
+	private function _getZgv($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich)
 	{
 		$zugangsberechtigung = null;
 
@@ -929,11 +955,18 @@ class DVUHSyncLib
 
 		$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
 
-		$zugangsberechtigung = array(
-			'datum' => $prestudentstatus->zgvdatum,
-			'staat' => $prestudentstatus->zgvnation,
+		$zugangsberechtigung = array(// TODO: if ausserordentlich, remove even voraussetzung?
 			'voraussetzung' => $zugangsvoraussetzung  // Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
 		);
+
+		if (!$isAusserordentlich)
+		{
+			//$zugangsberechtigung['voraussetzung'] = $zugangsvoraussetzung;
+			$zugangsberechtigung['datum'] = $prestudentstatus->zgvdatum;
+
+			if (!$isIncoming)
+				$zugangsberechtigung['staat'] = $prestudentstatus->zgvnation;
+		}
 
 		return success($zugangsberechtigung);
 	}
@@ -944,7 +977,7 @@ class DVUHSyncLib
 	 * @param string $gebdatum for date check
 	 * @return object
 	 */
-	private function _getZgvMaster($prestudentstatus, $gebdatum)
+	private function _getZgvMaster($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich)
 	{
 		$zugangsberechtigungMA = null;
 
@@ -973,10 +1006,14 @@ class DVUHSyncLib
 			$zugangsvoraussetzung_ma = str_pad($prestudentstatus->zgvmas_code, 2, '0', STR_PAD_LEFT);
 
 			$zugangsberechtigungMA = array(
-				'datum' => $prestudentstatus->zgvmadatum,
-				'staat' => $prestudentstatus->zgvmanation,
-				'voraussetzung' => $zugangsvoraussetzung_ma  // Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
+				'voraussetzung' => $zugangsvoraussetzung_ma,
+				'datum' => $prestudentstatus->zgvmadatum// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
 			);
+
+			if (!$isAusserordentlich && !$isIncoming)
+			{
+				$zugangsberechtigungMA['staat'] = $prestudentstatus->zgvmanation;
+			}
 		}
 
 		return success($zugangsberechtigungMA);

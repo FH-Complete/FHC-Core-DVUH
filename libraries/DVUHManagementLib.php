@@ -214,6 +214,8 @@ class DVUHManagementLib
 
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
+		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
+		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
@@ -244,15 +246,14 @@ class DVUHManagementLib
 								      			JOIN public.tbl_prestudentstatus USING (prestudent_id)
 								      			WHERE tbl_prestudent.person_id = tbl_konto.person_id
 								      			AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
-								  AND buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
+								  AND buchungstyp_kurzbz IN ?
 								  ORDER BY buchungsdatum, buchungsnr",
 			array(
 				$person_id,
-				$studiensemester_kurzbz
+				$studiensemester_kurzbz,
+				$all_buchungstypen
 			)
 		);
-
-		// TODO get Kaution and add it to Studiengebuehr
 
 		$vorschreibung = array();
 
@@ -285,29 +286,34 @@ class DVUHManagementLib
 					continue;
 
 				// add Vorschreibung
-				if (!isset($vorschreibung[$buchung->buchungstyp_kurzbz]))
-					$vorschreibung[$buchung->buchungstyp_kurzbz] = 0;
+				if (in_array($buchung->buchungstyp_kurzbz, $buchungstypen['oehbeitrag']))
+					$dvuh_buchungstyp = 'oehbeitrag';
+				elseif ((in_array($buchung->buchungstyp_kurzbz, $buchungstypen['studiengebuehr'])))
+					$dvuh_buchungstyp = 'studiengebuehr';
 
-				$vorschreibung[$buchung->buchungstyp_kurzbz] += $buchung->betrag;
+				if (!isset($vorschreibung[$dvuh_buchungstyp]))
+					$vorschreibung[$dvuh_buchungstyp] = 0;
 
-				if ($buchung->buchungstyp_kurzbz == 'OEH')
+				$vorschreibung[$dvuh_buchungstyp] += $buchung->betrag;
+
+				if ($dvuh_buchungstyp == 'oehbeitrag')
 				{
 					$vorschreibung['valutadatum'] = $buchung->valutadatum;
 					$vorschreibung['valutadatumnachfrist'] =
 						date('Y-m-d', strtotime($buchung->valutadatum . ' + ' . $valutadatumnachfrist_days . ' days'));
 					$vorschreibung['origoehbuchung'][] = $buchung;
 				}
-				elseif ($buchung->buchungstyp_kurzbz == 'Studiengebuehr')
+				elseif ($dvuh_buchungstyp == 'studiengebuehr')
 				{
-					$vorschreibung['studiengebuehrnachfrist'] = $vorschreibung[$buchung->buchungstyp_kurzbz] - $studiengebuehrnachfrist_euros;
+					$vorschreibung['studiengebuehrnachfrist'] = $vorschreibung[$dvuh_buchungstyp] - $studiengebuehrnachfrist_euros;
 					$vorschreibung['origstudiengebuehrbuchung'][] = $buchung;
 				}
 			}
 		}
 
 		// send Stammdatenmeldung
-		$oehbeitrag = isset($vorschreibung['OEH']) ? $vorschreibung['OEH'] * -100 : null;
-		$studiengebuehr = isset($vorschreibung['Studiengebuehr']) ? $vorschreibung['Studiengebuehr'] * -100 : null;
+		$oehbeitrag = isset($vorschreibung['oehbeitrag']) ? $vorschreibung['oehbeitrag'] * -100 : null;
+		$studiengebuehr = isset($vorschreibung['studiengebuehr']) ? $vorschreibung['studiengebuehr'] * -100 : null;
 		$valutadatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
 		$valutadatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
 		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist']  * -100 : null;
@@ -352,8 +358,8 @@ class DVUHManagementLib
 				if (isError($stammdatenSaveResult))
 					$result = error("Stammdaten save in DVUH successfull, error when saving Stammdaten in FHC");
 
-				if (isset($vorschreibung['OEH']) && isset($vorschreibung['origoehbuchung'])
-					&& $vorschreibung['OEH'] < 0)
+				if (isset($vorschreibung['oehbeitrag']) && isset($vorschreibung['origoehbuchung'])
+					&& $vorschreibung['oehbeitrag'] < 0)
 				{
 					foreach ($vorschreibung['origoehbuchung'] as $bchng)
 					{
@@ -367,12 +373,12 @@ class DVUHManagementLib
 						);
 
 						if (isError($zahlungSaveResult))
-							$result = error("Stammdaten save in DVUH successfull, error when saving OEH-Beitrag Zahlung in FHC");
+							$result = error("Stammdaten save in DVUH successfull, error when saving ÖH-Beitrag Zahlung in FHC");
 					}
 				}
 
-				if (isset($vorschreibung['Studiengebuehr']) && isset($vorschreibung['origstudiengebuehrbuchung'])
-					&& $vorschreibung['Studiengebuehr'] < 0)
+				if (isset($vorschreibung['studiengebuehr']) && isset($vorschreibung['origstudiengebuehrbuchung'])
+					&& $vorschreibung['studiengebuehr'] < 0)
 				{
 					foreach ($vorschreibung['origstudiengebuehrbuchung'] as $bchng)
 					{
@@ -423,9 +429,14 @@ class DVUHManagementLib
 		$zahlungenResArr = array();
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 
+		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
+		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
+
 		// get paid Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
-								SELECT matr_nr, buchungsnr, buchungsdatum, betrag, buchungsnr_verweis, zahlungsreferenz, buchungstyp_kurzbz, studiensemester_kurzbz, matr_nr
+								SELECT matr_nr, buchungsnr, buchungsdatum, betrag, buchungsnr_verweis, 
+								       zahlungsreferenz, buchungstyp_kurzbz, studiensemester_kurzbz, matr_nr,
+								       sum(betrag) OVER (PARTITION BY buchungsnr_verweis) AS summe_buchungen
 								FROM public.tbl_konto
 								JOIN public.tbl_person using(person_id)
 								WHERE person_id = ?
@@ -440,15 +451,14 @@ class DVUHManagementLib
 									WHERE buchungsnr = tbl_konto.buchungsnr
 									AND betrag > 0
 									LIMIT 1)
-								  AND buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
+								  AND buchungstyp_kurzbz IN ?
 								  ORDER BY buchungsdatum, buchungsnr",
 			array(
 				$person_id,
-				$studiensemester_kurzbz
+				$studiensemester_kurzbz,
+				$all_buchungstypen
 			)
 		);
-
-		// TODO get Kaution and add it to Studiengebuehr
 
 		// calculate values for ÖH-Beitrag, studiengebühr
 		if (hasData($buchungenResult))
@@ -466,11 +476,11 @@ class DVUHManagementLib
 								  					WHERE kto.person_id = tbl_konto.person_id
 								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
 								      				LIMIT 1)
-								  AND buchungstyp_kurzbz IN ('Studiengebuehr', 'OEH')
+								  AND buchungstyp_kurzbz IN ?
 								  ORDER BY buchungsdatum, buchungsnr
 								  LIMIT 1",
 				array(
-					$person_id, $studiensemester_kurzbz
+					$person_id, $studiensemester_kurzbz, $all_buchungstypen
 				)
 			);
 
@@ -501,15 +511,17 @@ class DVUHManagementLib
 
 				if (hasData($charges))
 				{
-					if (abs(getData($charges)[0]->betrag) != $buchung->betrag)
+					if (abs(getData($charges)[0]->betrag) != $buchung->summe_buchungen)
 						return error("Buchung: $buchungsnr: payment not equal to charge amount");
 				}
 				else
+				{
 					return $this->_getResponseArr(
 						null,
 						null,
 						array("Buchung $buchungsnr: no charge sent to DVUH before the payment")
 					);
+				}
 
 				// check if already paid on other university
 /*				$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $buchung->matr_nr);
@@ -1005,7 +1017,7 @@ class DVUHManagementLib
 
 		$feeds = $this->_ci->feedreaderlib->getFeedsByType(
 			$this->_be,
-			date("Y-m-d", strtotime("-7 days")), // TODO set erstelltSeit correctly
+			date("Y-m-d", strtotime("-7 days")),
 			self::KONTOSTAND_FEED_TYPE,
 			array('matrikelnummer' => $matrikelnummer)
 		);

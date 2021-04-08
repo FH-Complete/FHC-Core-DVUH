@@ -345,12 +345,20 @@ var DVUHMenu = {
 
 			if (text.infos)
 			{
-				//colorClass = ' class="text-success"';
-
 				for (var i = 0; i < text.infos.length; i++)
 				{
 					textToWrite += "<span class='text-success'>";
 					textToWrite += text.infos[i];
+					textToWrite += "</span><br />";
+				}
+			}
+
+			if (text.warnings)
+			{
+				for (var i = 0; i < text.warnings.length; i++)
+				{
+					textToWrite += "<span class='text-warning'>";
+					textToWrite += text.warnings[i];
 					textToWrite += "</span><br />";
 				}
 			}

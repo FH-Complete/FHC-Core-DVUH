@@ -3,6 +3,14 @@
 // payments and students studying before this date will be ignored
 $config['fhc_dvuh_sync_startdatum'] = '2021-02-01';
 
+/*$config['fhc_dvuh_bisdatum_ws'] = array('month' => '11', 'day' => '15');
+$config['fhc_dvuh_bisdatum_ss'] = array('month' => '03', 'day' => '15');*/
+
+$config['fhc_dvuh_buchungstyp'] = array(
+	'oehbeitrag' => array('OEH'),
+	'studiengebuehr' => array('Studiengebuehr', 'StudiengebuehrAnzahlung')
+);
+
 $config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 0; // Nachfrist in days after valutadatum for payments
 $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; //in euros and cents to be added to studiengebuehr when Nachfrist is set
 
