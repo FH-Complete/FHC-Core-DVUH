@@ -940,17 +940,20 @@ class DVUHSyncLib
 		if (!isset($prestudentstatus->zgv_code))
 			return error("Zgv fehlt");
 
-		if (!isset($prestudentstatus->zgvdatum))
+		if (!$isAusserordentlich)
 		{
-			return error("ZGV Datum fehlt");
-		}
-		if($prestudentstatus->zgvdatum > date("Y-m-d"))
-		{
-			return error("ZGV Datum in Zukunft");
-		}
-		if($prestudentstatus->zgvdatum < $gebdatum)
-		{
-			return error("ZGV Datum vor Geburtsdatum");
+			if (!isset($prestudentstatus->zgvdatum))
+			{
+				return error("ZGV Datum fehlt");
+			}
+			if ($prestudentstatus->zgvdatum > date("Y-m-d"))
+			{
+				return error("ZGV Datum in Zukunft");
+			}
+			if ($prestudentstatus->zgvdatum < $gebdatum)
+			{
+				return error("ZGV Datum vor Geburtsdatum");
+			}
 		}
 
 		$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
@@ -961,7 +964,6 @@ class DVUHSyncLib
 
 		if (!$isAusserordentlich)
 		{
-			//$zugangsberechtigung['voraussetzung'] = $zugangsvoraussetzung;
 			$zugangsberechtigung['datum'] = $prestudentstatus->zgvdatum;
 
 			if (!$isIncoming)
