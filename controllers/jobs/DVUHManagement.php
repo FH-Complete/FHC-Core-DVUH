@@ -7,6 +7,8 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  */
 class DVUHManagement extends JQW_Controller
 {
+	private $_logInfos;
+
 	/**
 	 * Controller initialization
 	 */
@@ -14,6 +16,9 @@ class DVUHManagement extends JQW_Controller
 	{
 		parent::__construct();
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
+
+		$this->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+		$this->_logInfos = $this->config->item('fhc_dvuh_log_infos');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -122,7 +127,7 @@ class DVUHManagement extends JQW_Controller
 						$this->_logInfosAndWarnings($sendCharge, array('person_id' => $person_id));
 
 						if (isset($sendCharge['result']))
-							$this->logInfo("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
+							$this->_logInfoIfEnabled("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
 					}
 				}
 			}
@@ -254,7 +259,7 @@ class DVUHManagement extends JQW_Controller
 
 						if (isset($sendStudyData['result']))
 						{
-							$this->logInfo("Study data for student with prestudent Id $prestudent_id, studiensemester $studiensemester successfully sent");
+							$this->_logInfoIfEnabled("Study data for student with prestudent Id $prestudent_id, studiensemester $studiensemester successfully sent");
 						}
 					}
 				}
@@ -304,18 +309,21 @@ class DVUHManagement extends JQW_Controller
 	 */
 	private function _logInfosAndWarnings($resultarr, $idArr)
 	{
-		if (isset($resultarr['infos']) && is_array($resultarr['infos']))
+		if ($this->_logInfos === true)
 		{
-			foreach ($resultarr['infos'] as $info)
+			if (isset($resultarr['infos']) && is_array($resultarr['infos']))
 			{
-				$infoTxt = $info;
-
-				foreach ($idArr as $idname => $idvalue)
+				foreach ($resultarr['infos'] as $info)
 				{
-					$infoTxt .= ", $idname: $idvalue";
-				}
+					$infoTxt = $info;
 
-				$this->logInfo($infoTxt);
+					foreach ($idArr as $idname => $idvalue)
+					{
+						$infoTxt .= ", $idname: $idvalue";
+					}
+
+					$this->logInfo($infoTxt);
+				}
 			}
 		}
 
@@ -333,5 +341,15 @@ class DVUHManagement extends JQW_Controller
 				$this->logWarning($warningTxt);
 			}
 		}
+	}
+
+	/**
+	 * Logs info message if info logging is enabled in config.
+	 * @param string $info
+	 */
+	private function _logInfoIfEnabled($info)
+	{
+		if ($this->_logInfos === true)
+			$this->logInfo($info);
 	}
 }

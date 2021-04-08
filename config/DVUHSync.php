@@ -1,5 +1,8 @@
 <?php
 
+// if set to true, infos will be logged to webservicelog, and not only warnings and errors
+$config['fhc_dvuh_log_infos'] = false;
+
 // payments and students studying before this date will be ignored
 $config['fhc_dvuh_sync_startdatum'] = '2021-02-01';
 
