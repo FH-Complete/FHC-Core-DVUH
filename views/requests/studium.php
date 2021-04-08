@@ -14,8 +14,8 @@
 		foreach ($lehrgaenge as $lehrgang):
 			echo '
 				<lehrgang>';
-			if(isset($lehrgang['beedingungsdatum']))
-				echo '<beendigungsdatum>'.$lehrgang['beedingungsdatum'].'</beendigungsdatum>';
+			if(isset($lehrgang['beendigungsdatum']))
+				echo '<beendigungsdatum>'.$lehrgang['beendigungsdatum'].'</beendigungsdatum>';
 			echo '
 					<lehrgangsnr>'.$lehrgang['lehrgangsnr'].'</lehrgangsnr>
 					<perskz>'.$lehrgang['perskz'].'</perskz>
