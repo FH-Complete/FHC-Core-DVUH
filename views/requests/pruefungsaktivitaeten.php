@@ -14,9 +14,7 @@
 				<pruefungen>
 				<?php foreach ($studiumpruefung['pruefungen'] as $pruefung): ?>
 					<pruefung>
-						<ects bezug="gesamt">
-							<value><?php echo $pruefung['ects'] ?></value>
-						</ects>
+						<ects bezug="gesamt"><?php echo $pruefung['ects'] ?></ects>
 						<?php
 							if (isset($pruefung['ectsGesamt']) && $pruefung['ectsGesamt'] != '')
 							{
