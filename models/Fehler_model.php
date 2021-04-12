@@ -36,6 +36,5 @@ class Fehler_model extends DVUHClientModel
 
 		$result = $this->_call('GET', $callParametersArray);
 		echo print_r($result,true);
-		// TODO Parse Result, Handle Errors
 	}
 }

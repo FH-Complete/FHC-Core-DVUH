@@ -19,8 +19,11 @@
 			echo '
 					<lehrgangsnr>'.$lehrgang['lehrgangsnr'].'</lehrgangsnr>
 					<perskz>'.$lehrgang['perskz'].'</perskz>
-					<standortcode>'.$lehrgang['standortcode'].'</standortcode>
-					<studstatuscode>'.$lehrgang['studstatuscode'].'</studstatuscode>';
+					<standortcode>'.$lehrgang['standortcode'].'</standortcode>';
+
+			if (isset($lehrgang['studstatuscode']))
+				echo '<studstatuscode>'.$lehrgang['studstatuscode'].'</studstatuscode>';
+
 			if(isset($lehrgang['zugangsberechtigung']))
 			{
 				echo '
@@ -128,8 +131,10 @@
 			echo '<standortcode>'.$studiengang['standortcode'].'</standortcode>';
 
 		echo'
-			<stgkz>'.$studiengang['stgkz'].'</stgkz>
-			<studstatuscode>'.$studiengang['studstatuscode'].'</studstatuscode>';
+			<stgkz>'.$studiengang['stgkz'].'</stgkz>';
+
+		if (isset($studiengang['studstatuscode']))
+			echo '<studstatuscode>'.$studiengang['studstatuscode'].'</studstatuscode>';
 
 		if(isset($studiengang['vornachperskz']))
 		{

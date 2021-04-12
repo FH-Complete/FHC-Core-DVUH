@@ -217,6 +217,7 @@ class DVUHSyncLib
 							ORDER BY datum ASC LIMIT 1) AS beginndatum,	
 				       	(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
+    						AND tbl_prestudentstatus.studiensemester_kurzbz = pss.studiensemester_kurzbz
 							AND status_kurzbz IN ('Absolvent', 'Abbrecher')
 							ORDER BY datum DESC LIMIT 1) AS beendigungsdatum
 				  FROM public.tbl_prestudent ps
@@ -290,6 +291,32 @@ class DVUHSyncLib
 					// Ausserordnetlicher Studierender (4.Stelle in Personenkennzeichen = 9)
 					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
 
+					// studtyp - if extern, certain data should not be sent to DVUH
+					$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
+
+					$kodex_studientyp_array = array();
+					$gsstudientypResult = $this->_dbModel->execReadOnlyQuery("
+							SELECT * FROM bis.tbl_gsstudientyp
+						"
+					);
+
+					if (isError($gsstudientypResult))
+						return $gsstudientypResult;
+					if (hasData($gsstudientypResult))
+					{
+						$gsstudientypes = getData($gsstudientypResult);
+
+						foreach ($gsstudientypes as $gsstudientype)
+						{
+							$kodex_studientyp_array[$gsstudientype->gsstudientyp_kurzbz] = $gsstudientype->studientyp_code;
+						}
+					}
+
+					if (isset($kodex_studientyp_array[$gsstudientyp_kurzbz]))
+						$studtyp = $kodex_studientyp_array[$gsstudientyp_kurzbz];
+
+					$isExtern = (isset($studtyp) && $studtyp == 'E');
+
 					// zulassungsdatum (start date of studies)
 					$zulassungsdatum = $isIncoming || $isAusserordentlich ? null : $prestudentstatus->beginndatum;
 
@@ -347,10 +374,10 @@ class DVUHSyncLib
 								return error('Lehrgangdata missing: ' . $idx);
 						}
 
-						if (isset($zulassungsdatum))
+						if (isset($zulassungsdatum) && !$isExtern)
 							$lehrgang['zulassungsdatum'] = $zulassungsdatum;
 
-						if (isset($prestudentstatus->beendigungsdatum))
+						if (isset($prestudentstatus->beendigungsdatum) && !$isExtern)
 							$lehrgang['beendigungsdatum'] = $prestudentstatus->beendigungsdatum;
 
 						if (isset($standortcode))
@@ -371,6 +398,17 @@ class DVUHSyncLib
 						elseif (isset($prestudentstatus->studiengang_orgform))
 							$orgform_kurzbz = $prestudentstatus->studiengang_orgform;
 
+						// gemeinsame Studien
+						$gemeinsam = null;
+						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp);
+
+						if (isset($gemeinsamResult) && isError($gemeinsamResult))
+							return $gemeinsamResult;
+						if (hasData($gemeinsamResult))
+						{
+							$gemeinsam = getData($gemeinsamResult);
+						}
+
 						// ausbildungssemester
 						if (!$isIncoming && !$isAusserordentlich)
 						{
@@ -380,17 +418,6 @@ class DVUHSyncLib
 								return $ausbildungssemesterResult;
 							else
 								$ausbildungssemester = getData($ausbildungssemesterResult);
-						}
-
-						// gemeinsame Studien
-						$gemeinsam = null;
-						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester);
-
-						if (isset($gemeinsamResult) && isError($gemeinsamResult))
-							return $gemeinsamResult;
-						if (hasData($gemeinsamResult))
-						{
-							$gemeinsam = getData($gemeinsamResult);
 						}
 
 						// Mobilität
@@ -405,13 +432,12 @@ class DVUHSyncLib
 						}
 
 						// bmffoerderrelevant - students marked in configarray, incomingsm, ausserordentliche, gemeinsame Studien externe not foerderrelevant
-						if (in_array($prestudent_id, $not_foerderrelevant) || $isIncoming || $isAusserordentlich
-							|| (isset($gemeinsam) && $gemeinsam['studtyp'] =='E'))
+						if (in_array($prestudent_id, $not_foerderrelevant) || $isIncoming || $isAusserordentlich || $isExtern)
 							$bmffoerderrelevant = 'N';
 						else
 							$bmffoerderrelevant = 'J';
 
-						// orgform code TODO - if ausserordentlich - remove? what if compulsory?
+						// orgform code TODO - if ausserordentlich - remove? nach DVUH compulsory!
 						$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
 
 						if (isError($orgform_code))
@@ -436,7 +462,7 @@ class DVUHSyncLib
 							'orgformcode' => $orgformcode,
 							'perskz' => $perskz,
 							'stgkz' => $dvuh_stgkz, // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
-							'studstatuscode' => $studstatuscode,
+							//'studstatuscode' => $studstatuscode, TODO: compulsory? YES
 							'zugangsberechtigung' => $zugangsberechtigung
 						);
 
@@ -446,10 +472,13 @@ class DVUHSyncLib
 								return error('Studydata missing: ' . $idx);
 						}
 
-						if (isset($zulassungsdatum))
+						if (isset($studstatuscode)/* && !$isExtern*/)
+							$studiengang['studstatuscode'] = $studstatuscode;
+
+						if (isset($zulassungsdatum) && !$isExtern)
 							$studiengang['zulassungsdatum'] = $zulassungsdatum;
 
-						if (isset($ausbildungssemester))
+						if (isset($ausbildungssemester) && !$isExtern)
 							$studiengang['ausbildungssemester'] = $ausbildungssemester;
 
 						if (isset($berufstaetigkeit_code))
@@ -467,7 +496,7 @@ class DVUHSyncLib
 						if (isset($zugangsberechtigungMA))
 							$studiengang['zugangsberechtigungMA'] = $zugangsberechtigungMA;
 
-						if (isset($prestudentstatus->beendigungsdatum))
+						if (isset($prestudentstatus->beendigungsdatum) && !$isExtern)
 							$studiengang['beendigungsdatum'] = $prestudentstatus->beendigungsdatum;
 
 						$studiengaenge[] = $studiengang;
@@ -581,12 +610,15 @@ class DVUHSyncLib
 	 * Gets gemeinsame Studien data for a prestudent.
 	 * @param object $prestudentstatus with gsinfo
 	 * @param string $semester for getting previous semester for Absolventen
+	 * @param string $studtyp pass to gsdata
 	 * @return object error or success with gsdata
 	 */
-	private function _getGemeinsameStudien($prestudentstatus, $semester)
+	private function _getGemeinsameStudien($prestudentstatus, $semester, $studtyp)
 	{
+		if (!isset($studtyp))
+			return error('Kein Studientyp für gemeinsame Studien gefunden');
+
 		$prestudent_id = $prestudentstatus->prestudent_id;
-		$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
 
 		$prevSemesterResult = $this->_ci->StudiensemesterModel->getPreviousFrom($semester);
 
@@ -596,24 +628,6 @@ class DVUHSyncLib
 			return error('No previous Studiensemester');
 
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
-
-		$kodex_studientyp_array = array();
-		$gsstudientypResult = $this->_dbModel->execReadOnlyQuery("
-							SELECT * FROM bis.tbl_gsstudientyp
-						"
-		);
-
-		if (isError($gsstudientypResult))
-			return $gsstudientypResult;
-		if (hasData($gsstudientypResult))
-		{
-			$gsstudientypes = getData($gsstudientypResult);
-
-			foreach ($gsstudientypes as $gsstudientype)
-			{
-				$kodex_studientyp_array[$gsstudientype->gsstudientyp_kurzbz] = $gsstudientype->studientyp_code;
-			}
-		}
 
 		$gemeinsamestudienResult = $this->_dbModel->execReadOnlyQuery("SELECT
 								tbl_mobilitaet.*,
@@ -634,6 +648,8 @@ class DVUHSyncLib
 			)
 		);
 
+		$gemeinsam = null;
+
 		if (isError($gemeinsamestudienResult))
 			return error("Fehler beim Holen gemeinsamer Studien");
 		if (hasData($gemeinsamestudienResult))
@@ -645,12 +661,7 @@ class DVUHSyncLib
 			else
 				return error('Kein Status für gemeinsame Studien gefunden');
 
-			if (isset($kodex_studientyp_array[$gsstudientyp_kurzbz]))
-				$studtyp = $kodex_studientyp_array[$gsstudientyp_kurzbz];
-			else
-				return error('Kein Studientyp für gemeinsame Studien gefunden');
-
-			$gemeinsam = array(
+			$gemeinsamData = array(
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
 				'mobilitaetprogrammcode' => $gemeinsamestudien->mobilitaetsprogramm_code,
 				'partnercode' => $gemeinsamestudien->partner_code,
@@ -659,8 +670,9 @@ class DVUHSyncLib
 				'studtyp' => $studtyp
 			);
 
-			return success($gemeinsam);
+			$gemeinsam = success($gemeinsamData);
 		}
+		return $gemeinsam;
 	}
 
 	/**
