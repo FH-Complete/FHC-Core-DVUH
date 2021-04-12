@@ -22,7 +22,8 @@ class JQMScheduler extends JQW_Controller
 	// Public methods
 
 	/**
-	 * Creates jobs queue entries for requestMatrikelnummer job
+	 * Creates jobs queue entries for requestMatrikelnummer job.
+	 * @param string $studiensemester_kurzbz semester for which Matrikelnr should be requested and Stammdaten should be sent
 	 */
 	public function requestMatrikelnummer($studiensemester_kurzbz)
 	{
@@ -53,55 +54,15 @@ class JQMScheduler extends JQW_Controller
 		$this->logInfo('End job queue scheduler FHC-Core-DVUH->requestMatrikelnummer');
 	}
 
-/*	public function sendMasterdata()
-	{
-		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendMasterdata');
-
-		// If an error occured then log it
-		$jobInputResult = $this->jqmschedulerlib->sendMasterdata();
-
-		if (isError($jobInputResult))
-		{
-			$this->logError(getError($jobInputResult));
-		}
-		else
-		{
-			// Add the new job to the jobs queue
-			$addNewJobResult = $this->addNewJobsToQueue(
-				JQMSchedulerLib::JOB_TYPE_SEND_MASTERDATA, // job type
-				$this->generateJobs( // gnerate the structure of the new job
-					JobsQueueLib::STATUS_NEW,
-					getData($jobInputResult)
-				)
-			);
-
-			// If error occurred return it
-			if (isError($addNewJobResult)) $this->logError(getError($addNewJobResult));
-		}
-
-		$this->logInfo('End job queue scheduler FHC-Core-DVUH->sendMasterdata');
-	}*/
-
 	/**
-	 * Creates jobs queue entries for sendCharge job
+	 * Creates jobs queue entries for sendCharge job.
+	 * @param string $studiensemester_kurzbz semester for which stammdaten should be sent
 	 */
-	public function sendCharge()
+	public function sendCharge($studiensemester_kurzbz)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendCharge');
 
-		// if there are previous jobs, only send data changed after the previous job
-/*		$prevJobsResult = $this->getJobsByTypeStatus(JQMSchedulerLib::JOB_TYPE_SEND_CHARGE, JobsQueueLib::STATUS_DONE);
-
-		$lastjobtime = null;
-
-		if (hasData($prevJobsResult))
-		{
-			$lastJobsData = getData($prevJobsResult);
-
-			$lastjobtime = $lastJobsData[0]->starttime;
-		}*/
-
-		$jobInputResult = $this->jqmschedulerlib->sendCharge();
+		$jobInputResult = $this->jqmschedulerlib->sendCharge($studiensemester_kurzbz);
 
 		// If an error occured then log it
 		if (isError($jobInputResult))
@@ -126,11 +87,15 @@ class JQMScheduler extends JQW_Controller
 		$this->logInfo('End job queue scheduler FHC-Core-DVUH->sendCharge');
 	}
 
-	public function sendPayment()
+	/**
+	 * Creates jobs queue entries for sendPayment job.
+	 * @param string $studiensemester_kurzbz semester for which payment data should be sent
+	 */
+	public function sendPayment($studiensemester_kurzbz)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendPayment');
 
-		$jobInputResult = $this->jqmschedulerlib->sendPayment();
+		$jobInputResult = $this->jqmschedulerlib->sendPayment($studiensemester_kurzbz);
 
 		// If an error occured then log it
 		if (isError($jobInputResult))
@@ -155,21 +120,15 @@ class JQMScheduler extends JQW_Controller
 		$this->logInfo('End job queue scheduler FHC-Core-DVUH->sendPayment');
 	}
 
-	public function sendStudyData()
+	/**
+	 * Creates jobs queue entries for sendStudy job.
+	 * @param string $studiensemester_kurzbz semester for which studydata should be sent
+	 */
+	public function sendStudyData($studiensemester_kurzbz)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendStudyData');
 
-/*		$prevJobsResult = $this->getJobsByTypeStatus(JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA, JobsQueueLib::STATUS_DONE);
-
-		$lastjobtime = null;
-
-		if (hasData($prevJobsResult))
-		{
-			$lastJobsData = getData($prevJobsResult);
-			$lastjobtime = $lastJobsData[0]->starttime;
-		}*/
-
-		$jobInputResult = $this->jqmschedulerlib->sendStudyData();
+		$jobInputResult = $this->jqmschedulerlib->sendStudyData($studiensemester_kurzbz);
 
 		// If an error occured then log it
 		if (isError($jobInputResult))

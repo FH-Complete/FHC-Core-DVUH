@@ -23,7 +23,6 @@ class JQMSchedulerLib
 		$this->_ci =& get_instance(); // get code igniter instance
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
-		$this->_startdatum = $this->_ci->config->item('fhc_dvuh_sync_startdatum');
 
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 	}
@@ -33,7 +32,7 @@ class JQMSchedulerLib
 
 	/**
 	 * Gets students for input of requestMatrikelnummer job.
-	 * @param $studiensemester_kurzbz string semester for which Matrikelnr should be requested and Stammdaten should be sent
+	 * @param string $studiensemester_kurzbz semester for which Matrikelnr should be requested and Stammdaten should be sent
 	 * @return object students
 	 */
 	public function requestMatrikelnummer($studiensemester_kurzbz)
@@ -76,10 +75,10 @@ class JQMSchedulerLib
 
 	/**
 	 * Gets students for input of sendCharge job.
-	 * @param $lastJobTime string start date of last job
+	 * @param string $studiensemester_kurzbz prestudentstatus is checked for this semester
 	 * @return object students
 	 */
-	public function sendCharge()
+	public function sendCharge($studiensemester_kurzbz)
 	{
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
@@ -87,7 +86,7 @@ class JQMSchedulerLib
 		$jobInput = null;
 		$result = null;
 
-		$params = array($all_buchungstypen, $this->_startdatum);
+		$params = array($all_buchungstypen, $studiensemester_kurzbz);
 
 		// get students not sent to DVUH yet
 		$qry = "SELECT DISTINCT persons.person_id, persons.studiensemester_kurzbz FROM (
@@ -98,7 +97,6 @@ class JQMSchedulerLib
 						JOIN public.tbl_prestudent ps USING (person_id)
 						JOIN public.tbl_student USING (prestudent_id)
 						JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
-						JOIN public.tbl_studiensemester USING (studiensemester_kurzbz)
 						LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 						LEFT JOIN public.tbl_konto kto ON pers.person_id = kto.person_id AND kto.buchungstyp_kurzbz IN ?
 														AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz AND kto.buchungsnr_verweis IS NULL
@@ -107,7 +105,8 @@ class JQMSchedulerLib
 						LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
 						WHERE ps.bismelden = true
 						AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-						AND tbl_studiensemester.ende >= ?
+						AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
+						AND pss.studiensemester_kurzbz = ?
 						GROUP BY pers.person_id, pss.studiensemester_kurzbz, kto.buchungsnr, kto_insertamum, kto_updateamum
 				) persons
 				LEFT JOIN (
@@ -152,9 +151,10 @@ class JQMSchedulerLib
 
 	/**
 	 * Gets students for input of sendPayment job.
+	 * @param string $studiensemester_kurzbz prestudentstatus is checked for this semester
 	 * @return object students
 	 */
-	public function sendPayment()
+	public function sendPayment($studiensemester_kurzbz)
 	{
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
@@ -166,7 +166,6 @@ class JQMSchedulerLib
 		$qry = "SELECT DISTINCT person_id, kto.studiensemester_kurzbz
 				FROM public.tbl_person pers
 					JOIN public.tbl_konto kto USING(person_id)
-					JOIN public.tbl_studiensemester USING(studiensemester_kurzbz)
 					JOIN public.tbl_prestudent ps USING (person_id)
 					JOIN public.tbl_student using(prestudent_id)
 					JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
@@ -182,13 +181,13 @@ class JQMSchedulerLib
 									AND betrag > 0
 									LIMIT 1)
 					AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
-					AND tbl_studiensemester.ende >= ?::date";
+					AND kto.studiensemester_kurzbz = ?";
 
 		$dbModel = new DB_Model();
 
 		$maToSyncResult = $dbModel->execReadOnlyQuery(
 			$qry,
-			array($all_buchungstypen, $this->_startdatum)
+			array($all_buchungstypen, $studiensemester_kurzbz)
 		);
 
 		// If error occurred while retrieving students from database then return the error
@@ -207,15 +206,15 @@ class JQMSchedulerLib
 
 	/**
 	 * Gets students for input of sendStudyData job.
-	 * @param $lastJobTime string start date of last job
+	 * @param string $studiensemester_kurzbz prestudentstatus is checked for this semester
 	 * @return object students
 	 */
-	public function sendStudyData()
+	public function sendStudyData($studiensemester_kurzbz)
 	{
 		$jobInput = null;
 		$result = null;
 
-		$params = array($this->_startdatum);
+		$params = array($studiensemester_kurzbz);
 
 		// get students with vorschreibung which have no Studiumsmeldung or have a data change
 		// data change: prestudent, prestudentstatus, bisio, mobilitaet
@@ -228,7 +227,6 @@ class JQMSchedulerLib
 						 FROM public.tbl_prestudent ps
 								  JOIN public.tbl_student using (prestudent_id)
 								  JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id
-								  JOIN public.tbl_studiensemester USING (studiensemester_kurzbz)
 								  LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 								  LEFT JOIN bis.tbl_bisio bisio ON tbl_student.student_uid = bisio.student_uid
 								  LEFT JOIN bis.tbl_mobilitaet mob ON ps.prestudent_id = mob.prestudent_id
@@ -239,7 +237,7 @@ class JQMSchedulerLib
 						   AND stg.studiengang_kz < 10000
 						   AND stg.studiengang_kz <> 0
 						   AND pss.status_kurzbz IN ('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
-						   AND tbl_studiensemester.ende >= ?::date
+						   AND pss.studiensemester_kurzbz = ?
 						   AND EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen zlg /* charge sent */
 										JOIN public.tbl_konto kto USING (buchungsnr)
 										WHERE kto.person_id = ps.person_id
