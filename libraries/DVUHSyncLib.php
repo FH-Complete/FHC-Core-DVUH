@@ -573,33 +573,30 @@ class DVUHSyncLib
 			: $prestudentstatus->ausbildungssemester;
 
 		// ausbildungssemester for Diplomanden
-		if ($prestudentstatus->status_kurzbz == 'Diplomand')
+		$diplomandResult = $this->_dbModel->execReadOnlyQuery("SELECT
+								count(*) AS dipl
+							FROM public.tbl_prestudentstatus
+							WHERE prestudent_id=?
+							  AND status_kurzbz='Diplomand'
+							  AND (tbl_prestudentstatus.datum<=now())",
+			array(
+				$prestudentstatus->prestudent_id
+			)
+		);
+
+		if (isError($diplomandResult))
+			return error("error when getting Diplomanden");
+		elseif (hasData($diplomandResult))
 		{
-			$diplomandResult = $this->_dbModel->execReadOnlyQuery("SELECT
-									count(*) AS dipl
-								FROM public.tbl_prestudentstatus
-								WHERE prestudent_id=?
-								  AND status_kurzbz='Diplomand'
-								  AND (tbl_prestudentstatus.datum<=now())",
-				array(
-					$prestudentstatus->prestudent_id
-				)
-			);
+			$diplomandcount = getData($diplomandResult)[0];
 
-			if (isError($diplomandResult))
-				return error("error when getting Diplomanden");
-			elseif (hasData($diplomandResult))
+			if ($diplomandcount->dipl > 1)
 			{
-				$diplomandcount = getData($diplomandResult)[0];
-
-				if ($diplomandcount->dipl > 1)
-				{
-					$ausbildungssemester = 50;
-				}
-				if ($diplomandcount->dipl > 3)
-				{
-					$ausbildungssemester = 60;
-				}
+				$ausbildungssemester = 50;
+			}
+			if ($diplomandcount->dipl > 3)
+			{
+				$ausbildungssemester = 60;
 			}
 		}
 
