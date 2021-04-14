@@ -238,12 +238,15 @@ class JQMSchedulerLib
 						   AND stg.studiengang_kz <> 0
 						   AND pss.status_kurzbz IN ('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 						   AND pss.studiensemester_kurzbz = ?
-						   AND EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen zlg /* charge sent */
+						   AND (EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen zlg /* charge sent */
 										JOIN public.tbl_konto kto USING (buchungsnr)
 										WHERE kto.person_id = ps.person_id
 										AND kto.studiensemester_kurzbz = pss.studiensemester_kurzbz
 										AND zlg.betrag <= 0
 										LIMIT 1)
+						            /*exception: Abbrecher, Unterbrecher might not need to pay*/
+						         OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Absolvent')
+						   )
 						   GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
 							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum
 					 ) prestudents
