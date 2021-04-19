@@ -364,7 +364,6 @@ class DVUHSyncLib
 						$lehrgang = array(
 							'lehrgangsnr' => $dvuh_stgkz,
 							'perskz' => $perskz,
-							'studstatuscode' => $studstatuscode,
 							'zugangsberechtigung' => $zugangsberechtigung
 						);
 
@@ -373,6 +372,9 @@ class DVUHSyncLib
 							if (!isset($item) || isEmptyString($item))
 								return error('Lehrgangdata missing: ' . $idx);
 						}
+
+						if (isset($zulassungsdatum) && !$isExtern)
+							$lehrgang['studstatuscode'] = $studstatuscode;
 
 						if (isset($zulassungsdatum) && !$isExtern)
 							$lehrgang['zulassungsdatum'] = $zulassungsdatum;
@@ -472,7 +474,7 @@ class DVUHSyncLib
 								return error('Studydata missing: ' . $idx);
 						}
 
-						if (isset($studstatuscode)/* && !$isExtern*/)
+						if (isset($studstatuscode) && !$isExtern)
 							$studiengang['studstatuscode'] = $studstatuscode;
 
 						if (isset($zulassungsdatum) && !$isExtern)
@@ -952,17 +954,11 @@ class DVUHSyncLib
 		if (!$isAusserordentlich)
 		{
 			if (!isset($prestudentstatus->zgvdatum))
-			{
 				return error("ZGV Datum fehlt");
-			}
 			if ($prestudentstatus->zgvdatum > date("Y-m-d"))
-			{
 				return error("ZGV Datum in Zukunft");
-			}
 			if ($prestudentstatus->zgvdatum < $gebdatum)
-			{
 				return error("ZGV Datum vor Geburtsdatum");
-			}
 		}
 
 		$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);

@@ -78,6 +78,6 @@ class FeedOverview extends Auth_Controller
 			$result = success(array());
 		}
 
-		return $this->outputJson($result);
+		$this->outputJson($result);
 	}
 }

@@ -50,10 +50,9 @@ class Pruefebpk_model extends DVUHClientModel
 			if (!is_null($akadnach))
 				$callParametersArray['akadnach'] = $akadnach;
 			if (!is_null($alternativname))
-				$callParametersArray['$alternativname'] = $alternativname;
+				$callParametersArray['alternativname'] = $alternativname;
 
 			$result = $this->_call('GET', $callParametersArray);
-			//echo print_r($result,true);
 		}
 
 		return $result;

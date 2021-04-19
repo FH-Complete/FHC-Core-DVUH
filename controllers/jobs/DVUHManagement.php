@@ -279,6 +279,67 @@ class DVUHManagement extends JQW_Controller
 	}
 
 	/**
+	 * Initialises requestBpk job, handles job queue, logs infos/errors
+	 */
+	public function requestBpk()
+	{
+		$jobType = 'DVUHRequestBpk';
+		$this->logInfo('DVUHRequestBpk job start');
+
+		// Gets the latest jobs
+		$lastJobs = $this->getLastJobs($jobType);
+		if (isError($lastJobs))
+		{
+			$this->logError(getCode($lastJobs).': '.getError($lastJobs), $jobType);
+		}
+		else
+		{
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_START_TIME), // Job properties to be updated
+				array(date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			$person_arr = $this->_getInputObjArray(getData($lastJobs));
+
+			foreach ($person_arr as $persobj)
+			{
+				if (!isset($persobj->person_id))
+					$this->logError("An error occurred while requesting Bpk, invalid parameters passed to queue");
+				else
+				{
+					$person_id = $persobj->person_id;
+
+					$requestBpkResult = $this->dvuhmanagementlib->requestBpk($person_id);
+
+					if (isError($requestBpkResult))
+						$this->logError("An error occurred while requesting Bpk, person Id $person_id", getError($requestBpkResult));
+					elseif (hasData($requestBpkResult))
+					{
+						$requestMatrnrArr = getData($requestBpkResult);
+
+						$this->_logInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
+					}
+				}
+			}
+
+			// Update jobs properties values
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_STATUS, JobsQueueLib::PROPERTY_END_TIME), // Job properties to be updated
+				array(JobsQueueLib::STATUS_DONE, date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
+		}
+
+		$this->logInfo('DVUHRequestMatrikelnummer job stop');
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// Private methods
+
+	/**
 	 * Extracts input data from jobs.
 	 * @param $jobs
 	 * @return array with jobinput

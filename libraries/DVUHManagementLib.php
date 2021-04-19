@@ -8,7 +8,7 @@
 class DVUHManagementLib
 {
 	const STATUS_PAID_OTHER_UNIV = '8';
-	const KONTOSTAND_FEED_TYPE = 'at.gv.brz.rg.stubei.rws.schema.kontostandantwort';
+	//const KONTOSTAND_FEED_TYPE = 'at.gv.brz.rg.stubei.rws.schema.kontostandantwort';
 
 	private $_be;
 	private $_matrnr_statuscodes = array(
@@ -170,7 +170,7 @@ class DVUHManagementLib
 							$result = error("Studienjahr not found");
 						}
 					}
-					elseif (in_array($statuscode, $this->_matrnr_statuscodes['saveExisting'])) // Matrikelnr already existing -> save in FHC
+					elseif (in_array($statuscode, $this->_matrnr_statuscodes['saveExisting'])) // Matrikelnr already existing in DVUH -> save in FHC
 					{
 						if (is_numeric($matrikelnummer))
 						{
@@ -729,6 +729,167 @@ class DVUHManagementLib
 	}
 
 	/**
+	 * Checks if student has a Bpk assigned in DVUH.
+	 * If yes, existing Bpk is saved in FHC.
+	 * If no, Info is logged.
+	 * @param int $person_id
+	 * @return object error or success with infos
+	 */
+	public function requestBpk($person_id)
+	{
+		$result = null;
+		$bpk = null;
+		$infos = array();
+		$warnings = array();
+
+		// request BPK only for persons with prestudent in given Semester and no BPK
+		$personResult = $this->_dbModel->execReadOnlyQuery("
+										SELECT
+											DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, tbl_benutzer.aktiv, strasse, plz	        
+										FROM
+											public.tbl_person
+											JOIN public.tbl_benutzer USING(person_id)
+											LEFT JOIN (SELECT DISTINCT ON (person_id) strasse, plz, person_id
+														FROM public.tbl_adresse
+											    		WHERE heimatadresse = TRUE
+											    		ORDER BY person_id, insertamum DESC NULLS LAST
+											    		) addr USING(person_id)
+										WHERE
+											public.tbl_person.person_id = ?
+										  	AND tbl_benutzer.aktiv = TRUE
+											AND tbl_person.bpk IS NULL",
+			array(
+				$person_id
+			)
+		);
+
+		if (hasData($personResult))
+		{
+			$person = getData($personResult)[0];
+
+			if (!isEmptyString($person->geschlecht))
+				$geschlecht = $this->_ci->dvuhsynclib->convertGeschlechtToDVUH($person->geschlecht);
+
+			$pruefeBpkResult = $this->_ci->PruefebpkModel->get(
+				$person->vorname,
+				$person->nachname,
+				$person->gebdatum,
+				$geschlecht
+			);
+
+			if (isError($pruefeBpkResult))
+			{
+				return $pruefeBpkResult;
+			}
+
+			if (hasData($pruefeBpkResult))
+			{
+				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkResult), array('bpk', 'person'));
+
+				if (isError($parsedObj))
+					return $parsedObj;
+
+				if (hasData($parsedObj))
+				{
+					$parsedObj = getData($parsedObj);
+
+					// no bpk found
+					if (isEmptyArray($parsedObj->bpk))
+					{
+						// if multiple bpks, at least 2 person tags are present
+						if (!isEmptyArray($parsedObj->person) && count($parsedObj->person) > 1)
+						{
+							$warnings[] = 'Multiple bpks found in DVUH. Retrying using address.';
+
+							// remove any non-letter character (unicode for german)
+							$strasse = preg_replace('/[\P{L}]/u', '', $person->strasse);
+
+							// retry getting single bpk with adress
+							$pruefeBpkWithAddrResult = $this->_ci->PruefebpkModel->get(
+								$person->vorname,
+								$person->nachname,
+								$person->gebdatum,
+								$geschlecht,
+								$strasse,
+								$person->plz
+							);
+
+							if (isError($pruefeBpkWithAddrResult))
+							{
+								return $pruefeBpkWithAddrResult;
+							}
+
+							if (hasData($pruefeBpkWithAddrResult))
+							{
+								$parsedObjAddr = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkWithAddrResult), array('bpk', 'person'));
+
+								if (hasData($parsedObjAddr))
+								{
+									$parsedObjAddr = getData($parsedObjAddr);
+
+									if (isEmptyArray($parsedObjAddr->bpk))
+									{
+										if (!isEmptyArray($parsedObjAddr->person) && count($parsedObjAddr->person) > 1)
+											$warnings[] = 'Multiple bpks found in DVUH, even after retry using address.';
+										else
+											$warnings[] = 'No bpk found in DVUH after retry using address.';
+									}
+									else // single bpk found using adress
+									{
+										$infos[] = "Successfully retrieved Bpk after retry using address!";
+										$bpk = $parsedObj->bpk[0];
+									}
+								}
+								else
+									return error("Error when parsing bpk response (request with address)");
+							}
+							else
+								return error("Error when getting bpk by address");
+						}
+						else
+							$warnings[] = "No bpk found in DVUH";
+					}
+					else // bpk found on first try
+					{
+						$infos[] = "Successfully retrieved Bpk!";
+						$bpk = $parsedObj->bpk[0];
+					}
+
+					// if bpk found, save it in FHC db
+					if (isset($bpk))
+					{
+						$bpkSaveResult = $this->_ci->PersonModel->update(
+							array(
+								'person_id' => $person_id,
+								'bpk' => null
+							),
+							array(
+								'bpk' => $bpk,
+								'updateamum' => date('Y-m-d H:i:s')
+							)
+						);
+
+						if (!hasData($bpkSaveResult))
+							return error("Error when saving bpk in FHC");
+
+						$infos[] = "Successfully saved Bpk in FHC!";
+					}
+
+					return $this->_getResponseArr($bpk, $infos, $warnings);
+				}
+				else
+					return error("Error when parsing bpk response");
+			}
+			else
+				return error("Error when getting bpk");
+		}
+		else
+			return error("No active person without bpk found for bpk request");
+
+		return $result;
+	}
+
+	/**
 	 * Sends Matrikelmeldung with ERnP to DVUH. Checks if data is missing.
 	 * @param $person_id
 	 * @param string $writeonerror
@@ -921,7 +1082,14 @@ class DVUHManagementLib
 	 */
 	private function _updateMatrikelnummer($person_id, $matrikelnummer, $matr_aktiv)
 	{
-		$updateResult = $this->_ci->PersonModel->update($person_id, array('matr_nr' => $matrikelnummer, 'matr_aktiv' => $matr_aktiv));
+		$updateResult = $this->_ci->PersonModel->update(
+			$person_id,
+			array(
+				'matr_nr' => $matrikelnummer,
+				'matr_aktiv' => $matr_aktiv,
+				'updateamum' => date('Y-m-d H:i:s')
+			)
+		);
 
 		if (hasData($updateResult))
 		{
@@ -958,7 +1126,7 @@ class DVUHManagementLib
 			$isPaid = getData($paidOtherUniv)[0];
 			if ($isPaid == true)
 			{
-				$alreadyPaidStr = 'Already paid in other university.';
+				$alreadyPaidStr = 'Already paid at other university.';
 				foreach ($buchungen as $buchung)
 				{
 					if ($buchung->buchungstyp_kurzbz == 'OEH' && $buchung->bezahlt == '0')
@@ -969,7 +1137,7 @@ class DVUHManagementLib
 						if (isError($nullifyResult))
 							return $nullifyResult;
 
-						$alreadyPaidStr .= 'Buchung nullified.';
+						$alreadyPaidStr .= ' Buchung nullified.';
 					}
 				}
 
@@ -1126,7 +1294,11 @@ class DVUHManagementLib
 		$andereBeBezahltTxt = 'An anderer Bildungseinrichtung bezahlt';
 		$buchungNullify = $this->_ci->KontoModel->update(
 			array('buchungsnr' => $buchung->buchungsnr),
-			array('betrag' => 0, 'anmerkung' => $andereBeBezahltTxt)
+			array(
+				'betrag' => 0,
+				'anmerkung' => $andereBeBezahltTxt,
+				'updateamum' => date('Y-m-d H:i:s')
+			)
 		);
 
 		if (hasData($buchungNullify))

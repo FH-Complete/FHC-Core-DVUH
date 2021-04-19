@@ -14,6 +14,7 @@ class JQMSchedulerLib
 	const JOB_TYPE_SEND_CHARGE = 'DVUHSendCharge';
 	const JOB_TYPE_SEND_PAYMENT = 'DVUHSendPayment';
 	const JOB_TYPE_SEND_STUDY_DATA = 'DVUHSendStudyData';
+	const JOB_TYPE_REQUEST_BPK = 'DVUHRequestBpk';
 
 	/**
 	 * Object initialization
@@ -52,6 +53,56 @@ class JQMSchedulerLib
 					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
 					AND pers.matr_nr IS NULL
 					AND pss.studiensemester_kurzbz = ?";
+
+		$dbModel = new DB_Model();
+
+		$maToSyncResult = $dbModel->execReadOnlyQuery(
+			$qry, array($studiensemester_kurzbz)
+		);
+
+		// If error occurred while retrieving students from database then return the error
+		if (isError($maToSyncResult)) return $maToSyncResult;
+
+		// If students are present
+		if (hasData($maToSyncResult))
+		{
+			$jobInput = json_encode(getData($maToSyncResult));
+		}
+
+		$result = success($jobInput);
+
+		return $result;
+	}
+
+	/**
+	 * Gets students for input of requestMatrikelnummer job.
+	 * @param string $studiensemester_kurzbz semester for which Matrikelnr should be requested and Stammdaten should be sent
+	 * @return object students
+	 */
+	public function requestBpk($studiensemester_kurzbz)
+	{
+		$jobInput = null;
+		$result = null;
+
+		// get students with no BPK
+		$qry = "SELECT
+					DISTINCT person_id
+				FROM
+					public.tbl_person
+					JOIN public.tbl_benutzer USING(person_id)
+					JOIN public.tbl_student ON(tbl_student.student_uid=tbl_benutzer.uid)
+				WHERE
+					public.tbl_benutzer.aktiv = TRUE
+					AND tbl_person.matr_nr IS NOT NULL
+					AND tbl_person.bpk IS NULL
+					AND studiengang_kz < 10000 AND studiengang_kz <> 0
+					AND EXISTS(SELECT 1 FROM public.tbl_prestudent
+					    		JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+								WHERE person_id=tbl_person.person_id
+								AND bismelden=TRUE
+								AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
+					    		AND pss.studiensemester_kurzbz = ?
+					    		LIMIT 1)";
 
 		$dbModel = new DB_Model();
 

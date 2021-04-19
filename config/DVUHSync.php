@@ -1,6 +1,6 @@
 <?php
 
-// if set to true, infos will be logged to webservicelog, and not only warnings and errors
+// if set to true, infos will be logged to webservicelog, otherwise only warnings and errors
 $config['fhc_dvuh_log_infos'] = false;
 
 /*$config['fhc_dvuh_bisdatum_ws'] = array('month' => '11', 'day' => '15');

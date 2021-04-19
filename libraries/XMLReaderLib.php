@@ -73,14 +73,12 @@ class XMLReaderLib
 	}
 
 	/**
-	 * Parses XML for non-blocking errors (as defined by DVUH).
+	 * Parses XML for non-blocking warnings (as defined by DVUH).
 	 * @param string $xmlstr
-	 * @return object array with errors on success, error otherwise
+	 * @return object array with warnings on success, error otherwise
 	 */
 	public function parseXmlDvuhWarnings($xmlstr)
 	{
-/*		var_dump($this->_parseXmlDvuhError($xmlstr, $this->_warning_categories));
-		die();*/
 		return $this->_parseXmlDvuhError($xmlstr, $this->_warning_categories);
 	}
 
@@ -101,19 +99,22 @@ class XMLReaderLib
 		{
 			$elements = $doc->getElementsByTagNameNs(self::DVUH_NAMESPACE, self::ERRORLIST_TAG);
 
-			$errObjects = $elements[0]->childNodes;
-
-			foreach ($errObjects as $errObject)
+			if (isset($elements[0]->childNodes))
 			{
-				$errResultobj = new stdClass();
+				$errObjects = $elements[0]->childNodes;
 
-				foreach ($errObject->childNodes as $errAttr)
+				foreach ($errObjects as $errObject)
 				{
-					$errResultobj->{$errAttr->tagName} = $errAttr->nodeValue;
-				}
+					$errResultobj = new stdClass();
 
-				if (in_array($errResultobj->kategorie, $error_categories))
-					$resultarr[] = $errResultobj->fehlernummer . ': ' . $errResultobj->fehlertext . ' ' . $errResultobj->massnahme;
+					foreach ($errObject->childNodes as $errAttr)
+					{
+						$errResultobj->{$errAttr->tagName} = $errAttr->nodeValue;
+					}
+
+					if (in_array($errResultobj->kategorie, $error_categories))
+						$resultarr[] = $errResultobj->fehlernummer . ': ' . $errResultobj->fehlertext . ' ' . $errResultobj->massnahme;
+				}
 			}
 
 			$result = success($resultarr);
