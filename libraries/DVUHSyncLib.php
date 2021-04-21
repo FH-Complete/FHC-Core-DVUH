@@ -320,16 +320,19 @@ class DVUHSyncLib
 					// zulassungsdatum (start date of studies)
 					$zulassungsdatum = $isIncoming || $isAusserordentlich ? null : $prestudentstatus->beginndatum;
 
-					// zgv
+					// zgv if not ausserordentlich
 					$zugangsberechtigung = null;
-					$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich);
-
-					if (isError($zugangsberechtigungResult))
-						return $zugangsberechtigungResult;
-
-					if (hasData($zugangsberechtigungResult))
+					if (!$isAusserordentlich)
 					{
-						$zugangsberechtigung = getData($zugangsberechtigungResult);
+						$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum, $isIncoming);
+
+						if (isError($zugangsberechtigungResult))
+							return $zugangsberechtigungResult;
+
+						if (hasData($zugangsberechtigungResult))
+						{
+							$zugangsberechtigung = getData($zugangsberechtigungResult);
+						}
 					}
 
 					// zgv master
@@ -439,7 +442,7 @@ class DVUHSyncLib
 						else
 							$bmffoerderrelevant = 'J';
 
-						// orgform code TODO - if ausserordentlich - remove? nach DVUH compulsory!
+						// orgform code TODO wenn nicht ausserordentlich
 						$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
 
 						if (isError($orgform_code))
@@ -449,23 +452,23 @@ class DVUHSyncLib
 							$orgformcode = getData($orgform_code);
 						}
 
-						// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
-						if ($orgformcode != '1' && !$isAusserordentlich)
+						if (!$isAusserordentlich)
 						{
-							if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
-								return error('Berufstätigkeitcode fehlt');
+							// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
+							if ($orgformcode != '1')
+							{
+								if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
+									return error('Berufstätigkeitcode fehlt');
 
-							$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
+								$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
+							}
 						}
 
 						$studiengang = array(
 							'disloziert' => 'N', // J,N,j,n
 							'bmwfwfoerderrelevant' => $bmffoerderrelevant,
-							'orgformcode' => $orgformcode,
 							'perskz' => $perskz,
 							'stgkz' => $dvuh_stgkz, // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
-							//'studstatuscode' => $studstatuscode, TODO: compulsory? YES
-							'zugangsberechtigung' => $zugangsberechtigung
 						);
 
 						foreach ($studiengang as $idx => $item)
@@ -473,6 +476,9 @@ class DVUHSyncLib
 							if (!isset($item) || isEmptyString($item))
 								return error('Studydata missing: ' . $idx);
 						}
+
+						if (isset($orgform_code))
+							$studiengang['orgformcode'] = $orgformcode;
 
 						if (isset($studstatuscode) && !$isExtern)
 							$studiengang['studstatuscode'] = $studstatuscode;
@@ -494,6 +500,9 @@ class DVUHSyncLib
 
 						if (isset($mobilitaet))
 							$studiengang['mobilitaet'] = $mobilitaet;
+
+						if (isset($zugangsberechtigung))
+							$studiengang['zugangsberechtigung'] = $zugangsberechtigung;
 
 						if (isset($zugangsberechtigungMA))
 							$studiengang['zugangsberechtigungMA'] = $zugangsberechtigungMA;
@@ -942,38 +951,32 @@ class DVUHSyncLib
 	 * Gets ZGV info in DVUH format for a prestudentstatus.
 	 * @param object $prestudentstatus with FHC zgvinfo
 	 * @param string $gebdatum for date check
+	 * @param bool $isIncoming certain data (staat) must be omitted if incoming
 	 * @return object
 	 */
-	private function _getZgv($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich)
+	private function _getZgv($prestudentstatus, $gebdatum, $isIncoming)
 	{
 		$zugangsberechtigung = null;
 
 		if (!isset($prestudentstatus->zgv_code))
 			return error("Zgv fehlt");
+		if (!isset($prestudentstatus->zgvdatum))
+			return error("ZGV Datum fehlt");
+		if ($prestudentstatus->zgvdatum > date("Y-m-d"))
+			return error("ZGV Datum in Zukunft");
+		if ($prestudentstatus->zgvdatum < $gebdatum)
+			return error("ZGV Datum vor Geburtsdatum");
 
-		if (!$isAusserordentlich)
-		{
-			if (!isset($prestudentstatus->zgvdatum))
-				return error("ZGV Datum fehlt");
-			if ($prestudentstatus->zgvdatum > date("Y-m-d"))
-				return error("ZGV Datum in Zukunft");
-			if ($prestudentstatus->zgvdatum < $gebdatum)
-				return error("ZGV Datum vor Geburtsdatum");
-		}
-
+		// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
 		$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
 
-		$zugangsberechtigung = array(// TODO: if ausserordentlich, remove even voraussetzung?
-			'voraussetzung' => $zugangsvoraussetzung  // Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
+		$zugangsberechtigung = array(
+			'voraussetzung' => $zugangsvoraussetzung,
+			'datum' => $prestudentstatus->zgvdatum
 		);
 
-		if (!$isAusserordentlich)
-		{
-			$zugangsberechtigung['datum'] = $prestudentstatus->zgvdatum;
-
-			if (!$isIncoming)
-				$zugangsberechtigung['staat'] = $prestudentstatus->zgvnation;
-		}
+		if (!$isIncoming)
+			$zugangsberechtigung['staat'] = $prestudentstatus->zgvnation;
 
 		return success($zugangsberechtigung);
 	}
@@ -982,6 +985,8 @@ class DVUHSyncLib
 	 * Gets ZGV master info in DVUH format for a prestudentstatus.
 	 * @param object $prestudentstatus with FHC zgvinfo
 	 * @param string $gebdatum for date check
+	 * @param bool $isIncoming certain data (staat) must be omitted if incoming
+	 * @param bool $isAusserordentlich certain data (staat) must be omitted if ausserordentlich
 	 * @return object
 	 */
 	private function _getZgvMaster($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich)

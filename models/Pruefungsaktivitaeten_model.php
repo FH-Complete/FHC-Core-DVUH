@@ -72,9 +72,13 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 				foreach ($pruefungData as $prfg)
 				{
+					// studiengang kz
+					$erhalter_kz = str_pad($prfg->erhalter_kz, 3, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $prfg->studiengang_kz), 4, '0', STR_PAD_LEFT);
+
 					$studiumpruefungen[$prfg->prestudent_id]['matrikelnummer'] = $prfg->matr_nr;
 					$studiumpruefungen[$prfg->prestudent_id]['studiensemester'] = $dvuh_studiensemester;
-					$studiumpruefungen[$prfg->prestudent_id]['studiengang'] = $prfg->studiengang;
+					$studiumpruefungen[$prfg->prestudent_id]['studiengang'] = $dvuh_stgkz;
 					$studiumpruefungen[$prfg->prestudent_id]['pruefungen'][] = array(
 						'ects' => $prfg->ects
 					);

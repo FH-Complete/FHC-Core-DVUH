@@ -14,8 +14,10 @@
 		foreach ($lehrgaenge as $lehrgang):
 			echo '
 				<lehrgang>';
+
 			if(isset($lehrgang['beendigungsdatum']))
 				echo '<beendigungsdatum>'.$lehrgang['beendigungsdatum'].'</beendigungsdatum>';
+
 			echo '
 					<lehrgangsnr>'.$lehrgang['lehrgangsnr'].'</lehrgangsnr>
 					<perskz>'.$lehrgang['perskz'].'</perskz>
@@ -123,9 +125,11 @@
 				echo "\t\t\t</mobilitaet>\n";
 			}
 		}
-		echo '
-			<orgformcode>'.$studiengang['orgformcode'].'</orgformcode>
-			<perskz>'.$studiengang['perskz'].'</perskz>';
+
+		if (isset($studiengang['orgformcode']))
+			echo '<orgformcode>'.$studiengang['orgformcode'].'</orgformcode>';
+
+		echo '<perskz>'.$studiengang['perskz'].'</perskz>';
 
 		if (isset($studiengang['standortcode']))
 			echo '<standortcode>'.$studiengang['standortcode'].'</standortcode>';
