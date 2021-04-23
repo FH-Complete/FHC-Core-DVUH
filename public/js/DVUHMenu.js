@@ -35,7 +35,7 @@ var DVUHMenu = {
 		{
 			case 'getMatrikelnummer':
 				html = '<h4>Matrikelnummer pr&uuml;fen</h4>';
-				html += DVUHMenu._getTextfieldHtml('bpk', 'BPK')
+				html += DVUHMenu._getTextfieldHtml('bpk', 'BPK', '', 30)
 				+ DVUHMenu._getTextfieldHtml('svnr', 'SVNR', '', 10)
 				+ DVUHMenu._getTextfieldHtml('ekz', 'Ersatzkennzeichen', '', 10)
 				+ DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
