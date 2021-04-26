@@ -65,7 +65,7 @@ class DVUHSyncLib
 				$addr['strasse'] = $adresse->strasse;
 				$addr['staat'] = $adresse->nation;
 
-				$addrCheck = $this->_checkAdresse($addr);
+				$addrCheck = $this->checkAdresse($addr);
 
 				if (isError($addrCheck))
 					return error("Adresse invalid: " . getError($addrCheck));
@@ -569,6 +569,30 @@ class DVUHSyncLib
 		return $dvuh_geschlecht;
 	}
 
+	/**
+	 * Checks an adress for validity.
+	 * @param object $addr
+	 * @return error or success with true/false (valid or not)
+	 */
+	public function checkAdresse($addr)
+	{
+		$result = success(true);
+
+		if (!isset($addr['ort']) || isEmptyString($addr['ort']))
+			$result = error('Ort missing');
+
+		if (!isset($addr['plz']) || isEmptyString($addr['plz']))
+			$result = error('Plz missing');
+
+		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']))
+			$result = error('Strasse missing');
+
+		if (!isset($addr['staat']) || isEmptyString($addr['staat']))
+			$result = error('Nation missing');
+
+		return $result;
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Private methods
 
@@ -1043,29 +1067,5 @@ class DVUHSyncLib
 		$datetime2 = new DateTime($datum2);
 		$interval = $datetime1->diff($datetime2);
 		return $interval->days;
-	}
-
-	/**
-	 * Checks an adress for validity.
-	 * @param object $addr
-	 * @return error or success with true/false (valid or not)
-	 */
-	private function _checkAdresse($addr)
-	{
-		$result = success(true);
-
-		if (!isset($addr['ort']) || isEmptyString($addr['ort']))
-			$result = error('Ort missing');
-
-		if (!isset($addr['plz']) || isEmptyString($addr['plz']))
-			$result = error('Plz missing');
-
-		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']))
-			$result = error('Strasse missing');
-
-		if (!isset($addr['staat']) || isEmptyString($addr['staat']))
-			$result = error('Nation missing');
-
-		return $result;
 	}
 }

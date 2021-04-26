@@ -121,6 +121,8 @@ class Stammdaten_model extends DVUHClientModel
 					$result = success($postData);
 				}
 			}
+			else
+				$result = error("Keine Stammdaten gefunden");
 		}
 
 		return $result;

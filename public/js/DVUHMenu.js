@@ -119,27 +119,10 @@ var DVUHMenu = {
 				method = 'post';
 				writePreviewButton = true;
 				break;
-/*			case 'postCharge':
-				html = '<h4>Stammdaten und Matrikelnummer melden (mit Vorschreibung)</h4>';
-				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
-					+ DVUHMenu._getSemesterRow()
-/!*					+ DVUHMenu._getTextfieldHtml('oehbeitrag', 'ÖH-Beitrag', 'In Cent', 4)
-					+ DVUHMenu._getTextfieldHtml('studiengebuehr', 'Studiengebühr', 'In Cent', 10)
-					+ DVUHMenu._getTextfieldHtml('valutadatum', 'Valutadatum', 'Format: YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('valutadatumnachfrist', 'Valutadatum Nachfrist', 'Format: YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('studiengebuehrnachfrist', 'Studiengebühr Nachfrist', 'In Cent', 10)*!/
-				method = 'post';
-				//action = 'postMasterData';
-				writePreviewButton = true;
-				break;*/
 			case 'postPayment':
 				html = '<h4>Zahlungseingang melden</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')/*DVUHMenu._getMatrikelnummerRow()*/
 					+ DVUHMenu._getSemesterRow()
-/*					+ DVUHMenu._getTextfieldHtml('buchungsdatum', 'Buchungsdatum', 'Format: YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('referenznummer', 'Referenznummer', 'numerisch', 60)
-					+ DVUHMenu._getTextfieldHtml('zahlungsart', 'Zahlungsart', '1 - Bankomatzahlung, 2 - Quickzahlung', 1)
-					+ DVUHMenu._getTextfieldHtml('centbetrag', 'Centbetrag', 'In Cent', 10)*/
 				method = 'post';
 				writePreviewButton = true;
 				break;
@@ -162,6 +145,14 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('ausstellland', 'Ausstellland', '1-3 Stellen Codex (zb D für Deutschland)', 3)
 					+ DVUHMenu._getTextfieldHtml('dokumentnr', 'Dokumentnr', '1 bis 255 Stellen', 255)
 					+ DVUHMenu._getDropdownHtml('dokumenttyp', 'Dokumenttyp', {'REISEP': 'Reisepass', 'PERSAUSW': 'Personalausweis'}, 'REISEP')
+				method = 'post';
+				writePreviewButton = true;
+				break;
+			case 'postEkzanfordern':
+				html = '<h4>Ekz anfordern</h4>';
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+					+ DVUHMenu._getTextfieldHtml('forcierungskey', 'Forcierungskey', 'Zum Anfordern eines neuen EKZ, ' +
+						'wenn bei mehrerern zurückgelieferten Kandidaten keiner der Person entspricht, für die man das EKZ anfordern möchte', 255) // TODO which length?
 				method = 'post';
 				writePreviewButton = true;
 				break;

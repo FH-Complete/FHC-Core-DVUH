@@ -31,7 +31,8 @@ class DVUH extends Auth_Controller
 				'postPayment'=>'admin:r',
 				'postMatrikelkorrektur'=>'admin:r',
 				'postErnpmeldung'=>'admin:r',
-				'postPruefungsaktivitaeten'=>'admin:r'
+				'postPruefungsaktivitaeten'=>'admin:r',
+				'postEkzanfordern'=>'admin:r'
 			)
 		);
 
@@ -348,6 +349,21 @@ class DVUH extends Auth_Controller
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
 		$json = $this->dvuhmanagementlib->sendPruefungsaktivitaeten($person_id, $semester, $preview);
+
+		$this->outputJson($json);
+	}
+
+	public function postEkzanfordern()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$forcierungskey = isset($data['forcierungskey']) ? $data['forcierungskey'] : null;
+
+		$json = $this->dvuhmanagementlib->requestEkz($person_id, $forcierungskey, $preview);
 
 		$this->outputJson($json);
 	}

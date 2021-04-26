@@ -64,6 +64,7 @@ $this->load->view('templates/FHC-Header', array(
 										<ul class="list-unstyled dvuhMenu">
 											<li id="getBpkByPersonId"><a href="javascript:void(0)">BPK ermitteln</a></li>
 											<li id="getBpk"><a href="javascript:void(0)">BPK manuell ermitteln</a></li>
+											<li id="postEkzanfordern"><a href="javascript:void(0)">EKZ anfordern</a></li>
 										</ul>
 									</div>
 								</div>
@@ -78,8 +79,6 @@ $this->load->view('templates/FHC-Header', array(
 									<li id="getStammdaten"><a href="javascript:void(0)">Stammdaten und Zahlungsvorschreibung abfragen
 									<li id="postMasterData"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden</a></li>
 									<li id="postErnpmeldung"><a href="javascript:void(0)">ERnP Meldung durchführen</a></li>
-<!--									<li id="postCharge"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden (mit
-											Zahlungsvorschreibung)</a></li>-->
 								</ul>
 							</div>
 						</div>

@@ -66,7 +66,7 @@ class Matrikelreservierung_model extends DVUHClientModel
 
 			$result = $this->_call('POST', null, $postData);
 		}
-		//echo print_r($result, true);
+
 		return $result;
 	}
 }

@@ -40,12 +40,13 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ekzanfordern_model', 'EkzanfordernModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStammdaten_model', 'DVUHStammdatenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -865,7 +866,8 @@ class DVUHManagementLib
 							),
 							array(
 								'bpk' => $bpk,
-								'updateamum' => date('Y-m-d H:i:s')
+								'updateamum' => date('Y-m-d H:i:s'),
+								'updatevon' => 'dvuhsync'
 							)
 						);
 
@@ -1024,6 +1026,79 @@ class DVUHManagementLib
 		return $result;
 	}
 
+	/**
+	 * Requests EKZ from DVUH, parses returned XML object and returns info/error messages.
+	 * @param $person_id
+	 * @param string $forcierungskey
+	 * @param bool $preview
+	 * @return object error or success
+	 */
+	public function requestEkz($person_id, $forcierungskey = null, $preview = false)
+	{
+		$infos = array();
+
+		if ($preview)
+		{
+			$postData = $this->_ci->EkzanfordernModel->retrievePostData($person_id, $forcierungskey);
+
+			if (isError($postData))
+				return $postData;
+
+			return $this->_getResponseArr(getData($postData), $infos);
+		}
+
+		$ekzanfordernResult = $this->_ci->EkzanfordernModel->post($person_id, $forcierungskey);
+
+		if (isError($ekzanfordernResult))
+			$result = $ekzanfordernResult;
+		elseif (hasData($ekzanfordernResult))
+		{
+			$xmlstr = getData($ekzanfordernResult);
+
+			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid', 'responsecode', 'returncode', 'returntext', 'ekz', 'forcierungskey'));
+
+			if (isError($parsedObj))
+				$result = $parsedObj;
+			else
+			{
+				$parsedObj = getData($parsedObj);
+
+				if (!isset($parsedObj->responsecode[0]) || $parsedObj->responsecode[0] != '200')
+				{
+					$errortext = 'Error response from EKZ request.';
+					if (isset($parsedObj->responsetext[0]))
+						$errortext .= ' ' . $parsedObj->responsetext[0];
+
+					return error($errortext);
+				}
+
+				$infomsg = "EKZ request executed";
+
+				if (isset($parsedObj->returntext[0]))
+					$infomsg .= ", " . $parsedObj->returntext[0];
+
+				if (isset($parsedObj->ekz[0]))
+					$infomsg .= ", EKZ: " . $parsedObj->ekz[0];
+
+				if (isset($parsedObj->forcierungskey[0]))
+					$infomsg .= ", forcierungskey for requesting new EKZ: " . $parsedObj->forcierungskey[0];
+
+				$infos[] = $infomsg;
+
+				$result = $this->_getResponseArr(
+					$xmlstr,
+					$infos,
+					null,
+					true
+				);
+			}
+		}
+		else
+			$result = error("Error when requesting Ekz");
+
+		return $result;
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Private methods
 
@@ -1087,7 +1162,8 @@ class DVUHManagementLib
 			array(
 				'matr_nr' => $matrikelnummer,
 				'matr_aktiv' => $matr_aktiv,
-				'updateamum' => date('Y-m-d H:i:s')
+				'updateamum' => date('Y-m-d H:i:s'),
+				'updatevon' => 'dvuhsync'
 			)
 		);
 
@@ -1297,7 +1373,8 @@ class DVUHManagementLib
 			array(
 				'betrag' => 0,
 				'anmerkung' => $andereBeBezahltTxt,
-				'updateamum' => date('Y-m-d H:i:s')
+				'updateamum' => date('Y-m-d H:i:s'),
+				'updatevon' => 'dvuhsync'
 			)
 		);
 
