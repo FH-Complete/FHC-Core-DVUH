@@ -82,11 +82,12 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
 					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X, optional', 1)
-					+ DVUHMenu._getTextfieldHtml('strasse', 'Strasse', 'ohne Hausnummer, optional', 255)
+					+ DVUHMenu._getTextfieldHtml('strasse', 'Strasse', 'der Heimatadresse, ohne Hausnummer, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('plz', 'PLZ', 'optional', 15)
 					+ DVUHMenu._getTextfieldHtml('geburtsland', 'Geburtsland', 'optional', 15)
 					+ DVUHMenu._getTextfieldHtml('akadgrad', 'Akademischer Grad Pre', 'vor dem Namen, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('akadnach', 'Akademischer Grad Post', 'nach dem Namen, optional', 255)
+					+ DVUHMenu._getTextfieldHtml('alternativname', 'Alternativname', 'optional, Nachname vor Namenswechsel', 255)
 				method = 'get';
 				break;
 			case 'getBpkByPersonId':
@@ -151,7 +152,7 @@ var DVUHMenu = {
 			case 'postEkzanfordern':
 				html = '<h4>Ekz anfordern</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
-					+ DVUHMenu._getTextfieldHtml('forcierungskey', 'Forcierungskey', 'Zum Anfordern eines neuen EKZ, ' +
+					+ DVUHMenu._getTextfieldHtml('forcierungskey', 'Forcierungskey', 'Optional, zum Anfordern eines neuen EKZ, ' +
 						'wenn bei mehrerern zurückgelieferten Kandidaten keiner der Person entspricht, für die man das EKZ anfordern möchte', 255) // TODO which length?
 				method = 'post';
 				writePreviewButton = true;

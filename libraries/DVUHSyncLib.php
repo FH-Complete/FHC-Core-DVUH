@@ -442,18 +442,17 @@ class DVUHSyncLib
 						else
 							$bmffoerderrelevant = 'J';
 
-						// orgform code TODO wenn nicht ausserordentlich
-						$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
-
-						if (isError($orgform_code))
-							return $orgform_code;
-						if (hasData($orgform_code))
-						{
-							$orgformcode = getData($orgform_code);
-						}
-
 						if (!$isAusserordentlich)
 						{
+							$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
+
+							if (isError($orgform_code))
+								return $orgform_code;
+							if (hasData($orgform_code))
+							{
+								$orgformcode = getData($orgform_code);
+							}
+
 							// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
 							if ($orgformcode != '1')
 							{
