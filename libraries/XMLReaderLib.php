@@ -85,6 +85,7 @@ class XMLReaderLib
 	/**
 	 * Parses XML for errors (as defined by DVUH).
 	 * @param string $xmlstr
+	 * @param array $error_categories types of categories to include in result as errors
 	 * @return object array with errors on success, error otherwise
 	 */
 	private function _parseXmlDvuhError($xmlstr, $error_categories)
@@ -111,9 +112,10 @@ class XMLReaderLib
 					{
 						$errResultobj->{$errAttr->tagName} = $errAttr->nodeValue;
 					}
+					$errResultobj->full_error_text = $errResultobj->fehlernummer . ': ' . $errResultobj->fehlertext . ' ' . $errResultobj->massnahme;
 
 					if (in_array($errResultobj->kategorie, $error_categories))
-						$resultarr[] = $errResultobj->fehlernummer . ': ' . $errResultobj->fehlertext . ' ' . $errResultobj->massnahme;
+						$resultarr[] = $errResultobj;
 				}
 			}
 
@@ -142,7 +144,18 @@ class XMLReaderLib
 		if (isError($errors))
 			$result = $errors;
 		elseif (hasData($errors))
-			$result = error('Error(s) occured: ' . implode(',', getData($errors)));
+		{
+			$errortext = '';
+
+			foreach (getData($errors) as $error)
+			{
+				if (!isEmptyString($errortext))
+					$errortext .= ', ';
+				$errortext .= $error->full_error_text;
+			}
+
+			$result = error('Error(s) occured: ' . $errortext);
+		}
 		else
 			$result = $this->parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE);
 

@@ -8,7 +8,7 @@
 class DVUHManagementLib
 {
 	const STATUS_PAID_OTHER_UNIV = '8';
-	//const KONTOSTAND_FEED_TYPE = 'at.gv.brz.rg.stubei.rws.schema.kontostandantwort';
+	const ERRORCODE_BPK_MISSING = 'AD10065';
 
 	private $_be;
 	private $_matrnr_statuscodes = array(
@@ -282,7 +282,7 @@ class DVUHManagementLib
 				$warnings[] = "Already paid in other university";
 			foreach ($buchungen as $buchung)
 			{
-				// if already paid on other university but not at own university -> not send Vorschreibung
+				// if already paid on other university but not at own university, not send Vorschreibung
 				if ($paidOtherUniv === true && $buchung->bezahlt == '0')
 					continue;
 
@@ -312,7 +312,7 @@ class DVUHManagementLib
 			}
 		}
 
-		// send Stammdatenmeldung
+		// convert Vorschreibungdata
 		$oehbeitrag = isset($vorschreibung['oehbeitrag']) ? $vorschreibung['oehbeitrag'] * -100 : null;
 		$studiengebuehr = isset($vorschreibung['studiengebuehr']) ? $vorschreibung['studiengebuehr'] * -100 : null;
 		$valutadatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
@@ -330,6 +330,7 @@ class DVUHManagementLib
 			return $this->_getResponseArr(getData($postData), $infos, $warnings);
 		}
 
+		// send Stammdatenmeldung
 		$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
 			$studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
 
@@ -406,8 +407,36 @@ class DVUHManagementLib
 						return $paidOtherUnivRes;
 				}
 
+				// get warnings from result
+				$warningsRes = $this->_ci->xmlreaderlib->parseXmlDvuhWarnings($xmlstr);
+
+				if (isError($warningsRes))
+					return error('error when parsing warnings');
+
+				if (hasData($warningsRes))
+				{
+					$parsedWarnings = getData($warningsRes);
+
+					foreach ($parsedWarnings as $warning)
+					{
+						$warnings[] = $warning->full_error_text;
+					}
+
+					// if no bpk saved in FHC, but a BPK is returned by DVUH, save it in FHC
+					$saveBpkRes = $this->_saveBpkInFhc($person_id, $parsedWarnings);
+
+					if (isError($saveBpkRes))
+						return error('error when saving bpk in FHC');
+
+					if (hasData($saveBpkRes))
+					{
+						$bpkRes = getData($saveBpkRes);
+						$infos[] = "New Bpk ($bpkRes) saved for person with id $person_id";
+					}
+				}
+
 				if (!isset($result))
-					$result = $this->_getResponseArr($xmlstr, $infos, $warnings, true);
+					$result = $this->_getResponseArr($xmlstr, $infos, $warnings);
 			}
 		}
 		else
@@ -1310,6 +1339,7 @@ class DVUHManagementLib
 	 * Checks if student already paid charges on another university for the semester by calling kontostand.
 	 * @param int $person_id
 	 * @param string $dvuh_studiensemester
+	 * @param string $matrikelnummer passed to kontostaende request, if not set, matrikelnr of person is taken
 	 * @return object success with true/false or error
 	 */
 	private function _checkIfPaidOtherUniv($person_id, $dvuh_studiensemester, $matrikelnummer = null)
@@ -1405,6 +1435,48 @@ class DVUHManagementLib
 	}
 
 	/**
+	 * Saves bpk in FHC db if not present.
+	 * @param int $person_id
+	 * @param array $parsedWarnings contains warning objects with error info and bpk, as returned from DVUH
+	 * @return object success with bpk if saved, or error
+	 */
+	private function _saveBpkInFhc($person_id, $parsedWarnings)
+	{
+		$result = success(array());
+		$this->_ci->PersonModel->addSelect('bpk');
+		$bpkRes = $this->_ci->PersonModel->load($person_id);
+
+		if (isError($bpkRes))
+			return $bpkRes;
+
+		if (hasData($bpkRes) && getData($bpkRes)[0]->bpk == null)
+		{
+			foreach ($parsedWarnings as $warning)
+			{
+				if ($warning->fehlernummer == self::ERRORCODE_BPK_MISSING && isset($warning->feldinhalt))
+				{
+					$bpkUpdateRes = $this->_ci->PersonModel->update(
+						array(
+							'person_id' => $person_id,
+							'bpk' => null
+						),
+						array(
+							'bpk' => $warning->feldinhalt,
+							'updateamum' => date('Y-m-d H:i:s'),
+							'updatevon' => 'dvuhsync'
+						)
+					);
+
+					if (hasData($bpkUpdateRes))
+						$result = success($warning->feldinhalt);
+				}
+			}
+		}
+
+		return $result;
+	}
+
+	/**
 	 * Constructs response array consisting of information and the result itself.
 	 * Info is passed for logging/displaying.
 	 * @param object $result main response data
@@ -1436,7 +1508,17 @@ class DVUHManagementLib
 						return error('error when parsing warnings');
 
 					if (hasData($warningsRes))
-						$responseArr['warnings'] = getData($warningsRes);
+					{
+						$warningtext = '';
+
+						foreach (getData($warningsRes) as $warning)
+						{
+							if (!isEmptyString($warningtext))
+								$warningtext .= ', ';
+							$warningtext .= $warning->full_error_text;
+						}
+						$responseArr['warnings'][] = $warningtext;
+					}
 				}
 			}
 		}
