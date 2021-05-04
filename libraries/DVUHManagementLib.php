@@ -1449,16 +1449,16 @@ class DVUHManagementLib
 		if (isError($bpkRes))
 			return $bpkRes;
 
-		if (hasData($bpkRes) && getData($bpkRes)[0]->bpk == null)
+		if (hasData($bpkRes) && isEmptyString(getData($bpkRes)[0]->bpk))
 		{
 			foreach ($parsedWarnings as $warning)
 			{
-				if ($warning->fehlernummer == self::ERRORCODE_BPK_MISSING && isset($warning->feldinhalt))
+				if ($warning->fehlernummer == self::ERRORCODE_BPK_MISSING &&
+					isset($warning->feldinhalt) && !isEmptyString($warning->feldinhalt))
 				{
 					$bpkUpdateRes = $this->_ci->PersonModel->update(
 						array(
-							'person_id' => $person_id,
-							'bpk' => null
+							'person_id' => $person_id
 						),
 						array(
 							'bpk' => $warning->feldinhalt,
