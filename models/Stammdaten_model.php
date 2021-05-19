@@ -47,10 +47,10 @@ class Stammdaten_model extends DVUHClientModel
 	}
 
 	public function post($be, $person_id, $semester,
-						 $matrikelnummer = null, $oehbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+						 $matrikelnummer = null, $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
 						 $studiengebuehrnachfrist = null)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $semester, $matrikelnummer, $oehbeitrag, $studiengebuehr, $valutadatum,
+		$postData = $this->retrievePostData($be, $person_id, $semester, $matrikelnummer, $oehbeitrag, $sonderbeitrag, $studiengebuehr, $valutadatum,
 			$valutadatumnachfrist, $studiengebuehrnachfrist);
 
 		if (isError($postData))
@@ -62,7 +62,7 @@ class Stammdaten_model extends DVUHClientModel
 	}
 
 	public function retrievePostData($be, $person_id, $semester, $matrikelnummer = null,
-									  $oehbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+									  $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
 									  $studiengebuehrnachfrist = null)
 	{
 		$result = null;
@@ -98,6 +98,7 @@ class Stammdaten_model extends DVUHClientModel
 					);
 
 					$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
+					$sonderbeitrag = isset($sonderbeitrag) ? $sonderbeitrag : '0';
 					$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
 					$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
 
@@ -107,7 +108,7 @@ class Stammdaten_model extends DVUHClientModel
 
 					$params["vorschreibung"] = array(
 						'oehbeitrag' => $oehbeitrag, // IN CENT!!
-						'sonderbeitrag' => '0',
+						'sonderbeitrag' => $sonderbeitrag, // IN CENT!!,
 						'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
 						'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
 						'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!

@@ -33,6 +33,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 		$this->_ci->load->model('organisation/Studienjahr_model', 'StudienjahrModel');
 		$this->_ci->load->model('crm/Konto_model', 'KontoModel');
+		$this->_ci->load->model('codex/Oehbeitrag_model', 'OehbeitragModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelpruefung_model', 'MatrikelpruefungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelreservierung_model', 'MatrikelreservierungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
@@ -287,22 +288,58 @@ class DVUHManagementLib
 					continue;
 
 				// add Vorschreibung
+				$studierendenBeitragAmount = 0;
+				$versicherungBeitragAmount = 0;
+				$beitragAmount = $buchung->betrag;
+
 				if (in_array($buchung->buchungstyp_kurzbz, $buchungstypen['oehbeitrag']))
+				{
+					$oehbeitragAmountsRes = $this->_ci->OehbeitragModel->getByStudiensemester($studiensemester_kurzbz);
+
+					if (isError($oehbeitragAmountsRes))
+						return $oehbeitragAmountsRes;
+
+					if (hasData($oehbeitragAmountsRes))
+					{
+						$oehbeitragAmounts = getData($oehbeitragAmountsRes)[0];
+						$studierendenBeitragAmount = $oehbeitragAmounts->studierendenbeitrag;
+						$versicherungBeitragAmount = $oehbeitragAmounts->versicherung;
+						// plus because buchungsbetrag is negative
+						$beitragAmount += $versicherungBeitragAmount;
+					}
+					else
+					{
+						return error("No Oehbeitrag amounts specified, Buchung " . $buchung->buchungsnr);
+					}
+
 					$dvuh_buchungstyp = 'oehbeitrag';
+				}
 				elseif ((in_array($buchung->buchungstyp_kurzbz, $buchungstypen['studiengebuehr'])))
 					$dvuh_buchungstyp = 'studiengebuehr';
 
 				if (!isset($vorschreibung[$dvuh_buchungstyp]))
 					$vorschreibung[$dvuh_buchungstyp] = 0;
 
-				$vorschreibung[$dvuh_buchungstyp] += $buchung->betrag;
+				$vorschreibung[$dvuh_buchungstyp] += $beitragAmount;
 
 				if ($dvuh_buchungstyp == 'oehbeitrag')
 				{
+					if (!isset($vorschreibung['sonderbeitrag']))
+						$vorschreibung['sonderbeitrag'] = 0;
+
+					$vorschreibung['sonderbeitrag'] += (float) $versicherungBeitragAmount;
 					$vorschreibung['valutadatum'] = $buchung->valutadatum;
 					$vorschreibung['valutadatumnachfrist'] =
 						date('Y-m-d', strtotime($buchung->valutadatum . ' + ' . $valutadatumnachfrist_days . ' days'));
 					$vorschreibung['origoehbuchung'][] = $buchung;
+
+					// warning if amount in Buchung after Versicherung deduction not equal to amount in oehbeitrag table
+					if (-1 * $beitragAmount != $studierendenBeitragAmount)
+					{
+						$warnings[] = "Vorgeschriebener Beitrag " . number_format(-1 * $beitragAmount, 2, ',', '.')
+										. " nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, "
+										. number_format($studierendenBeitragAmount, 2, ',', '.') . ", überein";
+					}
 				}
 				elseif ($dvuh_buchungstyp == 'studiengebuehr')
 				{
@@ -314,6 +351,7 @@ class DVUHManagementLib
 
 		// convert Vorschreibungdata
 		$oehbeitrag = isset($vorschreibung['oehbeitrag']) ? $vorschreibung['oehbeitrag'] * -100 : null;
+		$sonderbeitrag = isset($vorschreibung['sonderbeitrag']) ? $vorschreibung['sonderbeitrag'] * 100 : null;
 		$studiengebuehr = isset($vorschreibung['studiengebuehr']) ? $vorschreibung['studiengebuehr'] * -100 : null;
 		$valutadatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
 		$valutadatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
@@ -322,7 +360,7 @@ class DVUHManagementLib
 		if ($preview)
 		{
 			$postData = $this->_ci->StammdatenModel->retrievePostData($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
-				$studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
+				$sonderbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
 
 			if (isError($postData))
 				return $postData;
@@ -332,7 +370,7 @@ class DVUHManagementLib
 
 		// send Stammdatenmeldung
 		$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
-			$studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
+			$sonderbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
 
 		if (isError($stammdatenResult))
 			$result = $stammdatenResult;
@@ -553,33 +591,6 @@ class DVUHManagementLib
 					);
 				}
 
-				// check if already paid on other university
-/*				$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $buchung->matr_nr);
-
-				if (isError($paidOtherUniv))
-					return $paidOtherUniv;
-
-				if (hasData($paidOtherUniv))
-				{
-					$paidData = getData($paidOtherUniv)[0];
-					if ($paidData == true)
-					{
-						/*foreach ($buchungen as $buchung)
-						{
-							if ($buchung->buchungstyp_kurzbz == 'OEH')
-							{
-								// set Buchungen to 0 since they don't need to be paid anymore
-								$nullifyResult = $this->_nullifyBuchung($buchung);
-
-								if (isError($nullifyResult))
-									return $nullifyResult;
-							}
-						}*/
-
-						/*return error("Buchung $buchungsnr: in FHC bereits bezahlt, in DVUH wurde aber von anderer BE bezahlt");
-					}
-				}*/
-
 				$payment = new stdClass();
 				$payment->be = $this->_be;
 				$payment->matrikelnummer = $buchung->matr_nr;
@@ -787,7 +798,7 @@ class DVUHManagementLib
 										WHERE
 											public.tbl_person.person_id = ?
 										  	AND tbl_benutzer.aktiv = TRUE
-											AND tbl_person.bpk IS NULL",
+											AND tbl_person.bpk IS NULL OR tbl_person.bpk = ''",
 			array(
 				$person_id
 			)
@@ -890,8 +901,7 @@ class DVUHManagementLib
 					{
 						$bpkSaveResult = $this->_ci->PersonModel->update(
 							array(
-								'person_id' => $person_id,
-								'bpk' => null
+								'person_id' => $person_id
 							),
 							array(
 								'bpk' => $bpk,
@@ -1253,87 +1263,6 @@ class DVUHManagementLib
 
 		return success(array($isPaid));
 	}
-
-	/**
-	 * Checks if student already paid charges on another university for the semester by calling feed.
-	 * @param int $person_id
-	 * @param string $studiensemester_kurzbz
-	 * @param string $matrikelnummer filter by matrikelnummmer
-	 * @return object success with true/false or error
-	 */
-/*	private function _checkIfPaidOtherUniv($person_id, $studiensemester_kurzbz, $matrikelnummer = null)
-	{
-		$erstelltSeitResult = $this->_ci->StudiensemesterModel->load($studiensemester_kurzbz);
-
-		if (hasData($erstelltSeitResult))
-		{
-			$erstelltSeit = getData($erstelltSeitResult)[0]->start;
-		}
-		else
-			return error("No Studiensemester found when checking for payment");
-
-		$this->_ci->PersonModel->addSelect('matr_nr');
-		$matrnrResult = $this->_ci->PersonModel->load($person_id);
-
-		if (!isset($matrikelnummer))
-		{
-			if (hasData($matrnrResult))
-			{
-				$matrikelnummer = getData($matrnrResult)[0]->matr_nr;
-
-				if (!isset($matrikelnummer))
-					return error('no Matrikelnummer for checking for payment');
-			}
-			else
-				return error("No Person found when checking for payment");
-		}
-
-		$feeds = $this->_ci->feedreaderlib->getFeedsByType(
-			$this->_be,
-			date("Y-m-d", strtotime("-7 days")),
-			self::KONTOSTAND_FEED_TYPE,
-			array('matrikelnummer' => $matrikelnummer)
-		);
-
-		if (isError($feeds))
-			return $feeds;
-
-		if (hasData($feeds))
-		{
-			$result = null;
-
-			$feedData = getData($feeds);
-
-			$lastFeedDate = '';
-			$lastStatus = '';
-
-			foreach ($feedData as $feed)
-			{
-				$status = $this->_ci->xmlreaderlib->parseXml($feed->contentXml, array('bezahlstatus', 'semester'));
-
-				if (hasData($status))
-				{
-					$statusdata = getData($status);
-
-					if ($statusdata->semester[0] == $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester_kurzbz)
-						&& ($lastFeedDate == '' || $feed->published > $lastFeedDate))
-						{
-							$lastFeedDate = $feed->published;
-							$lastStatus = $statusdata->bezahlstatus[0];
-						}
-				}
-			}
-
-			if ($lastStatus == self::STATUS_PAID_OTHER_UNIV)
-				$result = success(array(true));
-			else
-				$result = success(array(false));
-		}
-		else
-			$result = success(array(false));
-
-		return $result;
-	}*/
 
 	/**
 	 * Checks if student already paid charges on another university for the semester by calling kontostand.
