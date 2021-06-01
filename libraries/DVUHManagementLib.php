@@ -879,7 +879,7 @@ class DVUHManagementLib
 									else // single bpk found using adress
 									{
 										$infos[] = "Bpk nach Neuanfrage mit Adresse erfolgreich ermittelt!";
-										$bpk = $parsedObj->bpk[0];
+										$bpk = $parsedObjAddr->bpk[0];
 									}
 								}
 								else
