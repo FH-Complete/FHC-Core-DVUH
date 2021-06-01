@@ -94,7 +94,7 @@ class JQMSchedulerLib
 				WHERE
 					public.tbl_benutzer.aktiv = TRUE
 					AND tbl_person.matr_nr IS NOT NULL
-					AND tbl_person.bpk IS NULL OR tbl_person.bpk = ''
+					AND (tbl_person.bpk IS NULL OR tbl_person.bpk = '')
 					AND studiengang_kz < 10000 AND studiengang_kz <> 0
 					AND EXISTS(SELECT 1 FROM public.tbl_prestudent
 					    		JOIN public.tbl_prestudentstatus pss USING (prestudent_id)

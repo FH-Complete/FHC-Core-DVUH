@@ -799,7 +799,7 @@ class DVUHManagementLib
 										WHERE
 											public.tbl_person.person_id = ?
 										  	AND tbl_benutzer.aktiv = TRUE
-											AND tbl_person.bpk IS NULL OR tbl_person.bpk = ''",
+											AND (tbl_person.bpk IS NULL OR tbl_person.bpk = '')",
 			array(
 				$person_id
 			)
