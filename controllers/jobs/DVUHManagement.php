@@ -51,7 +51,7 @@ class DVUHManagement extends JQW_Controller
 			foreach ($person_arr as $persobj)
 			{
 				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
-					$this->logError("An error occurred while requesting Matrikelnummer, invalid parameters passed to queue");
+					$this->logError("Fehler bei Matrikelnummernabfrage, ungültige Parameter übergeben");
 				else
 				{
 					$person_id = $persobj->person_id;
@@ -60,7 +60,7 @@ class DVUHManagement extends JQW_Controller
 					$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id, $studiensemester_kurzbz);
 
 					if (isError($requestMatrnrResult))
-						$this->logError("An error occurred while requesting Matrikelnummer, person Id $person_id", getError($requestMatrnrResult));
+						$this->logError("Fehler bei Matrikelnummernabfrage, person Id $person_id", getError($requestMatrnrResult));
 					elseif (hasData($requestMatrnrResult))
 					{
 						$requestMatrnrArr = getData($requestMatrnrResult);
@@ -110,7 +110,7 @@ class DVUHManagement extends JQW_Controller
 			foreach ($person_arr as $persobj)
 			{
 				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
-					$this->logError("An error occurred while sending charge, invalid parameters passed to queue");
+					$this->logError("Fehler beim Senden der Vorschreibung, ungültige Parameter übergeben");
 				else
 				{
 					$person_id = $persobj->person_id;
@@ -119,7 +119,7 @@ class DVUHManagement extends JQW_Controller
 					$sendChargeResult = $this->dvuhmanagementlib->sendMasterData($person_id, $studiensemester);
 
 					if (isError($sendChargeResult))
-						$this->logError("An error occurred while sending charge, person Id $person_id, studiensemester $studiensemester", getError($sendChargeResult));
+						$this->logError("Fehler beim Senden der Vorschreibung, Person Id $person_id, Studiensemester $studiensemester", getError($sendChargeResult));
 					elseif (hasData($sendChargeResult))
 					{
 						$sendCharge = getData($sendChargeResult);
@@ -127,7 +127,7 @@ class DVUHManagement extends JQW_Controller
 						$this->_logInfosAndWarnings($sendCharge, array('person_id' => $person_id));
 
 						if (isset($sendCharge['result']))
-							$this->_logInfoIfEnabled("Stammdaten with charge of student with person Id $person_id, studiensemester $studiensemester successfully sent");
+							$this->_logInfoIfEnabled("Stammdaten mit Vorschreibung Person Id $person_id, Studiensemester $studiensemester erfolgreich gesendet");
 					}
 				}
 			}
@@ -175,13 +175,13 @@ class DVUHManagement extends JQW_Controller
 				$studiensemester = $persobj->studiensemester_kurzbz;
 
 				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
-					$this->logError("An error occurred while sending payment, invalid parameters passed to queue");
+					$this->logError("Fehler beim Senden der Zahlung, ungültige Parameter übergeben");
 				else
 				{
 					$sendPaymentResult = $this->dvuhmanagementlib->sendPayment($person_id, $studiensemester);
 
 					if (isError($sendPaymentResult))
-						$this->logError("An error occurred while sending payment, person Id $person_id, studiensemester $studiensemester", getError($sendPaymentResult));
+						$this->logError("Fehler beim Senden der Zahlung, Person Id $person_id, Studiensemester $studiensemester", getError($sendPaymentResult));
 					elseif (hasData($sendPaymentResult))
 					{
 						$sendPaymentItems = getData($sendPaymentResult);
@@ -194,7 +194,7 @@ class DVUHManagement extends JQW_Controller
 							foreach ($sendPaymentItems['result'] as $paymentRes)
 							{
 								if (isError($paymentRes))
-									$this->logError("An error occurred while sending payment, person Id $person_id, studiensemester $studiensemester", getError($paymentRes));
+									$this->logError("Fehler beim Senden der Zahlung, Person Id $person_id, Studiensemester $studiensemester", getError($paymentRes));
 							}
 						}
 					}
@@ -244,13 +244,13 @@ class DVUHManagement extends JQW_Controller
 				$studiensemester = $prsobj->studiensemester_kurzbz;
 
 				if (!isset($prsobj->prestudent_id) || !isset($prsobj->studiensemester_kurzbz))
-					$this->logError("An error occurred while sending study data, invalid parameters passed to queue");
+					$this->logError("Fehler beim Senden der Studiumdaten, ungültige Parameter übergeben");
 				else
 				{
 					$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
 
 					if (isError($sendStudyDataResult))
-						$this->logError("An error occurred while sending study data, prestudent Id $prestudent_id, studiensemester $studiensemester", getError($sendStudyDataResult));
+						$this->logError("Fehler beim Senden der Studiumdaten, Prestudent Id $prestudent_id, studiensemester $studiensemester", getError($sendStudyDataResult));
 					elseif (hasData($sendStudyDataResult))
 					{
 						$sendStudyData = getData($sendStudyDataResult);
@@ -259,7 +259,7 @@ class DVUHManagement extends JQW_Controller
 
 						if (isset($sendStudyData['result']))
 						{
-							$this->_logInfoIfEnabled("Study data for student with prestudent Id $prestudent_id, studiensemester $studiensemester successfully sent");
+							$this->_logInfoIfEnabled("Studiumdaten für prestudent Id $prestudent_id, studiensemester $studiensemester erfolgreich gesendet");
 						}
 					}
 				}
@@ -305,7 +305,7 @@ class DVUHManagement extends JQW_Controller
 			foreach ($person_arr as $persobj)
 			{
 				if (!isset($persobj->person_id))
-					$this->logError("An error occurred while requesting Bpk, invalid parameters passed to queue");
+					$this->logError("Fehler bei Bpkanfrage, ungültige Parameter übergeben");
 				else
 				{
 					$person_id = $persobj->person_id;
@@ -313,7 +313,7 @@ class DVUHManagement extends JQW_Controller
 					$requestBpkResult = $this->dvuhmanagementlib->requestBpk($person_id);
 
 					if (isError($requestBpkResult))
-						$this->logError("An error occurred while requesting Bpk, person Id $person_id", getError($requestBpkResult));
+						$this->logError("Fehler bei Bpkanfrage, person Id $person_id", getError($requestBpkResult));
 					elseif (hasData($requestBpkResult))
 					{
 						$requestMatrnrArr = getData($requestBpkResult);

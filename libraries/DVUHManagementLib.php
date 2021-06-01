@@ -1,6 +1,5 @@
 <?php
 
-
 /**
  * Contains logic for interaction of FHC with DVUH.
  * This includes initializing webservice calls for modifiying data in DVUH, and updating data in FHC accordingly.
@@ -11,6 +10,8 @@ class DVUHManagementLib
 	const ERRORCODE_BPK_MISSING = 'AD10065';
 
 	private $_be;
+
+	// Statuscodes returned when checking Matrikelnr, resulting actions are array keys
 	private $_matrnr_statuscodes = array(
 		'assignNew' => array('1', '5'),
 		'saveExisting' => array('3'),
@@ -162,14 +163,14 @@ class DVUHManagementLib
 									$result = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $reservedMatrnrStr, false);
 								}
 								else
-									$result = error("No Matrikelnummer could be reserved");
+									$result = error("Es konnte keine Matrikelnummer reserviert werden");
 							}
 							else
-								$result = error("Error when reserving Matrikelnummer");
+								$result = error("Fehler beim Reservieren der Matrikelnummer");
 						}
 						else
 						{
-							$result = error("Studienjahr not found");
+							$result = error("Studienjahr nicht gefunden");
 						}
 					}
 					elseif (in_array($statuscode, $this->_matrnr_statuscodes['saveExisting'])) // Matrikelnr already existing in DVUH -> save in FHC
@@ -179,7 +180,7 @@ class DVUHManagementLib
 							$result = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, true);
 						}
 						else
-							$result = error("invalid Matrikelnummer");
+							$result = error("ungültige Matrikelnummer");
 					}
 					elseif (in_array($statuscode, $this->_matrnr_statuscodes['error']))
 					{
@@ -190,13 +191,13 @@ class DVUHManagementLib
 						if (!isEmptyString($statusmeldung))
 							$result = $this->_getResponseArr(null, array($statusmeldung));
 						else
-							$result = error("unknown statuscode");
+							$result = error("Unbekannter Matrikelnr-Statuscode");
 					}
 				}
 			}
 		}
 		else
-			$result = $this->_getResponseArr(null, array("No valid person found for Matrikelnummer request"));
+			$result = $this->_getResponseArr(null, array("Keine valide Person für Matrikelnummernanfrage gefunden"));
 
 		return $result;
 	}
@@ -280,7 +281,7 @@ class DVUHManagementLib
 			}
 
 			if ($paidOtherUniv === true)
-				$warnings[] = "Already paid in other university";
+				$warnings[] = "An anderer Bildungseinrichtung bezahlt";
 			foreach ($buchungen as $buchung)
 			{
 				// if already paid on other university but not at own university, not send Vorschreibung
@@ -309,7 +310,7 @@ class DVUHManagementLib
 					}
 					else
 					{
-						return error("No Oehbeitrag amounts specified, Buchung " . $buchung->buchungsnr);
+						return error("Keine Höhe des Öhbeiträgs für Studiensemester $studiensemester_kurzbz spezifiziert, Buchung " . $buchung->buchungsnr);
 					}
 
 					$dvuh_buchungstyp = 'oehbeitrag';
@@ -384,7 +385,7 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$infos[] = "Stammdaten for person_id $person_id successfully saved in DVUH";
+				$infos[] = "Stammdaten für Person Id $person_id erfolgreich in DVUH gespeichert";
 
 				// write Stammdatenmeldung in FHC db
 				$stammdatenSaveResult = $this->_ci->DVUHStammdatenModel->insert(
@@ -396,7 +397,7 @@ class DVUHManagementLib
 				);
 
 				if (isError($stammdatenSaveResult))
-					$result = error("Stammdaten save in DVUH successfull, error when saving Stammdaten in FHC");
+					$result = error("Stammdaten erfolgreich in DVUH gespeichert, Fehler beim Speichern der Stammdaten in FHC");
 
 				if (isset($vorschreibung['oehbeitrag']) && isset($vorschreibung['origoehbuchung'])
 					&& $vorschreibung['oehbeitrag'] < 0)
@@ -413,7 +414,7 @@ class DVUHManagementLib
 						);
 
 						if (isError($zahlungSaveResult))
-							$result = error("Stammdaten save in DVUH successfull, error when saving ÖH-Beitrag Zahlung in FHC");
+							$result = error("Speichern der Stammdaten in DVUH erfolgreich, Fehler beim Speichern der ÖH-Beitragszahlung in FHC");
 					}
 				}
 
@@ -432,7 +433,7 @@ class DVUHManagementLib
 						);
 
 						if (isError($zahlungSaveResult))
-							$result = error("Stammdaten save in DVUH successfull, error when saving Studiengebuehr Zahlung in FHC");
+							$result = error("Speichern der Stammdaten in DVUH erfolgreich, Fehler beim Speichern der Studiengebührzahlung in FHC");
 					}
 				}
 
@@ -449,7 +450,7 @@ class DVUHManagementLib
 				$warningsRes = $this->_ci->xmlreaderlib->parseXmlDvuhWarnings($xmlstr);
 
 				if (isError($warningsRes))
-					return error('error when parsing warnings');
+					return error('Fehler beim Auslesen der Warnungen');
 
 				if (hasData($warningsRes))
 				{
@@ -464,12 +465,12 @@ class DVUHManagementLib
 					$saveBpkRes = $this->_saveBpkInFhc($person_id, $parsedWarnings);
 
 					if (isError($saveBpkRes))
-						return error('error when saving bpk in FHC');
+						return error('Fehler beim Speichern der bpk in FHC');
 
 					if (hasData($saveBpkRes))
 					{
 						$bpkRes = getData($saveBpkRes);
-						$infos[] = "New Bpk ($bpkRes) saved for person with id $person_id";
+						$infos[] = "Neue Bpk ($bpkRes) gespeichert für Person mit Id $person_id";
 					}
 				}
 
@@ -478,7 +479,7 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = error('Error when sending Stammdaten');
+			$result = error('Fehler beim Senden der Stammdaten');
 
 		return $result;
 	}
@@ -554,7 +555,7 @@ class DVUHManagementLib
 
 			if (hasData($openPayments))
 			{
-				return error("There are still open Buchungen.");
+				return error("Es gibt noch offene Buchungen.");
 			}
 
 			$buchungen = getData($buchungenResult);
@@ -580,14 +581,14 @@ class DVUHManagementLib
 				if (hasData($charges))
 				{
 					if (abs(getData($charges)[0]->betrag) != $buchung->summe_buchungen)
-						return error("Buchung: $buchungsnr: payment not equal to charge amount");
+						return error("Buchung: $buchungsnr: Zahlungsbetrag abweichend von Vorschreibungsbetrag");
 				}
 				else
 				{
 					return $this->_getResponseArr(
 						null,
 						null,
-						array("Buchung $buchungsnr: no charge sent to DVUH before the payment")
+						array("Buchung $buchungsnr: vor der Zahlung wurde keine Vorschreibung an DVUH gesendet")
 					);
 				}
 
@@ -642,8 +643,8 @@ class DVUHManagementLib
 						$zahlungenResArr[] = $parsedObj;
 					else
 					{
-						$infos[] = "Payment of student with person Id $person_id, studiensemester $studiensemester_kurzbz, Buchungsnr "
-							. $payment->referenznummer . " successfully sent";
+						$infos[] = "Zahlung des Studenten mit Person Id $person_id, Studiensemester $studiensemester_kurzbz, Buchungsnr "
+							. $payment->referenznummer . " erfolgreich gesendet";
 
 						// save date Buchungsnr and Betrag in sync table
 						$zahlungSaveResult = $this->_ci->DVUHZahlungenModel->insert(
@@ -655,17 +656,17 @@ class DVUHManagementLib
 						);
 
 						if (isError($zahlungSaveResult))
-							$zahlungenResArr[] = error("Payment successfull, error when saving " . $payment->buchungstyp . " payment in FHC");
+							$zahlungenResArr[] = error("Zahlung erfolgreich, Fehler bei Speichern der Zahlung der Buchung " . $payment->buchungstyp . " in FHC");
 						else
 							$zahlungenResArr[] = success($xmlstr);
 					}
 				}
 				else
-					$zahlungenResArr[] = error('Error when sending Zahlung');
+					$zahlungenResArr[] = error("Fehler beim Sender der Zahlung");
 			}
 		}
 		else
-			return $this->_getResponseArr(null, array("No Buchungen found"));
+			return $this->_getResponseArr(null, array("Keine Buchungen gefunden"));
 
 		return $this->_getResponseArr($zahlungenResArr, $infos, null, true);
 	}
@@ -683,7 +684,7 @@ class DVUHManagementLib
 		if (!isset($person_id))
 		{
 			if (!isset($prestudent_id))
-				return error("Person Id or prestudent Id must be given");
+				return error("Person Id oder Prestudent Id muss angegeben werden");
 
 			$this->_ci->PrestudentModel->addSelect('person_id');
 			$personIdRes = $this->_ci->PrestudentModel->load($prestudent_id);
@@ -693,7 +694,7 @@ class DVUHManagementLib
 				$person_id = getData($personIdRes)[0]->person_id;
 			}
 			else
-				return error('No person found for prestudent');
+				return error('Keine Person für Prestudent gefunden');
 		}
 
 		$result = null;
@@ -726,7 +727,7 @@ class DVUHManagementLib
 			{
 				$result = $this->_getResponseArr(
 					$xmlstr,
-					array('Study data successfully saved in DVUH'),
+					array('Studiumdaten erfolgreich in DVUH gespeichert'),
 					null,
 					true
 				);
@@ -743,7 +744,7 @@ class DVUHManagementLib
 				);
 
 				if (isError($matrNrActivationResult))
-					$result = error("Study data save successfull, error when activating Matrikelnummer");
+					$result = error("Studiumdaten erfolgreich gespeichert, Fehler beim Scharfschalten der Matrikelnummer in FHC");
 
 				$syncedPrestudentIds = $this->_ci->StudiumModel->retrieveSyncedPrestudentIds();
 
@@ -759,12 +760,12 @@ class DVUHManagementLib
 					);
 
 					if (isError($studiumSaveResult))
-						$result = error("Study data save successfull, error when saving info in FHC");
+						$result = error("Studiumdaten erfolgreich gespeichert, Fehler beim Speichern in der Synctabelle in FHC");
 				}
 			}
 		}
 		else
-			$result = error('Error when sending study data');
+			$result = error("Fehler beim Senden  der Studiumdaten");
 
 		return $result;
 	}
@@ -840,7 +841,7 @@ class DVUHManagementLib
 						// if multiple bpks, at least 2 person tags are present
 						if (!isEmptyArray($parsedObj->person) && count($parsedObj->person) > 1)
 						{
-							$warnings[] = 'Multiple bpks found in DVUH. Retrying using address.';
+							$warnings[] = "Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.";
 
 							// remove any non-letter character (unicode for german)
 							$strasse = preg_replace('/[\P{L}]/u', '', $person->strasse);
@@ -871,28 +872,28 @@ class DVUHManagementLib
 									if (isEmptyArray($parsedObjAddr->bpk))
 									{
 										if (!isEmptyArray($parsedObjAddr->person) && count($parsedObjAddr->person) > 1)
-											$warnings[] = 'Multiple bpks found in DVUH, even after retry using address.';
+											$warnings[] = "Mehrere Bpks in DVUH gefunden, auch nach erneuter Anfrage mit Adresse.";
 										else
-											$warnings[] = 'No bpk found in DVUH after retry using address.';
+											$warnings[] = "Keine Bpk in DVUH bei Neuanfrage mit Adresse gefunden.";
 									}
 									else // single bpk found using adress
 									{
-										$infos[] = "Successfully retrieved Bpk after retry using address!";
+										$infos[] = "Bpk nach Neuanfrage mit Adresse erfolgreich ermittelt!";
 										$bpk = $parsedObj->bpk[0];
 									}
 								}
 								else
-									return error("Error when parsing bpk response (request with address)");
+									return error("Fehler beim Auslesen der BPK Antwort (Anfrage mit Adresse)");
 							}
 							else
-								return error("Error when getting bpk by address");
+								return error("Fehler bei Bpk-Neuanfrage mit Adresse");
 						}
 						else
-							$warnings[] = "No bpk found in DVUH";
+							$warnings[] = "Keine Bpk in DVUH gefunden";
 					}
 					else // bpk found on first try
 					{
-						$infos[] = "Successfully retrieved Bpk!";
+						$infos[] = "Bpk erfolgreich ermittelt!";
 						$bpk = $parsedObj->bpk[0];
 					}
 
@@ -911,21 +912,21 @@ class DVUHManagementLib
 						);
 
 						if (!hasData($bpkSaveResult))
-							return error("Error when saving bpk in FHC");
+							return error("Fehler beim Speichern der Bpk in FHC");
 
-						$infos[] = "Successfully saved Bpk in FHC!";
+						$infos[] = "Bpk erfolgreich in FHC gespeichert!";
 					}
 
 					return $this->_getResponseArr($bpk, $infos, $warnings);
 				}
 				else
-					return error("Error when parsing bpk response");
+					return error("Fehler beim Auslesen der Bpk");
 			}
 			else
-				return error("Error when getting bpk");
+				return error("Fehler beim Ermitteln der Bpk");
 		}
 		else
-			return error("No active person without bpk found for bpk request");
+			return error("Keine Person ohne Bpk mit aktivem Benutzer gefunden");
 
 		return $result;
 	}
@@ -952,7 +953,7 @@ class DVUHManagementLib
 		foreach ($requiredFields as $requiredField)
 		{
 			if (!isset($$requiredField))
-				return error("Data missing: ".ucfirst($requiredField));
+				return error("Daten fehlen: ".ucfirst($requiredField));
 		}
 
 		if ($preview)
@@ -981,7 +982,7 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$infos[] = 'Personenmeldung successful';
+				$infos[] = 'Personenmeldung erfolgreich';
 				$result = $this->_getResponseArr(
 					$xmlstr,
 					$infos,
@@ -991,7 +992,7 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = error("Error when sending Matrikelmeldung");
+			$result = error("Fehler beim Senden der Matrikelmeldung");
 
 		return $result;
 	}
@@ -1012,7 +1013,7 @@ class DVUHManagementLib
 		foreach ($requiredFields as $requiredField)
 		{
 			if (!isset($$requiredField))
-				return error("Data missing: ".ucfirst($requiredField));
+				return error("Daten fehlen: ".ucfirst($requiredField));
 		}
 
 		$no_pruefungen_info = "Keine Pruefungsaktivitäten vorhanden";
@@ -1047,7 +1048,7 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$infos[] = 'Pruefungsaktivitätenmeldung successful';
+				$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
 				$result = $this->_getResponseArr(
 					$xmlstr,
 					$infos,
@@ -1104,14 +1105,14 @@ class DVUHManagementLib
 
 				if (!isset($parsedObj->responsecode[0]) || $parsedObj->responsecode[0] != '200')
 				{
-					$errortext = 'Error response from EKZ request.';
+					$errortext = 'Fehlerantwort bei EKZ-Anfrage.';
 					if (isset($parsedObj->responsetext[0]))
 						$errortext .= ' ' . $parsedObj->responsetext[0];
 
 					return error($errortext);
 				}
 
-				$infomsg = "EKZ request executed";
+				$infomsg = "EKZanfrage ausgeführt";
 
 				if (isset($parsedObj->returntext[0]))
 					$infomsg .= ", " . $parsedObj->returntext[0];
@@ -1120,7 +1121,7 @@ class DVUHManagementLib
 					$infomsg .= ", EKZ: " . $parsedObj->ekz[0];
 
 				if (isset($parsedObj->forcierungskey[0]))
-					$infomsg .= ", forcierungskey for requesting new EKZ: " . $parsedObj->forcierungskey[0];
+					$infomsg .= ", Forcierungskey für Anfrage eines neuen EKZ: " . $parsedObj->forcierungskey[0];
 
 				$infos[] = $infomsg;
 
@@ -1133,7 +1134,7 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = error("Error when requesting Ekz");
+			$result = error("Fehler bei EKZ-Anfrage");
 
 		return $result;
 	}
@@ -1159,10 +1160,10 @@ class DVUHManagementLib
 		{
 			$resArr = getData($sendMasterDataResult);
 			$updateMatrResult = $this->_updateMatrikelnummer($person_id, $matrikelnummer, $matr_aktiv);
-			$resArr['infos'][] = 'Stammdaten with Matrikelnr ' . $matrikelnummer . ' successfully sent for person Id ' . $person_id;
+			$resArr['infos'][] = "Stammdaten mit Matrikelnr $matrikelnummer erfolgreich für Person Id $person_id gesendet";
 
 			if (!hasData($updateMatrResult))
-				$result = error("An error occured while updating Matrikelnummer");
+				$result = error("Fehler beim Updaten der Matrikelnummer");
 			else
 			{
 				$matrnr = getData($updateMatrResult)['matr_nr'];
@@ -1170,11 +1171,11 @@ class DVUHManagementLib
 
 				if ($matrnr_aktiv == true)
 				{
-					$resArr['infos'][] = 'Existing Matrikelnr ' . $matrnr . ' assigned to person Id ' . $person_id;
+					$resArr['infos'][] = "Bestehende Matrikelnr $matrnr der Person Id $person_id zugewiesen";
 				}
 				elseif ($matrnr_aktiv == false)
 				{
-					$resArr['infos'][] = 'New Matrikelnr ' . $matrnr . ' preliminary assigned to person Id ' . $person_id;
+					$resArr['infos'][] = "Neue Matrikelnr $matrnr erfolgreich der Person Id $person_id vorläufig zugewiesen";
 				}
 
 				$result = success($resArr);
@@ -1182,7 +1183,7 @@ class DVUHManagementLib
 
 		}
 		else
-			$result = error("An error occurred while sending Stammdaten");
+			$result = error("Fehler beim Senden der Stammdaten");
 
 		return $result;
 	}
@@ -1214,7 +1215,7 @@ class DVUHManagementLib
 		}
 		else
 		{
-			return error("Error while updating Matrikelnummer");
+			return error("Fehler beim Aktualisieren der Matrikelnummer in FHC");
 		}
 	}
 
@@ -1241,7 +1242,7 @@ class DVUHManagementLib
 			$isPaid = getData($paidOtherUniv)[0];
 			if ($isPaid == true)
 			{
-				$alreadyPaidStr = 'Already paid at other university.';
+				$alreadyPaidStr = 'Bereits an anderer Bildungseinrichtung bezahlt.';
 				foreach ($buchungen as $buchung)
 				{
 					if ($buchung->buchungstyp_kurzbz == 'OEH' && $buchung->bezahlt == '0')
@@ -1252,7 +1253,7 @@ class DVUHManagementLib
 						if (isError($nullifyResult))
 							return $nullifyResult;
 
-						$alreadyPaidStr .= ' Buchung nullified.';
+						$alreadyPaidStr .= ' Buchung nullifiziert.';
 					}
 				}
 
@@ -1310,7 +1311,7 @@ class DVUHManagementLib
 					$result = success(array(false));
 			}
 			else
-				$result = error('Error when parsing Kontostand');
+				$result = error('Fehler beim Auslesen des Kontostandes');
 		}
 		else
 			$result = success(array(false));
@@ -1357,10 +1358,10 @@ class DVUHManagementLib
 			if (isError($gegenbuchungNullify))
 				return $gegenbuchungNullify;
 
-			return success("Successfully nullified");
+			return success("Buchung Erfolgreich nullifiziert");
 		}
 		else
-			return error("Error when nullify Buchung");
+			return error("Fehler beim Nullifizieren der Buchung");
 	}
 
 	/**
@@ -1434,7 +1435,7 @@ class DVUHManagementLib
 					$warningsRes = $this->_ci->xmlreaderlib->parseXmlDvuhWarnings($xmlstr);
 
 					if (isError($warningsRes))
-						return error('error when parsing warnings');
+						return error('Fehler beim Auslesen der Warnungen');
 
 					if (hasData($warningsRes))
 					{

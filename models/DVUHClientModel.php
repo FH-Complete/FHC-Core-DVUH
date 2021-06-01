@@ -27,7 +27,7 @@ abstract class DVUHClientModel extends CI_Model
 		if ($this->_url == null || trim($this->_url) == '')
 		{
 			$this->dvuhclientlib->resetToDefault();
-			return error('URL not valid');
+			return error('URL ungültig');
 		}
 
 		// Call the webservice with the given parameters

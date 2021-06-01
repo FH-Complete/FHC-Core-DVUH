@@ -63,7 +63,7 @@ class Ekzanfordern_model extends DVUHClientModel
 					$addrCheck = $this->dvuhsynclib->checkAdresse($addr);
 
 					if (isError($addrCheck))
-						return error("Adresse invalid: " . getError($addrCheck));
+						return error("Adresse ungültig: " . getError($addrCheck));
 
 					if ($adresse->heimatadresse)
 					{
@@ -91,7 +91,7 @@ class Ekzanfordern_model extends DVUHClientModel
 				foreach ($ekzbasisdaten as $idx => $item)
 				{
 					if (!isset($item) || isEmptyString($item))
-						return error('Stammdaten missing: ' . $idx);
+						return error('Stammdaten fehlen: ' . $idx);
 				}
 
 				if (isset($stammdaten->svnr))

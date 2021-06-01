@@ -61,7 +61,7 @@ class Pruefebpk_model extends DVUHClientModel
 	public function getByPersonId($person_id)
 	{
 		if (!isset($person_id))
-			return error("Person Id must be given");
+			return error("Person muss angegeben werden");
 
 		$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id);
 
