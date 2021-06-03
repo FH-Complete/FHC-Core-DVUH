@@ -1038,11 +1038,12 @@ class DVUHSyncLib
 				return error("ZGV Masterdatum vor Geburtsdatum");
 			}
 
+			// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
 			$zugangsvoraussetzung_ma = str_pad($prestudentstatus->zgvmas_code, 2, '0', STR_PAD_LEFT);
 
 			$zugangsberechtigungMA = array(
 				'voraussetzung' => $zugangsvoraussetzung_ma,
-				'datum' => $prestudentstatus->zgvmadatum// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
+				'datum' => $prestudentstatus->zgvmadatum
 			);
 
 			if (!$isAusserordentlich && !$isIncoming)

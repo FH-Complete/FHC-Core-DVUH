@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <matrikelnummernmeldung xmlns="http://www.brz.gv.at/datenverbund-unis">
 	<?php if (isset($ernpmeldung)): ?>
-		<ernpmeldung xmlns="http://www.brz.gv.at/datenverbund-unis">
-			<ausgabedatum><?php echo $ernpmeldung['ausgabedatum']; ?></ausgabedatum>
-			<ausstellBehoerde><?php echo $ernpmeldung['ausstellBehoerde']; ?></ausstellBehoerde>
-			<ausstellland><?php echo $ernpmeldung['ausstellland']; ?></ausstellland>
-			<dokumentnr><?php echo $ernpmeldung['dokumentnr']; ?></dokumentnr>
-			<dokumenttyp><?php echo $ernpmeldung['dokumenttyp']; ?></dokumenttyp>
-		</ernpmeldung>
+	<ernpmeldung xmlns="http://www.brz.gv.at/datenverbund-unis">
+		<ausgabedatum><?php echo $ernpmeldung['ausgabedatum']; ?></ausgabedatum>
+		<ausstellBehoerde><?php echo $ernpmeldung['ausstellBehoerde']; ?></ausstellBehoerde>
+		<ausstellland><?php echo $ernpmeldung['ausstellland']; ?></ausstellland>
+		<dokumentnr><?php echo $ernpmeldung['dokumentnr']; ?></dokumentnr>
+		<dokumenttyp><?php echo $ernpmeldung['dokumenttyp']; ?></dokumenttyp>
+	</ernpmeldung>
 	<?php endif; ?>
 	<personmeldung xmlns="http://www.brz.gv.at/datenverbund-unis">
 		<be><?php echo $personmeldung['be']; ?></be>
