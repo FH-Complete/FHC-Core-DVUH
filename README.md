@@ -3,30 +3,30 @@ Extension to exchange Data between FHComplete and Datenverbund
 
 # Matrikelnummervergabe
 
-GET  0.5/fullstudent.xml			working prototype
-POST 0.5/matrikelkorrektur.xml		not implemented
+GET  0.5/fullstudent.xml			implemented
+POST 0.5/matrikelkorrektur.xml		implemented
 POST 0.5/matrikelmeldung.xml		deprecated
-GET  0.5/matrikelpruefung.xml		working prototype
-POST 0.5/matrikelreservierung.xml	working prototype
-GET 0.5/pruefebpk.xml				not implemented (important)
+GET  0.5/matrikelpruefung.xml		implemented
+POST 0.5/matrikelreservierung.xml	implemented
+GET 0.5/pruefebpk.xml				implemented
 
 # Vollteilnehmer Kern
 
-GET  0.5/feed.xml					not implemented (important)
+GET  0.5/feed.xml					implemented
 GET  0.5/fehler.xml					working prototype
-GET  0.5/kontostaende.xml			working prototype
-GET  0.5/stammdaten.xml				working prototype
-POST 0.5/stammdaten.xml				working prototype
-GET  0.5/studium.xml				working prototype
-POST 0.5/studium.xml				failure prototype
-POST 0.5/zahlung.xml				working prototype
+GET  0.5/kontostaende.xml			implemented
+GET  0.5/stammdaten.xml				implemented
+POST 0.5/stammdaten.xml				implemented
+GET  0.5/studium.xml				implemented
+POST 0.5/studium.xml				implemented
+POST 0.5/zahlung.xml				implemented
 
 # Vollteilnehmer erweitert
 
 GET  0.5/abschluesse.xml			not implemented (check if needed)
 POST 0.5/abschluesse.xml			not implemented (check if needed)
 GET  0.5/bpk.xml					not implemented (important)
-POST 0.5/ekzanfordern.xml			not implemented (important)
+POST 0.5/ekzanfordern.xml			implemented (important)
 HEAD 0.5/feed.xml					not implemented (important)
 GET  0.5/feed.xml/{be}				experimental
 GET  0.5/nachweise.xml				not implemented (check if needed)
