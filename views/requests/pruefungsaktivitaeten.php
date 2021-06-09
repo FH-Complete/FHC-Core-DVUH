@@ -18,7 +18,7 @@
 						<?php
 							if (isset($pruefung['ectsGesamt']) && $pruefung['ectsGesamt'] != '')
 							{
-								echo "\t\t\t\t\ŧ\t<ectsGesamt>".$pruefung['ectsGesamt']."</ectsGesamt>";
+								echo "\t\t\t\t\t\t<ectsGesamt>".$pruefung['ectsGesamt']."</ectsGesamt>";
 							}
 						?>
 						<fach>1</fach>

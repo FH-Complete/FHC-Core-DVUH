@@ -68,7 +68,7 @@ class DVUHSyncLib
 				$addrCheck = $this->checkAdresse($addr);
 
 				if (isError($addrCheck))
-					return error("Adresse invalid: " . getError($addrCheck));
+					return error("Adresse ungültig: " . getError($addrCheck));
 
 				if ($adresse->zustelladresse)
 				{
@@ -105,6 +105,9 @@ class DVUHSyncLib
 			{
 				if ($kontakt->kontakttyp == 'email')
 				{
+					if (!$this->_validateXmlTextValue($kontakt->kontakt))
+						return error('Email enthält Sonderzeichen');
+
 					$knt = array();
 					$knt['emailadresse'] = $kontakt->kontakt;
 					$knt['emailtyp'] = 'PR';
@@ -165,6 +168,16 @@ class DVUHSyncLib
 
 			if (isset($stammdaten->bpk))
 				$studentinfo['bpk'] = $stammdaten->bpk;
+
+			$textValues = array('vorname', 'nachname', 'akadgrad', 'akadgradnach', 'bpk', 'titelpre', 'titelpost', 'ersatzkennzeichen');
+
+			foreach ($textValues as $textValue)
+			{
+				if (isset($studentinfo[$textValue]) && !$this->_validateXmlTextValue($studentinfo[$textValue]))
+				{
+					return error("$textValue enthält ungültige Sonderzeichen");
+				}
+			}
 
 			return success(
 				array(
@@ -244,7 +257,7 @@ class DVUHSyncLib
 				$params[] = $prestudent_id;
 			}
 
-			// newest prestudentstatus, but no future prestudentstati
+			// newest prestudentstatus, but no future prestudentstatus
 			$qry .= ' ORDER BY prestudent_id, (CASE WHEN pss.datum < NOW() THEN 1 ELSE 2 END), pss.datum DESC, pss.insertamum DESC';
 
 			$prestudentstatusesResult = $this->_dbModel->execReadOnlyQuery($qry, $params);
@@ -577,17 +590,17 @@ class DVUHSyncLib
 	{
 		$result = success(true);
 
-		if (!isset($addr['ort']) || isEmptyString($addr['ort']))
-			$result = error('Ort missing');
+		if (!isset($addr['ort']) || isEmptyString($addr['ort']) || !$this->_validateXmlTextValue($addr['ort']))
+			$result = error('Ort fehlt oder enthält Sonderzeichen');
 
-		if (!isset($addr['plz']) || isEmptyString($addr['plz']))
-			$result = error('Plz missing');
+		if (!isset($addr['plz']) || isEmptyString($addr['plz']) || !$this->_validateXmlTextValue($addr['plz']))
+			$result = error('Plz fehlt oder enthält Sonderzeichen');
 
-		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']))
-			$result = error('Strasse missing');
+		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']) || !$this->_validateXmlTextValue($addr['strasse']))
+			$result = error('Strasse fehlt oder enthält Sonderzeichen');
 
 		if (!isset($addr['staat']) || isEmptyString($addr['staat']))
-			$result = error('Nation missing');
+			$result = error('Nation fehlt');
 
 		return $result;
 	}
@@ -1053,6 +1066,15 @@ class DVUHSyncLib
 		}
 
 		return success($zugangsberechtigungMA);
+	}
+
+	/** Checks a string for XML special chars.
+	 * @param string $textValue
+	 * @return bool true if textValue contains no special chars, false otherwise
+	 */
+	private function _validateXmlTextValue($textValue)
+	{
+		return is_string($textValue) && !strpos($textValue, '<') && !strpos($textValue, '>') && !strpos($textValue, '&');
 	}
 
 	/**

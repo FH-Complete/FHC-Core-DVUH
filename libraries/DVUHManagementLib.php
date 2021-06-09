@@ -1143,7 +1143,7 @@ class DVUHManagementLib
 	// Private methods
 
 	/**
-	 * Saves masterdata with Matrikelnr in DVUH, sets Matrikelnr in DVUH.
+	 * Saves masterdata with Matrikelnr in DVUH, sets Matrikelnr in FHC.
 	 * @param int $person_id
 	 * @param string $studiensemester_kurzbz semester for which stammdaten are sent
 	 * @param string $matrikelnummer
