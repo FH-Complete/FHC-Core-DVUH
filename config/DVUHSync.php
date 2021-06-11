@@ -8,11 +8,11 @@ $config['fhc_dvuh_bisdatum_ss'] = array('month' => '03', 'day' => '15');*/
 
 // if set, only students assigned (determined by Studiengang) to this oe or a child oe are sent to DVUH
 $config['fhc_dvuh_status_kurzbz'] = array(
-	JQMSchedulerLib::JOB_TYPE_REQUEST_MATRIKELNUMMER => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
-	JQMSchedulerLib::JOB_TYPE_SEND_CHARGE => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
-	JQMSchedulerLib::JOB_TYPE_SEND_PAYMENT => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
-	JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA => array('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
-	JQMSchedulerLib::JOB_TYPE_REQUEST_BPK => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
+	'DVUHRequestMatrikelnummer' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
+	'DVUHSendCharge' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
+	'DVUHSendPayment' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
+	'DVUHSendStudyData' => array('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
+	'DVUHRequestBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
 );
 
 // buchungstypen to be considered when sending payments to DVUH
