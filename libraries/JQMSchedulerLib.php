@@ -8,7 +8,9 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 class JQMSchedulerLib
 {
 	private $_ci; // Code igniter instance
-	private $_startdatum; // lower threshold date for getting data
+	private $_status_kurzbz = array(); // contains prestudentstatus to retrieve for each jobtype
+	private $_buchungstypen = array(); // contains Buchungstypen for which Charge should be sent
+	private $_oe_kurzbz = array(); // oe_kurzbz - only students assigned to one of descendants of this oe are retrieved
 
 	const JOB_TYPE_REQUEST_MATRIKELNUMMER = 'DVUHRequestMatrikelnummer';
 	const JOB_TYPE_SEND_CHARGE = 'DVUHSendCharge';
@@ -23,8 +25,32 @@ class JQMSchedulerLib
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
 
-		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync'); // load sync config
 
+		// set config items
+		$this->_status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
+		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
+		$this->_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
+		$oe_kurzbz = $this->_ci->config->item('fhc_dvuh_oe_kurzbz');
+
+		// get children if oe_kurzbz is set in config
+		if (!isEmptyString($oe_kurzbz))
+		{
+			$this->_ci->load->model('organisation/Organisationseinheit_model', 'OrganisationseinheitModel');
+
+			$childrenRes = $this->_ci->OrganisationseinheitModel->getChilds($oe_kurzbz);
+
+			if (hasData($childrenRes))
+			{
+				$children = getData($childrenRes);
+				foreach ($children as $child)
+				{
+					$this->_oe_kurzbz[] = $child->oe_kurzbz;
+				}
+			}
+		}
+
+		// load models
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 	}
 
@@ -40,6 +66,7 @@ class JQMSchedulerLib
 	{
 		$jobInput = null;
 		$result = null;
+		$params = array($studiensemester_kurzbz);
 
 		// get students with no Matrikelnr
 		$qry = "SELECT DISTINCT person_id, pss.studiensemester_kurzbz
@@ -50,14 +77,25 @@ class JQMSchedulerLib
 					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 				WHERE ps.bismelden = true
 					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
 					AND pers.matr_nr IS NULL
 					AND pss.studiensemester_kurzbz = ?";
+
+		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_MATRIKELNUMMER]))
+		{
+			$qry .= " AND pss.status_kurzbz IN ?";
+			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_MATRIKELNUMMER];
+		}
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
 
 		$dbModel = new DB_Model();
 
 		$maToSyncResult = $dbModel->execReadOnlyQuery(
-			$qry, array($studiensemester_kurzbz)
+			$qry, $params
 		);
 
 		// If error occurred while retrieving students from database then return the error
@@ -83,6 +121,7 @@ class JQMSchedulerLib
 	{
 		$jobInput = null;
 		$result = null;
+		$params = array($studiensemester_kurzbz);
 
 		// get students with no BPK
 		$qry = "SELECT
@@ -91,6 +130,7 @@ class JQMSchedulerLib
 					public.tbl_person
 					JOIN public.tbl_benutzer USING(person_id)
 					JOIN public.tbl_student ON(tbl_student.student_uid=tbl_benutzer.uid)
+					LEFT JOIN public.tbl_studiengang stg USING (studiengang_kz)
 				WHERE
 					public.tbl_benutzer.aktiv = TRUE
 					AND tbl_person.matr_nr IS NOT NULL
@@ -100,14 +140,26 @@ class JQMSchedulerLib
 					    		JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 								WHERE person_id=tbl_person.person_id
 								AND bismelden=TRUE
-								AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
-					    		AND pss.studiensemester_kurzbz = ?
-					    		LIMIT 1)";
+								AND pss.studiensemester_kurzbz = ?";
+
+		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK]))
+		{
+			$qry .= " AND pss.status_kurzbz IN ?";
+			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK];
+		}
+
+		$qry .=		" LIMIT 1)";
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
 
 		$dbModel = new DB_Model();
 
 		$maToSyncResult = $dbModel->execReadOnlyQuery(
-			$qry, array($studiensemester_kurzbz)
+			$qry, $params
 		);
 
 		// If error occurred while retrieving students from database then return the error
@@ -131,13 +183,10 @@ class JQMSchedulerLib
 	 */
 	public function sendCharge($studiensemester_kurzbz)
 	{
-		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
-		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
-
 		$jobInput = null;
 		$result = null;
 
-		$params = array($all_buchungstypen, $studiensemester_kurzbz);
+		$params = array($this->_buchungstypen, $studiensemester_kurzbz);
 
 		// get students not sent to DVUH yet
 		$qry = "SELECT DISTINCT persons.person_id, persons.studiensemester_kurzbz FROM (
@@ -156,9 +205,21 @@ class JQMSchedulerLib
 						LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
 						WHERE ps.bismelden = true
 						AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-						AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
-						AND pss.studiensemester_kurzbz = ?
-						GROUP BY pers.person_id, pss.studiensemester_kurzbz, kto.buchungsnr, kto_insertamum, kto_updateamum
+						AND pss.studiensemester_kurzbz = ?";
+
+		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_CHARGE]))
+		{
+			$qry .= " AND pss.status_kurzbz IN ?";
+			$params[] = $this->_status_kurzbz[self::JOB_TYPE_SEND_CHARGE];
+		}
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
+
+		$qry .= 		" GROUP BY pers.person_id, pss.studiensemester_kurzbz, kto.buchungsnr, kto_insertamum, kto_updateamum
 				) persons
 				LEFT JOIN (
 					SELECT person_id, MAX(updateamum) AS updateamum, MAX(insertamum) AS insertamum
@@ -207,11 +268,9 @@ class JQMSchedulerLib
 	 */
 	public function sendPayment($studiensemester_kurzbz)
 	{
-		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
-		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
-
 		$jobInput = null;
 		$result = null;
+		$params = array($this->_buchungstypen, $studiensemester_kurzbz);
 
 		// get students with outstanding Buchungen not sent to DVUH yet
 		$qry = "SELECT DISTINCT person_id, kto.studiensemester_kurzbz
@@ -223,7 +282,6 @@ class JQMSchedulerLib
 					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 				WHERE ps.bismelden = true
 					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
-					AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 					AND kto.buchungstyp_kurzbz IN ?
 					AND kto.buchungsnr_verweis IS NOT NULL
 					AND kto.betrag > 0
@@ -234,11 +292,23 @@ class JQMSchedulerLib
 					AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
 					AND kto.studiensemester_kurzbz = ?";
 
+		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_PAYMENT]))
+		{
+			$qry .= " AND pss.status_kurzbz IN ?";
+			$params[] = $this->_status_kurzbz[self::JOB_TYPE_SEND_PAYMENT];
+		}
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
+
 		$dbModel = new DB_Model();
 
 		$maToSyncResult = $dbModel->execReadOnlyQuery(
 			$qry,
-			array($all_buchungstypen, $studiensemester_kurzbz)
+			$params
 		);
 
 		// If error occurred while retrieving students from database then return the error
@@ -287,7 +357,6 @@ class JQMSchedulerLib
 						 WHERE ps.bismelden = true
 						   AND stg.studiengang_kz < 10000
 						   AND stg.studiengang_kz <> 0
-						   AND pss.status_kurzbz IN ('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 						   AND pss.studiensemester_kurzbz = ?
 						   AND (EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen zlg /* charge sent */
 										JOIN public.tbl_konto kto USING (buchungsnr)
@@ -297,8 +366,21 @@ class JQMSchedulerLib
 										LIMIT 1)
 						            /*exception: Abbrecher, Unterbrecher might not need to pay*/
 						         OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Absolvent')
-						   )
-						   GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
+						   )";
+
+		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_STUDY_DATA]))
+		{
+			$qry .= " AND pss.status_kurzbz IN ?";
+			$params[] = $this->_status_kurzbz[self::JOB_TYPE_SEND_STUDY_DATA];
+		}
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
+
+		$qry .= 		" GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
 							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum
 					 ) prestudents
 					WHERE max_studiumdaten_meldedatum IS NULL /* either not sent to DVUH or data modified since last send*/
