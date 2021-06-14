@@ -3,7 +3,7 @@
 require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
 
 /**
- * Read and Update Student Data
+ * Read and save Student Study Data
  */
 class Studium_model extends DVUHClientModel
 {

@@ -3,7 +3,7 @@
 require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
 
 /**
- * Read and save Student Data
+ * Manage Matrikelmeldung, used for ERNP Meldung
  */
 class Matrikelmeldung_model extends DVUHClientModel
 {

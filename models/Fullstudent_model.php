@@ -2,7 +2,7 @@
 
 require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
 /**
- * Get Informations about Students
+ * Get Information about Students
  */
 class Fullstudent_model extends DVUHClientModel
 {

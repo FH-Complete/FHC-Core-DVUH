@@ -3,7 +3,7 @@
 require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
 
 /**
- * Manage Payments
+ * Correct the Matrikelnummer
  */
 class Matrikelkorrektur_model extends DVUHClientModel
 {

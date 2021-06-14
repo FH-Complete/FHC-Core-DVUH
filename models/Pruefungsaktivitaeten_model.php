@@ -3,7 +3,7 @@
 require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
 
 /**
- * get Ersatzkennzeichen for Students
+ * manage Pruefungsaktivitäten for Students
  */
 class Pruefungsaktivitaeten_model extends DVUHClientModel
 {
@@ -59,7 +59,8 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 			$result = error('personID nicht gesetzt');
 		else
 		{
-			$pruefungDataResult = $this->ZeugnisnoteModel->getByPerson($person_id, $studiensemester);
+			// get Noten which are aktiv, offiziell, positiv (but both lehre and non-lehre)
+			$pruefungDataResult = $this->ZeugnisnoteModel->getByPerson($person_id, $studiensemester, true, null, true, true);
 			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
 			if (isError($pruefungDataResult))
@@ -80,7 +81,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 					$studiumpruefungen[$prfg->prestudent_id]['studiensemester'] = $dvuh_studiensemester;
 					$studiumpruefungen[$prfg->prestudent_id]['studiengang'] = $dvuh_stgkz;
 					$studiumpruefungen[$prfg->prestudent_id]['pruefungen'][] = array(
-						'ects' => $prfg->ects
+						'ects' => number_format($prfg->ects, 1)
 					);
 				}
 
