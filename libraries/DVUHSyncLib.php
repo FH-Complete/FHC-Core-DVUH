@@ -239,8 +239,8 @@ class DVUHSyncLib
 				  LEFT JOIN lehre.tbl_studienplan USING(studienplan_id)
 				  LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 				  LEFT JOIN bis.tbl_lgartcode ON (stg.lgartcode = tbl_lgartcode.lgartcode)
-				 WHERE ps.bismelden = true
-				   AND (stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0) 
+				 WHERE ps.bismelden = TRUE
+				   AND stg.melderelevant = TRUE
 				   AND ps.person_id = ? 
 				   AND pss.studiensemester_kurzbz = ?
 				   AND pss.status_kurzbz IN ?";
