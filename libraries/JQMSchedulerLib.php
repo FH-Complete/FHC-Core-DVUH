@@ -75,8 +75,8 @@ class JQMSchedulerLib
 					JOIN public.tbl_student USING(prestudent_id)
 					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
 					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-				WHERE ps.bismelden = true
-					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
+				WHERE ps.bismelden = TRUE
+					AND stg.melderelevant = TRUE
 					AND pers.matr_nr IS NULL
 					AND pss.studiensemester_kurzbz = ?";
 
@@ -135,11 +135,11 @@ class JQMSchedulerLib
 					public.tbl_benutzer.aktiv = TRUE
 					AND tbl_person.matr_nr IS NOT NULL
 					AND (tbl_person.bpk IS NULL OR tbl_person.bpk = '')
-					AND studiengang_kz < 10000 AND studiengang_kz <> 0
+					AND stg.melderelevant = TRUE
 					AND EXISTS(SELECT 1 FROM public.tbl_prestudent
 					    		JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 								WHERE person_id=tbl_person.person_id
-								AND bismelden=TRUE
+								AND bismelden = TRUE
 								AND pss.studiensemester_kurzbz = ?";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK]))
@@ -203,8 +203,8 @@ class JQMSchedulerLib
 														AND kto.betrag < 0
 						LEFT JOIN sync.tbl_dvuh_stammdaten stammd ON pss.studiensemester_kurzbz = stammd.studiensemester_kurzbz AND pers.person_id = stammd.person_id
 						LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
-						WHERE ps.bismelden = true
-						AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
+						WHERE ps.bismelden = TRUE
+						AND stg.melderelevant = TRUE
 						AND pss.studiensemester_kurzbz = ?";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_CHARGE]))
@@ -281,7 +281,7 @@ class JQMSchedulerLib
 					JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
 					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 				WHERE ps.bismelden = true
-					AND stg.studiengang_kz < 10000 AND stg.studiengang_kz <> 0
+					AND stg.melderelevant = TRUE
 					AND kto.buchungstyp_kurzbz IN ?
 					AND kto.buchungsnr_verweis IS NOT NULL
 					AND kto.betrag > 0
@@ -354,9 +354,8 @@ class JQMSchedulerLib
 								  LEFT JOIN sync.tbl_dvuh_studiumdaten studd
 											ON pss.studiensemester_kurzbz = studd.studiensemester_kurzbz AND
 											   ps.prestudent_id = studd.prestudent_id
-						 WHERE ps.bismelden = true
-						   AND stg.studiengang_kz < 10000
-						   AND stg.studiengang_kz <> 0
+						 WHERE ps.bismelden = TRUE
+						   AND stg.melderelevant = TRUE
 						   AND pss.studiensemester_kurzbz = ?
 						   AND (EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen zlg /* charge sent */
 										JOIN public.tbl_konto kto USING (buchungsnr)
