@@ -102,7 +102,6 @@ class FeedReaderLib
 							$feedentry->contentXml = $doc->saveXML($child);
 							$this->_getFeedContentString($child, $singleContentStr);
 							$feedentry->contentHtml = $singleContentStr;
-
 						}
 						elseif ($child->tagName == 'link' && !$hasContent)
 						{

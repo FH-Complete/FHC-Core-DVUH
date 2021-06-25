@@ -215,6 +215,7 @@ class DVUHManagementLib
 		$infos = array();
 		$warnings = array();
 
+		$valutadatum_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatum');
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
@@ -224,8 +225,8 @@ class DVUHManagementLib
 
 		// get Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
-								SELECT person_id, studiengang_kz, buchungsdatum, mahnspanne, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
-								       studiensemester_kurzbz, buchungstext, TO_CHAR(buchungsdatum + (mahnspanne::text || ' days')::INTERVAL, 'yyyy-mm-dd') as valutadatum,
+								SELECT person_id, studiengang_kz, buchungsdatum, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
+								       studiensemester_kurzbz, buchungstext, buchungsdatum,
 										(SELECT count(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
 								  					WHERE kto.person_id = tbl_konto.person_id
 								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr) AS bezahlt
@@ -329,9 +330,10 @@ class DVUHManagementLib
 						$vorschreibung['sonderbeitrag'] = 0;
 
 					$vorschreibung['sonderbeitrag'] += (float) $versicherungBeitragAmount;
-					$vorschreibung['valutadatum'] = $buchung->valutadatum;
-					$vorschreibung['valutadatumnachfrist'] =
-						date('Y-m-d', strtotime($buchung->valutadatum . ' + ' . $valutadatumnachfrist_days . ' days'));
+					$valutadatum = date('Y-m-d', strtotime($buchung->buchungsdatum . ' + ' . $valutadatum_days . ' days'));
+					$vorschreibung['valutadatum'] = $valutadatum;
+					$vorschreibung['valutadatumnachfrist'] = // Nachfrist is also taken into account by DVUH for Bezahlstatus
+						date('Y-m-d', strtotime($valutadatum . ' + ' . $valutadatumnachfrist_days . ' days'));
 					$vorschreibung['origoehbuchung'][] = $buchung;
 
 					// warning if amount in Buchung after Versicherung deduction not equal to amount in oehbeitrag table

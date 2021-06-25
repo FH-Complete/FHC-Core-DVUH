@@ -19,6 +19,7 @@ class DVUHSyncLib
 
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->model('person/benutzer_model', 'BenutzerModel');
+		$this->_ci->load->model('crm/prestudent_model', 'PrestudentModel');
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 		$this->_ci->load->model('organisation/Studienplan_model', 'StudienplanModel');
 		$this->_ci->load->model('codex/Orgform_model', 'OrgformModel');
@@ -264,8 +265,6 @@ class DVUHSyncLib
 
 			if (hasData($prestudentstatusesResult))
 			{
-				$not_foerderrelevant = $this->_ci->config->item('fhc_dvuh_sync_not_foerderrelevant');
-
 				$studiengaenge = array();
 				$lehrgaenge = array();
 				$prestudent_ids = array();
@@ -363,7 +362,7 @@ class DVUHSyncLib
 					// standortcode
 					if (!$isAusserordentlich)
 					{
-						$standortcodeResult = $this->_getStandort($prestudent_id, $studiengang_kz);
+						$standortcodeResult = $this->_getStandort($prestudent_id);
 
 						if (isError($standortcodeResult))
 							return $standortcodeResult;
@@ -449,14 +448,25 @@ class DVUHSyncLib
 							$mobilitaet = getData($mobilitaetResult);
 						}
 
-						// bmffoerderrelevant - students marked in configarray, incomingsm, ausserordentliche, gemeinsame Studien externe not foerderrelevant
-						if (in_array($prestudent_id, $not_foerderrelevant) || $isIncoming || $isAusserordentlich || $isExtern)
-							$bmffoerderrelevant = 'N';
-						else
-							$bmffoerderrelevant = 'J';
+						// bmffoerderrelevant
+						$bmffoerderrelevant = null;
+						$bmffoerderrelevantResult = $this->_ci->PrestudentModel->getFoerderrelevant($prestudent_id);
+
+						if (isError($bmffoerderrelevantResult))
+							return $bmffoerderrelevantResult;
+						if (hasData($bmffoerderrelevantResult))
+						{
+							$bmffoerderrelevant = getData($bmffoerderrelevantResult)[0]->foerderrelevant;
+
+							if ($bmffoerderrelevant === false)
+								$bmffoerderrelevant = 'N';
+							else
+								$bmffoerderrelevant = 'J';
+						}
 
 						if (!$isAusserordentlich)
 						{
+							// orgform code
 							$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
 
 							if (isError($orgform_code))
@@ -926,26 +936,22 @@ class DVUHSyncLib
 	/**
 	 * Gets standort for a prestudent in a Studiengang.
 	 * @param int $prestudent_id
-	 * @param int $studiengang_kz
 	 * @return object with standortcode
 	 */
-	private function _getStandort($prestudent_id, $studiengang_kz)
+	private function _getStandort($prestudent_id)
 	{
-		$student_standort = $this->_ci->config->item('fhc_dvuh_sync_student_standort');
-		$standortcode_wien = $this->_ci->config->item('fhc_dvuh_sync_standortcode_wien');
-		$stg_standort_array = $this->_ci->config->item('fhc_dvuh_sync_stg_standortcode');
+		$standortcode = null;
+		$standortRes = $this->_ci->PrestudentModel->getStandortCode($prestudent_id);
 
-		// if standort specified in config, take it, otherwise fallback depending on studiengang location
-		if (isset($student_standort[$prestudent_id]))
-			$standortcode = $student_standort[$prestudent_id];
-		else
+		if (isError($standortRes))
+			return $standortRes;
+
+		if (hasData($standortRes))
 		{
-			$standortcode = $standortcode_wien;
-			if (isset($stg_standort_array[$studiengang_kz]))
-				$standortcode = $stg_standort_array[$studiengang_kz];
+			$standortcode = getData($standortRes)[0]->standort_code;
+			if (isset($standortcode))
+				$standortcode = str_pad($standortcode, 3, '0', STR_PAD_LEFT);
 		}
-
-		$standortcode = str_pad($standortcode, 3, '0', STR_PAD_LEFT);
 
 		return success($standortcode);
 	}
