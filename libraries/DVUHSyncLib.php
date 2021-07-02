@@ -17,6 +17,8 @@ class DVUHSyncLib
 		$this->_ci =& get_instance(); // get code igniter instance
 		$this->_dbModel = new DB_Model();
 
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
+
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->model('person/benutzer_model', 'BenutzerModel');
 		$this->_ci->load->model('crm/prestudent_model', 'PrestudentModel');
@@ -216,9 +218,10 @@ class DVUHSyncLib
 
 			$semester = $this->convertSemesterToFHC($semester);
 
-			// Meldung pro Student, Studium und Semester
-			$active_status = array('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent');
+			$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
+			$active_status = $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA];
 
+			// Meldung pro Student, Studium und Semester
 			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
 				       stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
 				       pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester,

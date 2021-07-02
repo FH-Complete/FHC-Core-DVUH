@@ -344,7 +344,7 @@ class JQMSchedulerLib
 						 SELECT ps.prestudent_id, pss.studiensemester_kurzbz,
 								ps.insertamum AS ps_insertamum, pss.insertamum AS pss_insertamum, mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum, 
 								ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum, mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
-								max(studd.meldedatum) AS max_studiumdaten_meldedatum
+								max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum
 						 FROM public.tbl_prestudent ps
 								  JOIN public.tbl_student using (prestudent_id)
 								  JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id
@@ -364,7 +364,7 @@ class JQMSchedulerLib
 										AND zlg.betrag <= 0
 										LIMIT 1)
 						            /*exception: Abbrecher, Unterbrecher might not need to pay*/
-						         OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Absolvent')
+								OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Absolvent')
 						   )";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_STUDY_DATA]))
@@ -380,9 +380,10 @@ class JQMSchedulerLib
 		}
 
 		$qry .= 		" GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
-							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum
+							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum, pss.datum
 					 ) prestudents
 					WHERE max_studiumdaten_meldedatum IS NULL /* either not sent to DVUH or data modified since last send*/
+					OR prestudent_status_datum = NOW() /* if prestudent status gets active today */
 					OR pss_insertamum >= max_studiumdaten_meldedatum OR ps_insertamum >= max_studiumdaten_meldedatum
 					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
 					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum

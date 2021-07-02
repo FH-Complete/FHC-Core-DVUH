@@ -9,7 +9,7 @@ class XMLReaderLib
 	const ERRORLIST_TAG = 'fehlerliste';
 
 	private $_error_categories = array('Z', 'P', 'Y');
-	private $_warning_categories = array('A', 'B');
+	private $_warning_categories = array('A', 'B', 'E');
 
 	/**
 	 * Parses xml, finds given parameters in xml by provided names and returns the values.

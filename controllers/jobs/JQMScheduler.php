@@ -150,7 +150,7 @@ class JQMScheduler extends JQW_Controller
 			if (isError($addNewJobResult)) $this->logError(getError($addNewJobResult));
 		}
 
-		$this->logInfo('End job queue scheduler FHC-Core-DVUH->sendCharge');
+		$this->logInfo('End job queue scheduler FHC-Core-DVUH->sendStudyData');
 	}
 
 	/**

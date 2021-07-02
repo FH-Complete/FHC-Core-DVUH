@@ -311,7 +311,7 @@ class DVUHManagementLib
 					}
 					else
 					{
-						return error("Keine Höhe des Öhbeiträgs für Studiensemester $studiensemester_kurzbz spezifiziert, Buchung " . $buchung->buchungsnr);
+						return error("Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester $studiensemester_kurzbz spezifiziert, Buchung " . $buchung->buchungsnr);
 					}
 
 					$dvuh_buchungstyp = 'oehbeitrag';
