@@ -6,7 +6,7 @@ $config['fhc_dvuh_log_infos'] = false;
 /*$config['fhc_dvuh_bisdatum_ws'] = array('month' => '11', 'day' => '15');
 $config['fhc_dvuh_bisdatum_ss'] = array('month' => '03', 'day' => '15');*/
 
-// if set, only students assigned (determined by Studiengang) to this oe or a child oe are sent to DVUH
+// Only students with given status_kurzbz (defined for each job) are sent to DVUH
 $config['fhc_dvuh_status_kurzbz'] = array(
 	'DVUHRequestMatrikelnummer' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHSendCharge' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
