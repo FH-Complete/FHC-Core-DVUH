@@ -8,8 +8,8 @@ class XMLReaderLib
 	const DVUH_NAMESPACE = 'http://www.brz.gv.at/datenverbund-unis';
 	const ERRORLIST_TAG = 'fehlerliste';
 
-	private $_error_categories = array('Z', 'P', 'Y');
-	private $_warning_categories = array('A', 'B', 'E');
+	private $_error_categories = array('E', 'P', 'Y', 'Z');
+	private $_warning_categories = array('A', 'B');
 
 	/**
 	 * Parses xml, finds given parameters in xml by provided names and returns the values.

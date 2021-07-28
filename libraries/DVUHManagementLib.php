@@ -713,7 +713,10 @@ class DVUHManagementLib
 			return $this->_getResponseArr(getData($postData));
 		}
 
-		$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
+		if (isset($prestudent_id))
+			$studiumResult = $this->_ci->StudiumModel->put($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
+		else
+			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
 
 		if (isError($studiumResult))
 			$result = $studiumResult;

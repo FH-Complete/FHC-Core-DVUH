@@ -160,7 +160,9 @@ class DVUHClientLib
 				break;
 
 			case 'PUT':
-				curl_setopt($curl, CURLOPT_PUT, true);
+				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
+				if (!is_null($postData))
+					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 				break;
 
 			case 'HEAD':

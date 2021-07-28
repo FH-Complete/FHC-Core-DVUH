@@ -30,7 +30,7 @@ class DVUHAuthLib
 	 */
 	public function getToken()
 	{
-		if($this->_tokenIsExpired())
+		if ($this->_tokenIsExpired())
 		{
 			$this->_authenticate();
 		}

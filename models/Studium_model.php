@@ -63,6 +63,18 @@ class Studium_model extends DVUHClientModel
 		return $result;
 	}
 
+	public function put($be, $person_id, $semester, $prestudent_id = null)
+	{
+		$postData = $this->retrievePostData($be, $person_id, $semester, $prestudent_id);
+
+		if (isError($postData))
+			$result = $postData;
+		else
+			$result = $this->_call('PUT', null, getData($postData));
+
+		return $result;
+	}
+
 	public function retrievePostData($be, $person_id, $semester, $prestudent_id)
 	{
 		$studiumDataResult = $this->dvuhsynclib->getStudyData($person_id, $semester, $prestudent_id);
