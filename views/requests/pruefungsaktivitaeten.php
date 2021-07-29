@@ -10,15 +10,14 @@
 				<be><?php echo $be ?></be>
 				<semester><?php echo $studiumpruefung['studiensemester'] ?></semester>
 			</studierendenkey>
-			<?php if (isset($studiumpruefung['pruefungen'])):?>
+			<?php if (isset($studiumpruefung['ects'])):?>
 				<pruefungen>
-				<?php foreach ($studiumpruefung['pruefungen'] as $pruefung): ?>
 					<pruefung>
-						<ects bezug="gesamt"><?php echo $pruefung['ects'] ?></ects>
+						<ects bezug="gesamt"><?php echo $studiumpruefung['ects'] ?></ects>
 						<?php
-							if (isset($pruefung['ectsGesamt']) && $pruefung['ectsGesamt'] != '')
+							if (isset($studiumpruefung['ectsGesamt']) && $studiumpruefung['ectsGesamt'] != '')
 							{
-								echo "\t\t\t\t\t\t<ectsGesamt>".$pruefung['ectsGesamt']."</ectsGesamt>";
+								echo "\t\t\t\t\t\t<ectsGesamt>".$studiumpruefung['ectsGesamt']."</ectsGesamt>";
 							}
 						?>
 						<fach>1</fach>
@@ -26,7 +25,6 @@
 						<semesterstundenpositiv>0</semesterstundenpositiv>
 						<semesterzahl>1</semesterzahl>
 					</pruefung>
-				<?php endforeach; ?>
 				</pruefungen>
 			<?php endif; ?>
 		</studiumpruefung>

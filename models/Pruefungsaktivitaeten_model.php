@@ -59,30 +59,33 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 			$result = error('personID nicht gesetzt');
 		else
 		{
-			// get Noten which are aktiv, offiziell, positiv (but both lehre and non-lehre)
-			$pruefungDataResult = $this->ZeugnisnoteModel->getByPerson($person_id, $studiensemester, true, null, true, true);
 			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
-			if (isError($pruefungDataResult))
-				$result = $pruefungDataResult;
-			elseif (hasData($pruefungDataResult))
+			// get ects sums of Noten which are aktiv, offiziell, positiv (but both lehre and non-lehre)
+			$ectsSumsResult = $this->ZeugnisnoteModel->getEctsSumsByPerson($person_id, $studiensemester, true, null, true, true);
+
+			if (isError($ectsSumsResult))
+				$result = $ectsSumsResult;
+			elseif (hasData($ectsSumsResult))
 			{
 				$studiumpruefungen = array();
 
-				$pruefungData = getData($pruefungDataResult);
+				$ectsSumsData = getData($ectsSumsResult);
 
-				foreach ($pruefungData as $prfg)
+				foreach ($ectsSumsData as $ectsSum)
 				{
-					// studiengang kz
-					$erhalter_kz = str_pad($prfg->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $prfg->studiengang_kz), 4, '0', STR_PAD_LEFT);
+					// only send Pruefungsaktivitaeten if there is at least one Note
+					if ($ectsSum->summe_ects == 0)
+						continue;
 
-					$studiumpruefungen[$prfg->prestudent_id]['matrikelnummer'] = $prfg->matr_nr;
-					$studiumpruefungen[$prfg->prestudent_id]['studiensemester'] = $dvuh_studiensemester;
-					$studiumpruefungen[$prfg->prestudent_id]['studiengang'] = $dvuh_stgkz;
-					$studiumpruefungen[$prfg->prestudent_id]['pruefungen'][] = array(
-						'ects' => number_format($prfg->ects, 1)
-					);
+					// studiengang kz
+					$erhalter_kz = str_pad($ectsSum->erhalter_kz, 3, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $ectsSum->studiengang_kz), 4, '0', STR_PAD_LEFT);
+
+					$studiumpruefungen[$ectsSum->prestudent_id]['matrikelnummer'] = $ectsSum->matr_nr;
+					$studiumpruefungen[$ectsSum->prestudent_id]['studiensemester'] = $dvuh_studiensemester;
+					$studiumpruefungen[$ectsSum->prestudent_id]['studiengang'] = $dvuh_stgkz;
+					$studiumpruefungen[$ectsSum->prestudent_id]['ects'] = number_format($ectsSum->summe_ects, 1);
 				}
 
 				$params = array(
