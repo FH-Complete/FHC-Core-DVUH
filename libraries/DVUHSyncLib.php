@@ -139,7 +139,7 @@ class DVUHSyncLib
 
 			$studentinfo = array(
 				'adressen' => $adressen,
-				'beitragsstatus' => 'X', // X gilt nur für FHs, Bei Uni anders
+				'beitragstatus' => 'X', // X gilt nur für FHs, Bei Uni anders
 				'emailliste' => $emailliste,
 				'geburtsdatum' => $stammdaten->gebdatum,
 				'geschlecht' => $geschlecht,

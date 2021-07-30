@@ -102,6 +102,10 @@ class Stammdaten_model extends DVUHClientModel
 					$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
 					$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
 
+					// betragstatus 'O' if no oehbeitrag, otherwese Z error
+					if ($oehbeitrag == '0' && $sonderbeitrag == '0')
+						$params["studentinfo"]["beitragstatus"] = 'O';
+
 					// valutadatum?? Buchungsdatum + Mahnspanne
 					$valutadatum = isset($valutadatum) ? $valutadatum : date_format(date_create(), 'Y-m-d');
 					$valutadatumnachfrist = isset($valutadatumnachfrist) ? $valutadatumnachfrist : date_format(date_create(), 'Y-m-d');

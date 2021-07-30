@@ -35,7 +35,7 @@
 			echo "\t\t\t<akadnach>".$studentinfo['akadgradnach']."</akadnach>\n";
 		}
 ?>
-		<beitragstatus><?php echo $studentinfo['beitragsstatus']; ?></beitragstatus>
+		<beitragstatus><?php echo $studentinfo['beitragstatus']; ?></beitragstatus>
 <?php
 		if(isset($studentinfo['bpk']) && $studentinfo['bpk'] != '')
 		{
