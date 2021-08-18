@@ -27,6 +27,7 @@ class DVUHSyncLib
 		$this->_ci->load->model('codex/Orgform_model', 'OrgformModel');
 		$this->_ci->load->model('codex/Zweck_model', 'ZweckModel');
 		$this->_ci->load->model('codex/Aufenthaltfoerderung_model', 'AufenthaltfoerderungModel');
+		$this->_ci->load->model('education/Zeugnisnote_model', 'ZeugnisnoteModel');
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 	}
@@ -219,7 +220,6 @@ class DVUHSyncLib
 			$semester = $this->convertSemesterToFHC($semester);
 
 			$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
-			$active_status = $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA];
 
 			// Meldung pro Student, Studium und Semester
 			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
@@ -246,14 +246,18 @@ class DVUHSyncLib
 				 WHERE ps.bismelden = TRUE
 				   AND stg.melderelevant = TRUE
 				   AND ps.person_id = ? 
-				   AND pss.studiensemester_kurzbz = ?
-				   AND pss.status_kurzbz IN ?";
+				   AND pss.studiensemester_kurzbz = ?";
 
 			$params = array(
 				$person_id,
-				$semester,
-				$active_status
+				$semester
 			);
+
+			if (isset($status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA]))
+			{
+				$qry .= " AND pss.status_kurzbz IN ?";
+				$params[] = $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA];
+			}
 
 			if (isset($prestudent_id))
 			{
@@ -549,6 +553,92 @@ class DVUHSyncLib
 		}
 
 		return success($resultObj);
+	}
+
+	/**
+	 * Retrieves Prüfungsaktivitäten data for sending to DVUH, for each prestudent of a person.
+	 * Sums up ects angerechnet and erworben.
+	 * @param int $person_id
+	 * @param string $studiensemester
+	 * @return object prestudent ids with ects data or error
+	 */
+	public function getPruefungsaktivitaetenData($person_id, $studiensemester)
+	{
+		$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
+		$note_angerechnet_id = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
+
+		$prestudentEcts = array();
+
+		//get all valid prestudents of person
+		$params = array(
+			$person_id,
+			$studiensemester
+		);
+
+		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, stg.studiengang_kz, stg.erhalter_kz, pers.matr_nr
+					FROM public.tbl_prestudent ps
+					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
+					JOIN public.tbl_person pers USING(person_id)
+					JOIN public.tbl_studiengang stg  USING(studiengang_kz)
+					WHERE person_id = ?
+					AND pss.studiensemester_kurzbz = ?
+					AND ps.bismelden = TRUE
+					AND stg.melderelevant = TRUE";
+
+		if (isset($status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]))
+		{
+			$prstQry .= " AND pss.status_kurzbz IN ?";
+			$params[] = $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN];
+		}
+
+		$prestudentsRes = $this->_dbModel->execReadOnlyQuery(
+			$prstQry,
+			$params
+		);
+
+		if (isError($prestudentsRes))
+			return $prestudentsRes;
+
+		if (hasData($prestudentsRes))
+		{
+			$prestudents = getData($prestudentsRes);
+
+			foreach ($prestudents as $prestudent)
+			{
+				$prestudentEctsObj = new stdClass();
+				$prestudentEctsObj->ects_erworben = 0.0;
+				$prestudentEctsObj->ects_angerechnet = 0.0;
+				$prestudentEctsObj->erhalter_kz = $prestudent->erhalter_kz;
+				$prestudentEctsObj->studiengang_kz = $prestudent->studiengang_kz;
+				$prestudentEctsObj->matr_nr = $prestudent->matr_nr;
+				$prestudentEcts[$prestudent->prestudent_id] = $prestudentEctsObj;
+			}
+		}
+
+		// get ects sums of Noten which are aktiv, offiziell, positiv (but both lehre and non-lehre)
+		$zeugnisNotenResult = $this->_ci->ZeugnisnoteModel->getByPerson($person_id, $studiensemester, true, null, true, true);
+
+		if (isError($zeugnisNotenResult))
+			return $zeugnisNotenResult;
+
+		if (hasData($zeugnisNotenResult))
+		{
+			$zeugnisNoten = getData($zeugnisNotenResult);
+
+			// sum up ects by prestudent, note "angerechnet" separately
+			foreach ($zeugnisNoten as $note)
+			{
+				if (isset($prestudentEcts[$note->prestudent_id]) && isset($note->ects))
+				{
+					if ($note->note == $note_angerechnet_id)
+						$prestudentEcts[$note->prestudent_id]->ects_angerechnet += $note->ects;
+					else
+						$prestudentEcts[$note->prestudent_id]->ects_erworben += $note->ects;
+				}
+			}
+		}
+
+		return success($prestudentEcts);
 	}
 
 	/**

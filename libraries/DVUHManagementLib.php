@@ -10,6 +10,7 @@ class DVUHManagementLib
 	const ERRORCODE_BPK_MISSING = 'AD10065';
 
 	private $_be;
+	private $_ci;
 
 	// Statuscodes returned when checking Matrikelnr, resulting actions are array keys
 	private $_matrnr_statuscodes = array(
@@ -49,6 +50,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStammdaten_model', 'DVUHStammdatenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHPruefungsaktivitaeten_model', 'DVUHPruefungsaktivitaetenModel');
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -770,7 +772,7 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = error("Fehler beim Senden  der Studiumdaten");
+			$result = error("Fehler beim Senden der Studiumdaten");
 
 		return $result;
 	}
@@ -1012,6 +1014,7 @@ class DVUHManagementLib
 	public function sendPruefungsaktivitaeten($person_id, $studiensemester, $preview = false)
 	{
 		$infos = array();
+		$warnings = array();
 
 		$requiredFields = array('person_id', 'studiensemester');
 
@@ -1021,7 +1024,7 @@ class DVUHManagementLib
 				return error("Daten fehlen: ".ucfirst($requiredField));
 		}
 
-		$no_pruefungen_info = "Keine Pruefungsaktivitäten vorhanden";
+		$no_pruefungen_info = 'Keine Pruefungsaktivitäten vorhanden';
 
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 
@@ -1032,14 +1035,17 @@ class DVUHManagementLib
 			if (isError($postData))
 				return $postData;
 
-			if (!hasData($postData))
+			if (hasData($postData))
+				$postData = getData($postData);
+			else
 				$infos[] = $no_pruefungen_info;
 
-			$postData = getData($postData);
 			return $this->_getResponseArr($postData, $infos);
 		}
 
-		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz);
+		$prestudentsPosted = array();
+
+		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz, $prestudentsPosted);
 
 		if (isError($pruefungsaktivitaetenResult))
 			$result = $pruefungsaktivitaetenResult;
@@ -1053,11 +1059,27 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
+				foreach ($prestudentsPosted as $prestudent_id => $ects)
+				{
+					$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
+						array(
+							'prestudent_id' => $prestudent_id,
+							'studiensemester_kurzbz' => $studiensemester_kurzbz,
+							'ects_angerechnet' => $ects['ects_angerechnet'] == 0 ? null : $ects['ects_angerechnet'],
+							'ects_erworben' => $ects['ects_erworben'] == 0 ? null : $ects['ects_erworben'],
+							'meldedatum' => date('Y-m-d')
+						)
+					);
+
+					if (isError($pruefungsaktivitaetenSaveResult))
+						$warnings[] = 'Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC';
+				}
+
 				$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
 				$result = $this->_getResponseArr(
 					$xmlstr,
 					$infos,
-					null,
+					$warnings,
 					true
 				);
 			}

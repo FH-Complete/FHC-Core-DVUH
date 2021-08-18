@@ -12,7 +12,8 @@ $config['fhc_dvuh_status_kurzbz'] = array(
 	'DVUHSendCharge' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
 	'DVUHSendPayment' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
 	'DVUHSendStudyData' => array('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
-	'DVUHRequestBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
+	'DVUHRequestBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
+	'DVUHSendPruefungsaktivitaeten' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 );
 
 // buchungstypen to be considered when sending payments to DVUH
@@ -28,7 +29,7 @@ $config['fhc_dvuh_sync_days_valutadatum'] = 30; // days after buchungsdatum for 
 $config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 0; // Nachfrist in days after valutadatum for payments
 $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; // in euros and cents to be added to studiengebuehr when Nachfrist is set
 
-// StudStatusCode
+// StudStatusCode e.g. for gemeinsame Studien Statuscode
 $config['fhc_dvuh_sync_student_statuscode'] = array(
 	'Student' => 1,
 	'Unterbrecher' => 2,
@@ -36,3 +37,5 @@ $config['fhc_dvuh_sync_student_statuscode'] = array(
 	'Abbrecher' => 4
 );
 
+// "angerechnet" Noten-code for Prüfungsaktivitäten
+$config['fhc_dvuh_sync_note_angerechnet'] = 6;

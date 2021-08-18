@@ -11,12 +11,14 @@ class JQMSchedulerLib
 	private $_status_kurzbz = array(); // contains prestudentstatus to retrieve for each jobtype
 	private $_buchungstypen = array(); // contains Buchungstypen for which Charge should be sent
 	private $_oe_kurzbz = array(); // oe_kurzbz - only students assigned to one of descendants of this oe are retrieved
+	private $_angerechnet_note; // oe_kurzbz - only students assigned to one of descendants of this oe are retrieved
 
 	const JOB_TYPE_REQUEST_MATRIKELNUMMER = 'DVUHRequestMatrikelnummer';
 	const JOB_TYPE_SEND_CHARGE = 'DVUHSendCharge';
 	const JOB_TYPE_SEND_PAYMENT = 'DVUHSendPayment';
 	const JOB_TYPE_SEND_STUDY_DATA = 'DVUHSendStudyData';
 	const JOB_TYPE_REQUEST_BPK = 'DVUHRequestBpk';
+	const JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN = 'DVUHSendPruefungsaktivitaeten';
 
 	/**
 	 * Object initialization
@@ -32,6 +34,7 @@ class JQMSchedulerLib
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 		$this->_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
 		$oe_kurzbz = $this->_ci->config->item('fhc_dvuh_oe_kurzbz');
+		$this->_angerechnet_note = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
 
 		// get children if oe_kurzbz is set in config
 		if (!isEmptyString($oe_kurzbz))
@@ -94,17 +97,17 @@ class JQMSchedulerLib
 
 		$dbModel = new DB_Model();
 
-		$maToSyncResult = $dbModel->execReadOnlyQuery(
+		$stToSyncResult = $dbModel->execReadOnlyQuery(
 			$qry, $params
 		);
 
 		// If error occurred while retrieving students from database then return the error
-		if (isError($maToSyncResult)) return $maToSyncResult;
+		if (isError($stToSyncResult)) return $stToSyncResult;
 
 		// If students are present
-		if (hasData($maToSyncResult))
+		if (hasData($stToSyncResult))
 		{
-			$jobInput = json_encode(getData($maToSyncResult));
+			$jobInput = json_encode(getData($stToSyncResult));
 		}
 
 		$result = success($jobInput);
@@ -158,17 +161,17 @@ class JQMSchedulerLib
 
 		$dbModel = new DB_Model();
 
-		$maToSyncResult = $dbModel->execReadOnlyQuery(
+		$stToSyncResult = $dbModel->execReadOnlyQuery(
 			$qry, $params
 		);
 
 		// If error occurred while retrieving students from database then return the error
-		if (isError($maToSyncResult)) return $maToSyncResult;
+		if (isError($stToSyncResult)) return $stToSyncResult;
 
 		// If students are present
-		if (hasData($maToSyncResult))
+		if (hasData($stToSyncResult))
 		{
-			$jobInput = json_encode(getData($maToSyncResult));
+			$jobInput = json_encode(getData($stToSyncResult));
 		}
 
 		$result = success($jobInput);
@@ -280,7 +283,7 @@ class JQMSchedulerLib
 					JOIN public.tbl_student using(prestudent_id)
 					JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
 					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-				WHERE ps.bismelden = true
+				WHERE ps.bismelden = TRUE
 					AND stg.melderelevant = TRUE
 					AND kto.buchungstyp_kurzbz IN ?
 					AND kto.buchungsnr_verweis IS NOT NULL
@@ -306,18 +309,18 @@ class JQMSchedulerLib
 
 		$dbModel = new DB_Model();
 
-		$maToSyncResult = $dbModel->execReadOnlyQuery(
+		$stToSyncResult = $dbModel->execReadOnlyQuery(
 			$qry,
 			$params
 		);
 
 		// If error occurred while retrieving students from database then return the error
-		if (isError($maToSyncResult)) return $maToSyncResult;
+		if (isError($stToSyncResult)) return $stToSyncResult;
 
 		// If students are present
-		if (hasData($maToSyncResult))
+		if (hasData($stToSyncResult))
 		{
-			$jobInput = json_encode(getData($maToSyncResult));
+			$jobInput = json_encode(getData($stToSyncResult));
 		}
 
 		$result = success($jobInput);
@@ -391,18 +394,120 @@ class JQMSchedulerLib
 
 		$dbModel = new DB_Model();
 
-		$maToSyncResult = $dbModel->execReadOnlyQuery(
+		$stToSyncResult = $dbModel->execReadOnlyQuery(
 			$qry,
 			$params
 		);
 
 		// If error occurred while retrieving students from database then return the error
-		if (isError($maToSyncResult)) return $maToSyncResult;
+		if (isError($stToSyncResult)) return $stToSyncResult;
 
 		// If students are present
-		if (hasData($maToSyncResult))
+		if (hasData($stToSyncResult))
 		{
-			$jobInput = json_encode(getData($maToSyncResult));
+			$jobInput = json_encode(getData($stToSyncResult));
+		}
+
+		$result = success($jobInput);
+
+		return $result;
+	}
+
+	/**
+	 * Gets students for input of sendPruefungsaktivitaeten job.
+	 * Students which have different ects sums than sent last.
+	 * Students with 0 ects which have never been sent to DVUH are ignored (nothing to declare).
+	 * @param string $studiensemester_kurzbz prestudentstatus and Noten are retrieved for this semester
+	 * @return object students (person Ids)
+	 */
+	public function sendPruefungsaktivitaeten($studiensemester_kurzbz)
+	{
+		$jobInput = null;
+		$result = null;
+
+		$params = array(
+			$studiensemester_kurzbz,
+			$this->_angerechnet_note,
+			$this->_angerechnet_note,
+			$studiensemester_kurzbz
+		);
+
+		$qry = "SELECT DISTINCT person_id, ? AS studiensemester_kurzbz FROM (
+					SELECT person_id, ps.prestudent_id, COALESCE(SUM(ects_angerechnet), 0) AS ects_angerechnet,
+						   COALESCE(SUM(ects_erworben), 0) AS ects_erworben
+					FROM public.tbl_prestudent ps
+					JOIN public.tbl_studiengang stg  USING(studiengang_kz)
+					LEFT JOIN (
+						SELECT prestudent_id, CASE WHEN note.note = ? THEN ects ELSE 0 END AS ects_angerechnet,
+							CASE WHEN note.note <> ? THEN ects ELSE 0 END AS ects_erworben
+						FROM public.tbl_student
+						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote USING(student_uid)
+						LEFT JOIN lehre.tbl_note note ON zgnisnote.note = note.note
+						LEFT JOIN lehre.tbl_lehrveranstaltung lv USING (lehrveranstaltung_id)
+						WHERE note.aktiv
+						AND note.offiziell
+						AND note.positiv
+						AND zgnisnote.studiensemester_kurzbz = ?
+					) no_ects ON ps.prestudent_id = no_ects.prestudent_id
+					WHERE ps.bismelden = TRUE
+					AND stg.melderelevant = TRUE";
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
+
+		$qry .= " GROUP BY person_id, ps.prestudent_id
+				) ps_sum_ects
+				WHERE EXISTS (
+					SELECT 1 FROM public.tbl_prestudentstatus
+					WHERE prestudent_id = ps_sum_ects.prestudent_id
+					AND studiensemester_kurzbz = ?";
+
+		$params[] = $studiensemester_kurzbz;
+
+		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]))
+		{
+			$qry .= " AND status_kurzbz IN ?";
+			$params[] = $this->_status_kurzbz[self::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN];
+		}
+
+		$qry .= ")
+				AND (ects_angerechnet <> /* different ects sums sent last time */
+					(SELECT COALESCE(SUM(last_ects_ar), 0) FROM
+						(SELECT ects_angerechnet as last_ects_ar FROM sync.tbl_dvuh_pruefungsaktivitaeten
+						 WHERE prestudent_id = ps_sum_ects.prestudent_id
+						 AND studiensemester_kurzbz = ?
+						 ORDER BY meldedatum DESC, insertamum DESC
+						 LIMIT 1) last_ects_ar
+					)
+					OR ects_erworben <>
+					(SELECT COALESCE(SUM(last_ects_er), 0) FROM
+						(SELECT ects_erworben as last_ects_er FROM sync.tbl_dvuh_pruefungsaktivitaeten
+						 WHERE prestudent_id = ps_sum_ects.prestudent_id
+						 AND studiensemester_kurzbz = ?
+						 ORDER BY meldedatum DESC, insertamum DESC
+						 LIMIT 1) last_ects_er
+					)
+				)";
+
+		$params = array_merge($params, array($studiensemester_kurzbz, $studiensemester_kurzbz));
+
+		$dbModel = new DB_Model();
+
+		$stToSyncResult = $dbModel->execReadOnlyQuery(
+			$qry,
+			$params
+		);
+
+		// If error occurred while retrieving students from database then return the error
+		if (isError($stToSyncResult)) return $stToSyncResult;
+
+		// If students are present
+		if (hasData($stToSyncResult))
+		{
+			$jobInput = json_encode(getData($stToSyncResult));
 		}
 
 		$result = success($jobInput);

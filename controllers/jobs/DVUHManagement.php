@@ -336,6 +336,65 @@ class DVUHManagement extends JQW_Controller
 		$this->logInfo('DVUHRequestMatrikelnummer job stop');
 	}
 
+	/**
+	 * Initialises sendPruefungsaktivitaeten job, handles job queue, logs infos/errors
+	 */
+	public function sendPruefungsaktivitaeten()
+	{
+		$jobType = 'DVUHSendPruefungsaktivitaeten';
+		$this->logInfo('DVUHSendPruefungsaktivitaeten job start');
+
+		// Gets the latest jobs
+		$lastJobs = $this->getLastJobs($jobType);
+		if (isError($lastJobs))
+		{
+			$this->logError(getCode($lastJobs).': '.getError($lastJobs), $jobType);
+		}
+		else
+		{
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_START_TIME), // Job properties to be updated
+				array(date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			$person_arr = $this->_getInputObjArray(getData($lastJobs));
+
+			foreach ($person_arr as $persobj)
+			{
+				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
+					$this->logError("Fehler beim Senden von Prüfungsaktivitäten, ungültige Parameter übergeben");
+				else
+				{
+					$person_id = $persobj->person_id;
+					$studiensemester_kurzbz = $persobj->studiensemester_kurzbz;
+
+					$sendPruefungsaktivitaetenResult = $this->dvuhmanagementlib->sendPruefungsaktivitaeten($person_id, $studiensemester_kurzbz);
+
+					if (isError($sendPruefungsaktivitaetenResult))
+						$this->logError("Fehler beim Senden von Prüfungsaktivitäten, person Id $person_id", getError($sendPruefungsaktivitaetenResult));
+					elseif (hasData($sendPruefungsaktivitaetenResult))
+					{
+						$requestMatrnrArr = getData($sendPruefungsaktivitaetenResult);
+
+						$this->_logInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
+					}
+				}
+			}
+
+			// Update jobs properties values
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_STATUS, JobsQueueLib::PROPERTY_END_TIME), // Job properties to be updated
+				array(JobsQueueLib::STATUS_DONE, date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
+		}
+
+		$this->logInfo('DVUHSendPruefungsaktivitaeten job stop');
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Private methods
 

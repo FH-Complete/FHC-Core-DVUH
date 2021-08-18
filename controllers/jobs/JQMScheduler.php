@@ -185,4 +185,37 @@ class JQMScheduler extends JQW_Controller
 
 		$this->logInfo('End job queue scheduler FHC-Core-DVUH->requestBpk');
 	}
+
+	/**
+	 * Creates jobs queue entries for sendPruefungsaktivitaeten job.
+	 * @param string $studiensemester_kurzbz semester for which Pruefungsaktivitaeten should be sent
+	 */
+	public function sendPruefungsaktivitaeten($studiensemester_kurzbz)
+	{
+		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendPruefungsaktivitaeten');
+
+		$jobInputResult = $this->jqmschedulerlib->sendPruefungsaktivitaeten($studiensemester_kurzbz);
+
+		// If an error occured then log it
+		if (isError($jobInputResult))
+		{
+			$this->logError(getError($jobInputResult));
+		}
+		else
+		{
+			// Add the new job to the jobs queue
+			$addNewJobResult = $this->addNewJobsToQueue(
+				JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN, // job type
+				$this->generateJobs( // gnerate the structure of the new job
+					JobsQueueLib::STATUS_NEW,
+					getData($jobInputResult)
+				)
+			);
+
+			// If error occurred return it
+			if (isError($addNewJobResult)) $this->logError(getError($addNewJobResult));
+		}
+
+		$this->logInfo('End job queue scheduler FHC-Core-DVUH->sendPruefungsaktivitaeten');
+	}
 }

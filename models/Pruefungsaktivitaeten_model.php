@@ -15,8 +15,6 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = '/0.5/pruefungsaktivitaeten.xml';
 
-		$this->load->model('education/Zeugnisnote_model', 'ZeugnisnoteModel');
-
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
@@ -41,9 +39,9 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		return $result;
 	}
 
-	public function post($be, $person_id, $studiensemester)
+	public function post($be, $person_id, $studiensemester, &$posted)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $studiensemester);
+		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $posted);
 
 		if (hasData($postData))
 			$result = $this->_call('POST', null, getData($postData));
@@ -53,7 +51,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		return $result;
 	}
 
-	public function retrievePostData($be, $person_id, $studiensemester)
+	public function retrievePostData($be, $person_id, $studiensemester, &$toPost = array())
 	{
 		if (isEmptyString($person_id))
 			$result = error('personID nicht gesetzt');
@@ -61,42 +59,62 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		{
 			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
-			// get ects sums of Noten which are aktiv, offiziell, positiv (but both lehre and non-lehre)
-			$ectsSumsResult = $this->ZeugnisnoteModel->getEctsSumsByPerson($person_id, $studiensemester, true, null, true, true);
+			// get ects sums for Noten of the person
+			$pruefungsaktivitaetenDataResult = $this->dvuhsynclib->getPruefungsaktivitaetenData($person_id, $studiensemester);
 
-			if (isError($ectsSumsResult))
-				$result = $ectsSumsResult;
-			elseif (hasData($ectsSumsResult))
+			if (isError($pruefungsaktivitaetenDataResult))
+				$result = $pruefungsaktivitaetenDataResult;
+			elseif (hasData($pruefungsaktivitaetenDataResult))
 			{
 				$studiumpruefungen = array();
 
-				$ectsSumsData = getData($ectsSumsResult);
+				$pruefungsaktivitaetenData = getData($pruefungsaktivitaetenDataResult);
 
-				foreach ($ectsSumsData as $ectsSum)
+				foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
 				{
-					// only send Pruefungsaktivitaeten if there is at least one Note
-					if ($ectsSum->summe_ects == 0)
+					// saved ects to post to variable
+					$toPost[$prestudent_id]['ects_angerechnet'] = $pruefungsaktivitaeten->ects_angerechnet;
+					$toPost[$prestudent_id]['ects_erworben'] = $pruefungsaktivitaeten->ects_erworben;
+
+					// only send Pruefungsaktivitaeten if there are ects
+					if ($pruefungsaktivitaeten->ects_angerechnet == 0 && $pruefungsaktivitaeten->ects_erworben == 0)
 						continue;
 
 					// studiengang kz
-					$erhalter_kz = str_pad($ectsSum->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $ectsSum->studiengang_kz), 4, '0', STR_PAD_LEFT);
+					$erhalter_kz = str_pad($pruefungsaktivitaeten->erhalter_kz, 3, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 4, '0', STR_PAD_LEFT);
 
-					$studiumpruefungen[$ectsSum->prestudent_id]['matrikelnummer'] = $ectsSum->matr_nr;
-					$studiumpruefungen[$ectsSum->prestudent_id]['studiensemester'] = $dvuh_studiensemester;
-					$studiumpruefungen[$ectsSum->prestudent_id]['studiengang'] = $dvuh_stgkz;
-					$studiumpruefungen[$ectsSum->prestudent_id]['ects'] = number_format($ectsSum->summe_ects, 1);
+					// format ects
+					$ectsSums = new stdClass();
+					$ectsSums->ects_angerechnet = number_format($pruefungsaktivitaeten->ects_angerechnet, 1);
+					$ectsSums->ects_erworben = number_format($pruefungsaktivitaeten->ects_erworben, 1);
+
+					$studiumpruefungen[$prestudent_id]['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
+					$studiumpruefungen[$prestudent_id]['studiensemester'] = $dvuh_studiensemester;
+					$studiumpruefungen[$prestudent_id]['studiengang'] = $dvuh_stgkz;
+					$studiumpruefungen[$prestudent_id]['ects'] = $ectsSums;
 				}
 
-				$params = array(
-					'uuid' => getUUID(),
-					'be' => $be,
-					'studiumpruefungen' => $studiumpruefungen
-				);
+				if (isEmptyArray($studiumpruefungen))
+				{
+					// TODO if no pruefungen found for person, and there were ects sent last sync
+					// delete pruefungsaktivitaeten
 
-				$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/pruefungsaktivitaeten', $params, true);
+					$result = success(array());
+				}
+				else
+				{
 
-				$result = success($postData);
+					$params = array(
+						'uuid' => getUUID(),
+						'be' => $be,
+						'studiumpruefungen' => $studiumpruefungen
+					);
+
+					$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/pruefungsaktivitaeten', $params, true);
+
+					$result = success($postData);
+				}
 			}
 			else
 				$result = success(array());

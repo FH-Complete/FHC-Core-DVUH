@@ -12,19 +12,24 @@
 			</studierendenkey>
 			<?php if (isset($studiumpruefung['ects'])):?>
 				<pruefungen>
-					<pruefung>
-						<ects bezug="gesamt"><?php echo $studiumpruefung['ects'] ?></ects>
-						<?php
-							if (isset($studiumpruefung['ectsGesamt']) && $studiumpruefung['ectsGesamt'] != '')
-							{
-								echo "\t\t\t\t\t\t<ectsGesamt>".$studiumpruefung['ectsGesamt']."</ectsGesamt>";
-							}
-						?>
-						<fach>1</fach>
-						<semesterstunden>0</semesterstunden>
-						<semesterstundenpositiv>0</semesterstundenpositiv>
-						<semesterzahl>1</semesterzahl>
-					</pruefung>
+					<?php if (isset($studiumpruefung['ects']->ects_angerechnet) && $studiumpruefung['ects']->ects_angerechnet > 0):?>
+						<pruefung>
+							<ects bezug="angerechnet"><?php echo $studiumpruefung['ects']->ects_angerechnet ?></ects>
+							<fach>1</fach>
+							<semesterstunden>0</semesterstunden>
+							<semesterstundenpositiv>0</semesterstundenpositiv>
+							<semesterzahl>1</semesterzahl>
+						</pruefung>
+					<?php endif; ?>
+					<?php if (isset($studiumpruefung['ects']->ects_erworben) && $studiumpruefung['ects']->ects_erworben > 0):?>
+						<pruefung>
+							<ects bezug="erworben"><?php echo $studiumpruefung['ects']->ects_erworben ?></ects>
+							<fach>1</fach>
+							<semesterstunden>0</semesterstunden>
+							<semesterstundenpositiv>0</semesterstundenpositiv>
+							<semesterzahl>1</semesterzahl>
+						</pruefung>
+					<?php endif; ?>
 				</pruefungen>
 			<?php endif; ?>
 		</studiumpruefung>
