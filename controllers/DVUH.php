@@ -32,7 +32,8 @@ class DVUH extends Auth_Controller
 				'postMatrikelkorrektur'=>'admin:r',
 				'postErnpmeldung'=>'admin:r',
 				'postPruefungsaktivitaeten'=>'admin:r',
-				'postEkzanfordern'=>'admin:r'
+				'postEkzanfordern'=>'admin:r',
+				'deletePruefungsaktivitaeten'=>'admin:r',
 			)
 		);
 
@@ -349,6 +350,24 @@ class DVUH extends Auth_Controller
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
 		$json = $this->dvuhmanagementlib->sendPruefungsaktivitaeten($person_id, $semester, $preview);
+
+		$this->outputJson($json);
+	}
+
+	public function deletePruefungsaktivitaeten()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+
+		$this->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
+
+		$be = $this->config->item('fhc_dvuh_be_code');
+
+		$json = $this->PruefungsaktivitaetenModel->delete($be, $person_id, $semester);
 
 		$this->outputJson($json);
 	}

@@ -51,6 +51,69 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		return $result;
 	}
 
+	public function delete($be, $person_id, $semester)
+	{
+		if (isEmptyString($person_id))
+			return error('personID nicht gesetzt');
+		else
+		{
+			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($semester);
+
+			// data of Pruefungsaktivitaeten for the person
+			$studiensemester_kurzbz = $this->dvuhsynclib->convertSemesterToFHC($semester);
+			$pruefungsaktivitaetenDataResult = $this->dvuhsynclib->getPrestudentsOfPerson($person_id, $studiensemester_kurzbz);
+
+			var_dump($pruefungsaktivitaetenDataResult);
+
+			if (isError($pruefungsaktivitaetenDataResult))
+				return $pruefungsaktivitaetenDataResult;
+			elseif (hasData($pruefungsaktivitaetenDataResult))
+			{
+				$resultArr = array();
+				$pruefungsaktivitaetenData = getData($pruefungsaktivitaetenDataResult);
+
+				foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
+				{
+					$params = array(
+						'uuid' => getUUID(),
+						'be' => $be
+					);
+
+					// studiengang kz
+					$erhalter_kz = str_pad($pruefungsaktivitaeten->erhalter_kz, 3, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 4, '0', STR_PAD_LEFT);
+
+					$params['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
+					$params['semester'] = $dvuh_studiensemester;
+					$params['studiengang'] = $dvuh_stgkz;
+					$params['studienkennung'] = '';
+
+					//$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/pruefungsaktivitaeten_loeschen', $params, true);
+
+					//var_dump($params);
+
+
+					$this->_url = '/0.5/pruefungsaktivitaeten_loeschen.xml';
+					$callRes = $this->_call('POST', $params, $params);
+
+					var_dump($callRes);
+					die();
+
+					if (isSuccess($callRes))
+					{
+						$resultArr[] = $prestudent_id;
+					}
+					else
+						return $callRes;
+				}
+
+				return success($resultArr);
+			}
+			else
+				return error("Keine Prestudenten gefunden!");
+		}
+	}
+
 	public function retrievePostData($be, $person_id, $studiensemester, &$toPost = array())
 	{
 		if (isEmptyString($person_id))
@@ -104,7 +167,6 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 				}
 				else
 				{
-
 					$params = array(
 						'uuid' => getUUID(),
 						'be' => $be,

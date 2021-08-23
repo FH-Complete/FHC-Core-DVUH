@@ -112,6 +112,7 @@ $this->load->view('templates/FHC-Header', array(
 										<ul class="list-unstyled dvuhMenu">
 											<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
 											<li id="postPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten melden</a></li>
+											<li id="deletePruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten l&ouml;schen</a></li>
 										</ul>
 									</div>
 								</div>
