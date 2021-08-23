@@ -13,7 +13,7 @@ class Pruefebpk_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/0.5/pruefebpk.xml';
+		$this->_url = 'pruefebpk.xml';
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}

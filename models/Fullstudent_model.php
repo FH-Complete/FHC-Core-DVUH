@@ -12,7 +12,7 @@ class Fullstudent_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/0.5/fullstudent.xml';
+		$this->_url = 'fullstudent.xml';
 	}
 
 	/**

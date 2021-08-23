@@ -15,7 +15,7 @@ class Studium_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/0.5/studium.xml';
+		$this->_url = 'studium.xml';
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}

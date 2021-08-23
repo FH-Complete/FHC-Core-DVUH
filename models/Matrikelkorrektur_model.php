@@ -13,7 +13,7 @@ class Matrikelkorrektur_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/0.5/matrikelkorrektur.xml';
+		$this->_url = 'matrikelkorrektur.xml';
 	}
 
 	/**
