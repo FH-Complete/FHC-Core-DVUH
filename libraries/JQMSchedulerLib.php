@@ -475,21 +475,21 @@ class JQMSchedulerLib
 
 		$qry .= ")
 				AND (ects_angerechnet <> /* different ects sums sent last time */
-					(SELECT COALESCE(SUM(last_ects_ar), 0) FROM
-						(SELECT ects_angerechnet as last_ects_ar FROM sync.tbl_dvuh_pruefungsaktivitaeten
-						 WHERE prestudent_id = ps_sum_ects.prestudent_id
-						 AND studiensemester_kurzbz = ?
-						 ORDER BY meldedatum DESC, insertamum DESC
-						 LIMIT 1) last_ects_ar
-					)
+						(SELECT COALESCE(SUM(last_ects_ar), 0) FROM
+							(SELECT ects_angerechnet as last_ects_ar FROM sync.tbl_dvuh_pruefungsaktivitaeten
+							 WHERE prestudent_id = ps_sum_ects.prestudent_id
+							 AND studiensemester_kurzbz = ?
+							 ORDER BY meldedatum DESC, insertamum DESC
+							 LIMIT 1) last_ects_ar
+						)
 					OR ects_erworben <>
-					(SELECT COALESCE(SUM(last_ects_er), 0) FROM
-						(SELECT ects_erworben as last_ects_er FROM sync.tbl_dvuh_pruefungsaktivitaeten
-						 WHERE prestudent_id = ps_sum_ects.prestudent_id
-						 AND studiensemester_kurzbz = ?
-						 ORDER BY meldedatum DESC, insertamum DESC
-						 LIMIT 1) last_ects_er
-					)
+						(SELECT COALESCE(SUM(last_ects_er), 0) FROM
+							(SELECT ects_erworben as last_ects_er FROM sync.tbl_dvuh_pruefungsaktivitaeten
+							 WHERE prestudent_id = ps_sum_ects.prestudent_id
+							 AND studiensemester_kurzbz = ?
+							 ORDER BY meldedatum DESC, insertamum DESC
+							 LIMIT 1) last_ects_er
+						)
 				)";
 
 		$params = array_merge($params, array($studiensemester_kurzbz, $studiensemester_kurzbz));
