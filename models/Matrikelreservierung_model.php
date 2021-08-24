@@ -18,10 +18,10 @@ class Matrikelreservierung_model extends DVUHClientModel
 	}
 
 	/**
-	 * Performs the Webservie Call to get a list of already reserved Numbers
-	 *
-	 * @param $be Code of the Bildungseinrichtung
-	 * @param $sj Studienjahr
+	 * Performs the Webservie Call to get a list of already reserved Numbers.
+	 * @param string $be Code of the Bildungseinrichtung
+	 * @param string $sj Studienjahr
+	 * @return object success or error
 	 */
 	public function get($be, $sj)
 	{
@@ -42,11 +42,11 @@ class Matrikelreservierung_model extends DVUHClientModel
 	}
 
 	/**
-	 * Performs a Webservice Call to Reserve a list of matrikelnumbers
-	 *
+	 * Performs a Webservice Call to Reserve a list of matrikelnumbers.
 	 * @param $be Code of the Bildungseinrichtung
 	 * @param $sj Studienjahr
 	 * @param $anzahl number of matrikelnumbers to reserve
+	 * @return object success or error
 	 */
 	public function post($be, $sj, $anzahl)
 	{

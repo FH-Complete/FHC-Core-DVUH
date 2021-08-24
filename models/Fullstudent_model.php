@@ -17,10 +17,10 @@ class Fullstudent_model extends DVUHClientModel
 
 	/**
 	 * Performs the Webservie Call
-	 *
-	 * @param $matrikelnummer Matrikelnummer of the Person you are Searching for
-	 * @param $be Code of the Bildungseinrichtung (optional)
-	 * @param $semester Studysemester in format 2019W
+	 * @param string $matrikelnummer Matrikelnummer of the Person you are Searching for
+	 * @param string $be Code of the Bildungseinrichtung (optional)
+	 * @param string $semester Studysemester in format 2019W
+	 * @return object success or error
 	 */
 	public function get($matrikelnummer, $be = null, $semester = null)
 	{

@@ -18,11 +18,11 @@ class Kontostaende_model extends DVUHClientModel
 
 	/**
 	 * Performs the Webservie Call
-	 *
-	 * @param $be Code of the Bildungseinrichtung
-	 * @param $semester Studysemester in format 2019W (optional)
-	 * @param $matrikelnummer Matrikelnummer of the Person you are Searching for
-	 * @param $seit Date since income Changes
+	 * @param string $be Code of the Bildungseinrichtung
+	 * @param string $semester Studysemester in format 2019W (optional)
+	 * @param string $matrikelnummer Matrikelnummer of the Person you are Searching for
+	 * @param string $seit Date since income Changes
+	 * @return object success or error
 	 */
 	public function get($be, $semester, $matrikelnummer, $seit = null)
 	{

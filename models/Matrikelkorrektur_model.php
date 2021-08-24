@@ -18,11 +18,11 @@ class Matrikelkorrektur_model extends DVUHClientModel
 
 	/**
 	 * Correct Matrikelnummer
-	 *
-	 * @param $matrikelnummer Matrikelnummer
-	 * @param $be Code of Bildungseinrichtung
-	 * @param $semester Semester
-	 * @param $matrikelalt Old Matrikelnummer
+	 * @param string $matrikelnummer Matrikelnummer
+	 * @param string $be Code of Bildungseinrichtung
+	 * @param string $semester Semester
+	 * @param string $matrikelalt Old Matrikelnummer
+	 * @return object success or error
 	 */
 	public function post($be, $matrikelnummer, $semester, $matrikelalt)
 	{

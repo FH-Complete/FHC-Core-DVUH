@@ -18,6 +18,20 @@ class Pruefebpk_model extends DVUHClientModel
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
+	/**
+	 * Performs request with person data to check if bpk exists.
+	 * @param string $vorname
+	 * @param string $nachname
+	 * @param string $geburtsdatum
+	 * @param string $geschlecht
+	 * @param string $strasse
+	 * @param string $plz
+	 * @param string $geburtsland
+	 * @param string $akadgrad
+	 * @param string $akadnach
+	 * @param string $alternativname
+	 * @return object success or error
+	 */
 	public function get($vorname, $nachname, $geburtsdatum, $geschlecht = null,
 						$strasse = null, $plz = null, $geburtsland = null, $akadgrad = null, $akadnach = null,
 						$alternativname = null)
@@ -58,6 +72,11 @@ class Pruefebpk_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Performs request wto check if bpk exists, tetrieving necessary person data from person_id.
+	 * @param int $person_id
+	 * @return object success or error
+	 */
 	public function getByPersonId($person_id)
 	{
 		if (!isset($person_id))
@@ -77,5 +96,7 @@ class Pruefebpk_model extends DVUHClientModel
 			return $this->get($stammdatenData['vorname'], $stammdatenData['nachname'], $stammdatenData['geburtsdatum'],
 				$stammdatenData['geschlecht'], null, null, null, $akadgrad, $akadgradnach);
 		}
+		else
+			return error("No data found for person.");
 	}
 }

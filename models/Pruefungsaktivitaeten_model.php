@@ -18,6 +18,13 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
+	/**
+	 * Get all Pruefungsaktivitäten of a person with a Matrikelnr from DVUH.
+	 * @param $be
+	 * @param string $semester
+	 * @param null $matrikelnummer
+	 * @return object success or error
+	 */
 	public function get($be, $semester, $matrikelnummer = null)
 	{
 		if (isEmptyString($semester))
@@ -39,6 +46,14 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Saves Pruefungsaktivitäten data in DVUH.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $studiensemester
+	 * @param array $posted passed by reference, to be filled with posted data to know for which prestudents Prüfungsaktivitäten were sent.
+	 * @return object success or error
+	 */
 	public function post($be, $person_id, $studiensemester, &$posted)
 	{
 		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $posted);
@@ -51,6 +66,14 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Retrieves xml Pruefungsaktivitäten data for request to send to DVUH, including ECTS sums.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $studiensemester
+	 * @param array $toPost
+	 * @return object success or error
+	 */
 	public function retrievePostData($be, $person_id, $studiensemester, &$toPost = array())
 	{
 		if (isEmptyString($person_id))

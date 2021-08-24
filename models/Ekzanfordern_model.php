@@ -17,6 +17,12 @@ class Ekzanfordern_model extends DVUHClientModel
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
+	/**
+	 * Execute post call.
+	 * @param int $person_id
+	 * @param string $forcierungskey optional, for request of new EKZ when no results fit the person for which EKZ is needed.
+	 * @return object success or error
+	 */
 	public function post($person_id, $forcierungskey = null)
 	{
 		$postData = $this->retrievePostData($person_id, $forcierungskey);
@@ -29,6 +35,12 @@ class Ekzanfordern_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Retrieves necessary xml person and kontakt data for performing ekzanfordern call.
+	 * @param int $person_id
+	 * @param string $forcierungskey
+	 * @return object success or error
+	 */
 	public function retrievePostData($person_id, $forcierungskey = null)
 	{
 		$result = null;

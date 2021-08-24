@@ -16,6 +16,18 @@ class Matrikelmeldung_model extends DVUHClientModel
 		$this->_url = 'matrikelmeldung.xml';
 	}
 
+	/**
+	 * Posts ERNP Meldung.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $writeonerror 'true' |'false' write data to DVUH even despite minor errors.
+	 * @param string $ausgabedatum
+	 * @param string $ausstellBehoerde
+	 * @param string $ausstellland
+	 * @param string $dokumentnr
+	 * @param string $dokumenttyp
+	 * @return object success or error
+	 */
 	public function post($be, $person_id, $writeonerror = null, $ausgabedatum = null, $ausstellBehoerde = null,
 						 $ausstellland = null, $dokumentnr = null, $dokumenttyp = null)
 	{
@@ -30,6 +42,18 @@ class Matrikelmeldung_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Retrieves xml data necessary for ERNP Meldung.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string
+	 * @param string $ausgabedatum
+	 * @param string $ausstellBehoerde
+	 * @param string $ausstellland
+	 * @param string $dokumentnr
+	 * @param string $dokumenttyp
+	 * @return object success or error
+	 */
 	public function retrievePostData($be, $person_id, $writeonerror = null, $ausgabedatum = null, $ausstellBehoerde = null,
 									 $ausstellland = null, $dokumentnr = null, $dokumenttyp = null)
 	{
