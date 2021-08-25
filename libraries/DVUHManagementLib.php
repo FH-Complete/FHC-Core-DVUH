@@ -592,7 +592,7 @@ class DVUHManagementLib
 					return $this->_getResponseArr(
 						null,
 						null,
-						array("Buchung $buchungsnr: vor der Zahlung wurde keine Vorschreibung an DVUH gesendet")
+						array("Buchung $buchungsnr: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet")
 					);
 				}
 
