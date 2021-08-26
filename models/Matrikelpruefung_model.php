@@ -56,7 +56,6 @@ class Matrikelpruefung_model extends DVUHClientModel
 				$callParametersArray['vorname'] = $vorname;
 
 			$result = $this->_call('GET', $callParametersArray);
-			//echo print_r($result,true);
 		}
 
 		return $result;

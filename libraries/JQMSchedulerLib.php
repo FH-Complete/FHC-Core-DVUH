@@ -347,7 +347,7 @@ class JQMSchedulerLib
 						 SELECT ps.prestudent_id, pss.studiensemester_kurzbz,
 								ps.insertamum AS ps_insertamum, pss.insertamum AS pss_insertamum, mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum, 
 								ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum, mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
-								max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum
+								max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum, bisio.bis AS bisio_endedatum
 						 FROM public.tbl_prestudent ps
 								  JOIN public.tbl_student using (prestudent_id)
 								  JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id
@@ -383,10 +383,11 @@ class JQMSchedulerLib
 		}
 
 		$qry .= 		" GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
-							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum, pss.datum
+							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum, bisio.bis, pss.datum
 					 ) prestudents
 					WHERE max_studiumdaten_meldedatum IS NULL /* either not sent to DVUH or data modified since last send*/
 					OR prestudent_status_datum = NOW() /* if prestudent status gets active today */
+					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, mobilitaeten in future are sent with no endedatum */
 					OR pss_insertamum >= max_studiumdaten_meldedatum OR ps_insertamum >= max_studiumdaten_meldedatum
 					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
 					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
