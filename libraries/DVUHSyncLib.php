@@ -64,7 +64,7 @@ class DVUHSyncLib
 					continue;
 
 				$addr = array();
-				$addr['ort'] = $adresse->ort;
+				$addr['ort'] = $adresse->gemeinde;
 				$addr['plz'] = $adresse->plz;
 				$addr['strasse'] = $adresse->strasse;
 				$addr['staat'] = $adresse->nation;
@@ -694,7 +694,7 @@ class DVUHSyncLib
 		$result = success(true);
 
 		if (!isset($addr['ort']) || isEmptyString($addr['ort']) || !$this->_validateXmlTextValue($addr['ort']))
-			$result = error('Ort fehlt oder enthält Sonderzeichen');
+			$result = error('Ort (Feld Gemeinde) fehlt oder enthält Sonderzeichen');
 
 		if (!isset($addr['plz']) || isEmptyString($addr['plz']) || !$this->_validateXmlTextValue($addr['plz']))
 			$result = error('Plz fehlt oder enthält Sonderzeichen');
