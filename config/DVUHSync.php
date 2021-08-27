@@ -19,14 +19,14 @@ $config['fhc_dvuh_status_kurzbz'] = array(
 // buchungstypen to be considered when sending payments to DVUH
 $config['fhc_dvuh_buchungstyp'] = array(
 	'oehbeitrag' => array('OEH'),
-	'studiengebuehr' => array('Studiengebuehr', 'StudiengebuehrAnzahlung')
+	'studiengebuehr' => array('Studiengebuehr', 'StudiengebuehrAnzahlung', 'StudiengebuehrRestzahlung')
 );
 
 // if set, only students assigned to this oe or a child oe (determined by Studiengang) are sent to DVUH
 $config['fhc_dvuh_oe_kurzbz'] = null;
 
 $config['fhc_dvuh_sync_days_valutadatum'] = 30; // days after buchungsdatum for valutadatum for payment Frist
-$config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 0; // Nachfrist in days after valutadatum for payments
+$config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 90; // Nachfrist in days after valutadatum for payments
 $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; // amount to be added to studiengebuehr when Nachfrist is set
 
 // StudStatusCode e.g. for gemeinsame Studien Statuscode
