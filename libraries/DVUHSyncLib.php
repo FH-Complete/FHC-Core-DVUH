@@ -980,10 +980,10 @@ class DVUHSyncLib
 					$mobilitaet['aufenthaltfoerderungcode'] = $aufenthaltfoerderung_code_arr;
 
 				if (isset($ects_angerechnet) && !isEmptyString($ects_angerechnet))
-					$mobilitaet['ectsangerechnet'] = number_format($ects_angerechnet, 1);
+					$mobilitaet['ectsangerechnet'] = round($ects_angerechnet);
 
 				if (isset($ects_erworben) && !isEmptyString($ects_erworben))
-					$mobilitaet['ectserworben'] = number_format($ects_erworben, 1);
+					$mobilitaet['ectserworben'] = round($ects_erworben);
 
 				$mobilitaeten[] = $mobilitaet;
 			}
