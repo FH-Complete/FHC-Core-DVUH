@@ -236,7 +236,7 @@ class JQMSchedulerLib
 				) AS adr ON persons.person_id = adr.person_id
 				WHERE max_meldedatum IS NULL /* stammdaten not sent to DVUH yet */
 				OR
-				  (max_zlg_buchungsdatum IS NULL AND buchungsnr IS NOT NULL )  /* vorschreibung not sent to DVUH yet */
+				  (max_zlg_buchungsdatum IS NULL AND buchungsnr IS NOT NULL)  /* vorschreibung not sent to DVUH yet */
 				OR
 				  (persons.person_insertamum >= max_meldedatum OR ktkt.insertamum >= max_meldedatum /* modified since last sent to DVUH*/
 					OR adr.insertamum >= max_meldedatum OR kto_insertamum >= max_meldedatum

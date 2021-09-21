@@ -6,6 +6,8 @@
  */
 class DVUHManagementLib
 {
+	const DVUH_USER = 'dvuhsync';
+
 	const STATUS_PAID_OTHER_UNIV = '8';
 	const ERRORCODE_BPK_MISSING = 'AD10065';
 
@@ -26,10 +28,12 @@ class DVUHManagementLib
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
 
+		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 
+		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->model('crm/Prestudent_model', 'PrestudentModel');
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
@@ -52,6 +56,10 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHPruefungsaktivitaeten_model', 'DVUHPruefungsaktivitaetenModel');
 
+		// load helpers
+		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
+
+		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 		$this->_be = $this->_ci->config->item('fhc_dvuh_be_code');
@@ -313,7 +321,11 @@ class DVUHManagementLib
 					}
 					else
 					{
-						return error("Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester $studiensemester_kurzbz spezifiziert, Buchung " . $buchung->buchungsnr);
+						return createError(
+							"Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester $studiensemester_kurzbz spezifiziert, Buchung " . $buchung->buchungsnr,
+							'oehbeitragNichtSpezifiziert',
+							array($studiensemester_kurzbz, $buchung->buchungsnr)
+						);
 					}
 
 					$dvuh_buchungstyp = 'oehbeitrag';
@@ -462,7 +474,7 @@ class DVUHManagementLib
 
 					foreach ($parsedWarnings as $warning)
 					{
-						$warnings[] = $warning->full_error_text;
+						$warnings[] = $warning->fehlertextKomplett;
 					}
 
 					// if no bpk saved in FHC, but a BPK is returned by DVUH, save it in FHC
@@ -559,7 +571,7 @@ class DVUHManagementLib
 
 			if (hasData($openPayments))
 			{
-				return error("Es gibt noch offene Buchungen.");
+				return createError("Es gibt noch offene Buchungen.", 'offeneBuchungen');
 			}
 
 			$buchungen = getData($buchungenResult);
@@ -585,7 +597,12 @@ class DVUHManagementLib
 				if (hasData($charges))
 				{
 					if (abs(getData($charges)[0]->betrag) != $buchung->summe_buchungen)
-						return error("Buchung: $buchungsnr: Zahlungsbetrag abweichend von Vorschreibungsbetrag");
+						return createError(
+							"Buchung: $buchungsnr: Zahlungsbetrag abweichend von Vorschreibungsbetrag",
+							'offeneBuchungen',
+							array($buchungsnr)
+						);
+						return error();
 				}
 				else
 				{
@@ -666,11 +683,11 @@ class DVUHManagementLib
 					}
 				}
 				else
-					$zahlungenResArr[] = error("Fehler beim Sender der Zahlung");
+					$zahlungenResArr[] = error("Fehler beim Senden der Zahlung");
 			}
 		}
 		else
-			return $this->_getResponseArr(null, array("Keine Buchungen gefunden"));
+			return $this->_getResponseArr(null, array("Keine nicht gemeldeten Buchungen gefunden"));
 
 		return $this->_getResponseArr($zahlungenResArr, $infos, null, true);
 	}
@@ -914,7 +931,7 @@ class DVUHManagementLib
 							array(
 								'bpk' => $bpk,
 								'updateamum' => date('Y-m-d H:i:s'),
-								'updatevon' => 'dvuhsync'
+								'updatevon' => self::DVUH_USER
 							)
 						);
 
@@ -1230,7 +1247,7 @@ class DVUHManagementLib
 				'matr_nr' => $matrikelnummer,
 				'matr_aktiv' => $matr_aktiv,
 				'updateamum' => date('Y-m-d H:i:s'),
-				'updatevon' => 'dvuhsync'
+				'updatevon' => self::DVUH_USER
 			)
 		);
 
@@ -1361,7 +1378,7 @@ class DVUHManagementLib
 				'betrag' => 0,
 				'anmerkung' => $andereBeBezahltTxt,
 				'updateamum' => date('Y-m-d H:i:s'),
-				'updatevon' => 'dvuhsync'
+				'updatevon' => self::DVUH_USER
 			)
 		);
 
@@ -1420,7 +1437,7 @@ class DVUHManagementLib
 						array(
 							'bpk' => $warning->feldinhalt,
 							'updateamum' => date('Y-m-d H:i:s'),
-							'updatevon' => 'dvuhsync'
+							'updatevon' => self::DVUH_USER
 						)
 					);
 
@@ -1472,7 +1489,7 @@ class DVUHManagementLib
 						{
 							if (!isEmptyString($warningtext))
 								$warningtext .= ', ';
-							$warningtext .= $warning->full_error_text;
+							$warningtext .= $warning->fehlertextKomplett;
 						}
 						$responseArr['warnings'][] = $warningtext;
 					}

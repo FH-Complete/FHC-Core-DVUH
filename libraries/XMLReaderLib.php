@@ -112,7 +112,10 @@ class XMLReaderLib
 					{
 						$errResultobj->{$errAttr->tagName} = $errAttr->nodeValue;
 					}
-					$errResultobj->full_error_text = $errResultobj->fehlernummer . ': ' . $errResultobj->fehlertext . ' ' . $errResultobj->massnahme;
+					$errResultobj->fehlertextKomplett = $errResultobj->fehlernummer . ': ' .
+						(!isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
+						$errResultobj->fehlertext .
+						(!isEmptyString($errResultobj->massnahme) ? ', ' . $errResultobj->massnahme : '');
 
 					if (in_array($errResultobj->kategorie, $error_categories))
 						$resultarr[] = $errResultobj;
@@ -146,15 +149,16 @@ class XMLReaderLib
 		elseif (hasData($errors))
 		{
 			$errortext = '';
+			$errorsArr = getData($errors);
 
-			foreach (getData($errors) as $error)
+			foreach ($errorsArr as $error)
 			{
 				if (!isEmptyString($errortext))
 					$errortext .= ', ';
-				$errortext .= $error->full_error_text;
+				$errortext .= $error->fehlertextKomplett;
 			}
 
-			$result = error('Error(s) occured: ' . $errortext);
+			$result = error('Error(s) occured: ' . $errortext, $errorsArr);
 		}
 		else
 			$result = $this->parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE);

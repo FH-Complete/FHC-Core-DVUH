@@ -14,6 +14,9 @@ class Kontostaende_model extends DVUHClientModel
 	{
 		parent::__construct();
 		$this->_url = 'kontostaende.xml';
+
+		// load helpers
+		$this->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
 	}
 
 	/**
@@ -27,7 +30,7 @@ class Kontostaende_model extends DVUHClientModel
 	public function get($be, $semester, $matrikelnummer, $seit = null)
 	{
 		if (isEmptyString($matrikelnummer))
-			$result = error('Matrikelnummer nicht gesetzt');
+			$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
 		elseif(isEmptyString($semester))
 			$result = error('Semester nicht gesetzt');
 		else

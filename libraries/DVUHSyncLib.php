@@ -17,8 +17,10 @@ class DVUHSyncLib
 		$this->_ci =& get_instance(); // get code igniter instance
 		$this->_dbModel = new DB_Model();
 
+		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
 
+		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->model('person/benutzer_model', 'BenutzerModel');
 		$this->_ci->load->model('crm/prestudent_model', 'PrestudentModel');
@@ -29,6 +31,10 @@ class DVUHSyncLib
 		$this->_ci->load->model('codex/Aufenthaltfoerderung_model', 'AufenthaltfoerderungModel');
 		$this->_ci->load->model('education/Zeugnisnote_model', 'ZeugnisnoteModel');
 
+		// load helpers
+		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
+
+		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 	}
 
@@ -72,7 +78,11 @@ class DVUHSyncLib
 				$addrCheck = $this->checkAdresse($addr);
 
 				if (isError($addrCheck))
-					return error("Adresse ungültig: " . getError($addrCheck));
+					return createError(
+						"Adresse ungültig: " . getError($addrCheck),
+						'adresseUngueltig',
+						array(getError($addrCheck))
+					);
 
 				if ($adresse->zustelladresse)
 				{
@@ -96,10 +106,10 @@ class DVUHSyncLib
 			}
 
 			if (isEmptyString($zustellAdresse))
-				return error("Keine Zustelladresse angegeben!");
+				return createError('Zustelladresse fehlt', 'keineZustelladresse');
 
 			if (isEmptyString($heimatAdresse))
-				return error("Keine Heimatadresse angegeben!");
+				return createError('Heimatadresse fehlt', 'keineHeimatadresse');
 
 			$adressen[] = $zustellAdresse;
 			$adressen[] = $heimatAdresse;
@@ -109,8 +119,8 @@ class DVUHSyncLib
 			{
 				if ($kontakt->kontakttyp == 'email')
 				{
-					if (!$this->_validateXmlTextValue($kontakt->kontakt))
-						return error('Email enthält Sonderzeichen');
+					if (!validateXmlTextValue($kontakt->kontakt))
+						return createError('Email enthält Sonderzeichen', 'emailEnthaeltSonderzeichen');
 
 					$knt = array();
 					$knt['emailadresse'] = $kontakt->kontakt;
@@ -152,7 +162,7 @@ class DVUHSyncLib
 			foreach ($studentinfo as $idx => $item)
 			{
 				if (!isset($item) || isEmptyString($item))
-					return error('Stammdaten missing: ' . $idx);
+					return createError('Stammdaten missing: ' . $idx, 'stammdatenFehlen', array($idx));
 			}
 
 			if (isset($stammdaten->matr_nr))
@@ -177,9 +187,9 @@ class DVUHSyncLib
 
 			foreach ($textValues as $textValue)
 			{
-				if (isset($studentinfo[$textValue]) && !$this->_validateXmlTextValue($studentinfo[$textValue]))
+				if (isset($studentinfo[$textValue]) && !validateXmlTextValue($studentinfo[$textValue]))
 				{
-					return error("$textValue enthält ungültige Sonderzeichen");
+					return createError("$textValue enthält ungültige Sonderzeichen", 'ungueltigeSonderzeichen', array($textValue));
 				}
 			}
 
@@ -212,7 +222,7 @@ class DVUHSyncLib
 			$person = getData($personresult)[0];
 
 			if (isEmptyString($person->matr_nr) || !preg_match("/^\d{8}$/", $person->matr_nr))
-				return error("Matrikelnummer ungültig");
+				return createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($person->matr_nr));
 
 			$resultObj->matrikelnummer = $person->matr_nr;
 			$gebdatum = $person->gebdatum;
@@ -289,7 +299,7 @@ class DVUHSyncLib
 					$perskz = trim($prestudentstatus->personenkennzeichen);
 
 					if (isEmptyString($perskz) || !preg_match("/^\d{10}$/", $perskz))
-						return error("Personenkennzeichen ungültig");
+						return createError("Personenkennzeichen ungültig", 'personenkennzeichenUngueltig', array($perskz));
 
 					// studstatuscode
 					$studstatuscodeResult = $this->_getStatuscode($status_kurzbz);
@@ -346,7 +356,11 @@ class DVUHSyncLib
 						$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum, $isIncoming);
 
 						if (isError($zugangsberechtigungResult))
-							return $zugangsberechtigungResult;
+							return createError(
+								"Fehlerhafte ZGV Daten: ".getError($zugangsberechtigungResult),
+								'fehlerhafteZgvDaten',
+								array(getError($zugangsberechtigungResult))
+							);
 
 						if (hasData($zugangsberechtigungResult))
 						{
@@ -359,7 +373,11 @@ class DVUHSyncLib
 					$zugangsberechtigungMAResult = $this->_getZgvMaster($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich);
 
 					if (isset($zugangsberechtigungMAResult) && isError($zugangsberechtigungMAResult))
-						return $zugangsberechtigungMAResult;
+						return createError(
+							"Fehlerhafte ZGV Master Daten: ".getError($zugangsberechtigungMAResult),
+							'fehlerhafteZgvMasterDaten',
+							array(getError($zugangsberechtigungMAResult))
+						);
 
 					if (hasData($zugangsberechtigungMAResult))
 					{
@@ -392,7 +410,7 @@ class DVUHSyncLib
 						foreach ($lehrgang as $idx => $item)
 						{
 							if (!isset($item) || isEmptyString($item))
-								return error('Lehrgangdata missing: ' . $idx);
+								createError('Lehrgangdata missing: ' . $idx, 'lehrgangdatenFehlen', array($idx));
 						}
 
 						if (isset($zulassungsdatum) && !$isExtern)
@@ -487,7 +505,7 @@ class DVUHSyncLib
 							if ($orgformcode != '1')
 							{
 								if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
-									return error('Berufstätigkeitcode fehlt');
+									return createError('Berufstätigkeitcode fehlt', 'berufstaetigkeitcodeFehlt');
 
 								$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
 							}
@@ -503,7 +521,7 @@ class DVUHSyncLib
 						foreach ($studiengang as $idx => $item)
 						{
 							if (!isset($item) || isEmptyString($item))
-								return error('Studydata missing: ' . $idx);
+								return createError('Studiumdaten fehlen', 'studiumdatenFehlen', array($idx));
 						}
 
 						if (isset($orgform_code))
@@ -693,13 +711,13 @@ class DVUHSyncLib
 	{
 		$result = success(true);
 
-		if (!isset($addr['ort']) || isEmptyString($addr['ort']) || !$this->_validateXmlTextValue($addr['ort']))
+		if (!isset($addr['ort']) || isEmptyString($addr['ort']) || !validateXmlTextValue($addr['ort']))
 			$result = error('Ort (Feld Gemeinde) fehlt oder enthält Sonderzeichen');
 
-		if (!isset($addr['plz']) || isEmptyString($addr['plz']) || !$this->_validateXmlTextValue($addr['plz']))
+		if (!isset($addr['plz']) || isEmptyString($addr['plz']) || !validateXmlTextValue($addr['plz']))
 			$result = error('Plz fehlt oder enthält Sonderzeichen');
 
-		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']) || !$this->_validateXmlTextValue($addr['strasse']))
+		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']) || !validateXmlTextValue($addr['strasse']))
 			$result = error('Strasse fehlt oder enthält Sonderzeichen');
 
 		if (!isset($addr['staat']) || isEmptyString($addr['staat']))
@@ -735,7 +753,7 @@ class DVUHSyncLib
 		);
 
 		if (isError($diplomandResult))
-			return error("error when getting Diplomanden");
+			return error("Fehler beim Holen der Diplomanden");
 		elseif (hasData($diplomandResult))
 		{
 			$diplomandcount = getData($diplomandResult)[0];
@@ -772,7 +790,7 @@ class DVUHSyncLib
 		if (hasData($prevSemesterResult))
 			$prevSemester = getData($prevSemesterResult)[0]->studiensemester_kurzbz;
 		else
-			return error('No previous Studiensemester');
+			return error('Kein vorheriges Studiensemester');
 
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 
@@ -812,7 +830,7 @@ class DVUHSyncLib
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
 				'mobilitaetprogrammcode' => $gemeinsamestudien->mobilitaetsprogramm_code,
 				'partnercode' => $gemeinsamestudien->partner_code,
-				'programmnr' => $gemeinsamestudien->programm_code, // TODO: value from 1 - 9 excpected by dvuh
+				'programmnr' => $gemeinsamestudien->programm_code,
 				'studstatuscode' => $gs_studstatuscode,
 				'studtyp' => $studtyp
 			);
@@ -838,7 +856,7 @@ class DVUHSyncLib
 			$semester = getData($semesterResult)[0];
 		}
 		else
-			return error("no correct semester provided");
+			return error("Kein korrektes Semester angegeben");
 
 		$ioResult = $this->_dbModel->execReadOnlyQuery(
 					"SELECT *
@@ -860,7 +878,7 @@ class DVUHSyncLib
 				$staat = $ioitem->nation_code;
 				$avon = $ioitem->von;
 				$abis = $ioitem->bis;
-				$adauer = (is_null($avon) || is_null($abis)) ? null : $this->_dateDiff($avon, $abis);
+				$adauer = (is_null($avon) || is_null($abis)) ? null : dateDiff($avon, $abis);
 				if (strtotime($abis) < strtotime(date('Y-m-d')))
 					$aufenthalt_finished = true;
 				else
@@ -884,13 +902,21 @@ class DVUHSyncLib
 						// ...max 1 Aufenthaltszweck
 						if (count($bisio_zweck) > 1)
 						{
-							return error("Es sind" . count($bisio_zweck) . " Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)");
+							return createError(
+								"Es sind" . count($bisio_zweck) . " Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)",
+								'zuVieleZweckeIncoming',
+								array(count($bisio_zweck))
+							);
 						}
 
 						//...nur Zweck 1, 2 oder 3 erlaubt
 						if (count($bisio_zweck) == 1 && !in_array($bisio_zweck[0]->zweck_code, array(1, 2, 3)))
 						{
-							return error("Aufenthaltszweckcode ist " . $bisio_zweck[0]->zweck_code . " (f&uuml;r Incomings ist nur Zweck 1, 2, 3 erlaubt)");
+							return createError(
+								"Aufenthaltszweckcode ist " . $bisio_zweck[0]->zweck_code . " (f&uuml;r Incomings ist nur Zweck 1, 2, 3 erlaubt)",
+								'falscherIncomingZweck',
+								array(count($bisio_zweck[0]->zweck_code))
+							);
 						}
 					}
 
@@ -902,7 +928,10 @@ class DVUHSyncLib
 							// Aufenthaltszweck 1, 2, 3 nicht gemeinsam melden
 							if (in_array(1, $zweck_code_arr) && in_array(2, $zweck_code_arr) && in_array(3, $zweck_code_arr))
 							{
-								return error("Aufenthaltzweckcode 1, 2, 3 d&uuml;rfen nicht gemeinsam gemeldet werden");
+								return createError(
+									"Aufenthaltzweckcode 1, 2, 3 d&uuml;rfen nicht gemeinsam gemeldet werden",
+									'falscherIncomingZweckGemeinsam'
+								);
 							}
 
 							$zweck_code_arr[] = $row_zweck->zweck_code;
@@ -923,8 +952,9 @@ class DVUHSyncLib
 						// ... mindestens 1 Aufenthaltfoerderung melden, wenn Auslandsaufenthalt >= 29 Tage
 						if ((!hasData($bisio_foerderung_result)) && $adauer >= 29)
 						{
-							return error(
-								"Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)"
+							return createError(
+								"Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)",
+								'outgoingAufenthaltfoerderungfehlt'
 							);
 						}
 
@@ -949,14 +979,18 @@ class DVUHSyncLib
 
 						if (isEmptyString($ioitem->ects_erworben) && $adauer >= 29 && $aufenthalt_finished)
 						{
-							return error(
-								"Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)");
+							return createError(
+								"Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
+								'outgoingErworbeneEctsFehlen'
+							);
 						}
 
 						if (isEmptyString($ioitem->ects_angerechnet) && $adauer >= 29 && $aufenthalt_finished)
 						{
-							return error(
-								"Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)");
+							return createError(
+								"Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
+								'outgoingAngerechneteEctsFehlen'
+							);
 						}
 
 						$ects_erworben = $ioitem->ects_erworben;
@@ -1165,28 +1199,5 @@ class DVUHSyncLib
 		}
 
 		return success($zugangsberechtigungMA);
-	}
-
-	/** Checks a string for XML special chars.
-	 * @param string $textValue
-	 * @return bool true if textValue contains no special chars, false otherwise
-	 */
-	private function _validateXmlTextValue($textValue)
-	{
-		return is_string($textValue) && !strpos($textValue, '<') && !strpos($textValue, '>') && !strpos($textValue, '&');
-	}
-
-	/**
-	 * Helper function for returning difference between two dates in days.
-	 * @param string $datum1
-	 * @param string $datum2
-	 * @return false|int
-	 */
-	private function _dateDiff($datum1, $datum2)
-	{
-		$datetime1 = new DateTime($datum1);
-		$datetime2 = new DateTime($datum2);
-		$interval = $datetime1->diff($datetime2);
-		return $interval->days;
 	}
 }

@@ -112,7 +112,7 @@ class Stammdaten_model extends DVUHClientModel
 				$matrikelnummer = isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'];
 
 				if (isEmptyString($matrikelnummer))
-					$result = error('Matrikelnummer nicht gesetzt');
+					$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
 				else
 				{
 					$params = array(
