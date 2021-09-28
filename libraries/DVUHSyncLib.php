@@ -2,12 +2,13 @@
 
 /**
  * Library for retrieving data from FHC for DVUH.
- * Extrats data from FHC db, performs BIS-Meldung checks and puts data in DVUH form.
+ * Extracts data from FHC db, performs BIS-Meldung checks and puts data in DVUH form.
  */
 class DVUHSyncLib
 {
 	private $_ci;
 	private $_dbModel;
+	private $_warnings = array();
 
 	/**
 	 * Library initialization
@@ -129,8 +130,9 @@ class DVUHSyncLib
 				}
 			}
 
-			// business mail
+			// university mail
 			$this->_ci->BenutzerModel->addSelect('uid');
+			$this->_ci->BenutzerModel->addOrder('insertamum', 'DESC');
 			$uids = $this->_ci->BenutzerModel->loadWhere(array('person_id' => $person_id));
 
 			if (hasData($uids))
@@ -162,7 +164,7 @@ class DVUHSyncLib
 			foreach ($studentinfo as $idx => $item)
 			{
 				if (!isset($item) || isEmptyString($item))
-					return createError('Stammdaten missing: ' . $idx, 'stammdatenFehlen', array($idx));
+					return createError('Stammdaten fehlen: ' . $idx, 'stammdatenFehlen', array($idx));
 			}
 
 			if (isset($stammdaten->matr_nr))
@@ -177,7 +179,7 @@ class DVUHSyncLib
 			if (isset($stammdaten->svnr))
 				$studentinfo['svnr'] = $stammdaten->svnr;
 
-			if (isset($stammdaten->ersatzkennzeichen))
+			if (isset($stammdaten->ersatzkennzeichen) && isEmptyString($stammdaten->svnr))
 				$studentinfo['ekz'] = $stammdaten->ersatzkennzeichen;
 
 			if (isset($stammdaten->bpk))
@@ -317,7 +319,7 @@ class DVUHSyncLib
 
 					// booleans isIncoming and isAusserordentlich
 					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
-					// Ausserordnetlicher Studierender (4.Stelle in Personenkennzeichen = 9)
+					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
 					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
 
 					// studtyp - if extern, certain data should not be sent to DVUH
@@ -410,7 +412,7 @@ class DVUHSyncLib
 						foreach ($lehrgang as $idx => $item)
 						{
 							if (!isset($item) || isEmptyString($item))
-								createError('Lehrgangdata missing: ' . $idx, 'lehrgangdatenFehlen', array($idx));
+								return createError('Lehrgangdata missing: ' . $idx, 'lehrgangdatenFehlen', array($idx));
 						}
 
 						if (isset($zulassungsdatum) && !$isExtern)
@@ -505,9 +507,9 @@ class DVUHSyncLib
 							if ($orgformcode != '1')
 							{
 								if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
-									return createError('Berufstätigkeitcode fehlt', 'berufstaetigkeitcodeFehlt');
-
-								$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
+									$this->_addWarning('Berufstätigkeitcode fehlt', 'berufstaetigkeitcodeFehlt');
+								else
+									$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
 							}
 						}
 
@@ -724,6 +726,17 @@ class DVUHSyncLib
 			$result = error('Nation fehlt');
 
 		return $result;
+	}
+
+	/**
+	 * Gets occured warnings and resets them.
+	 * @return array
+	 */
+	public function readWarnings()
+	{
+		$warnings = $this->_warnings;
+		$this->_warnings = array();
+		return $warnings;
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -1128,24 +1141,27 @@ class DVUHSyncLib
 		$zugangsberechtigung = null;
 
 		if (!isset($prestudentstatus->zgv_code))
-			return error("Zgv fehlt");
-		if (!isset($prestudentstatus->zgvdatum))
-			return error("ZGV Datum fehlt");
-		if ($prestudentstatus->zgvdatum > date("Y-m-d"))
-			return error("ZGV Datum in Zukunft");
-		if ($prestudentstatus->zgvdatum < $gebdatum)
-			return error("ZGV Datum vor Geburtsdatum");
+			$this->_addWarning('Zgv fehlt', 'zgvFehlt');
+		elseif (!isset($prestudentstatus->zgvdatum))
+			$this->_addWarning('ZGV Datum fehlt', 'zgvDatumFehlt');
+		else
+		{
+			if ($prestudentstatus->zgvdatum > date("Y-m-d"))
+				return error("ZGV Datum in Zukunft");
+			if ($prestudentstatus->zgvdatum < $gebdatum)
+				return error("ZGV Datum vor Geburtsdatum");
 
-		// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
-		$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
+			// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
+			$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
 
-		$zugangsberechtigung = array(
-			'voraussetzung' => $zugangsvoraussetzung,
-			'datum' => $prestudentstatus->zgvdatum
-		);
+			$zugangsberechtigung = array(
+				'voraussetzung' => $zugangsvoraussetzung,
+				'datum' => $prestudentstatus->zgvdatum
+			);
 
-		if (!$isIncoming)
-			$zugangsberechtigung['staat'] = $prestudentstatus->zgvnation;
+			if (!$isIncoming)
+				$zugangsberechtigung['staat'] = $prestudentstatus->zgvnation;
+		}
 
 		return success($zugangsberechtigung);
 	}
@@ -1165,39 +1181,57 @@ class DVUHSyncLib
 		if ($prestudentstatus->studiengang_typ == 'm' || $prestudentstatus->lgart_biscode == '1')
 		{
 			if (!isset($prestudentstatus->zgvmas_code))
-				return error("Zgv Master fehlt");
+				$this->_addWarning('Zgv Master fehlt', 'zgvMasterFehlt');
+			elseif (!isset($prestudentstatus->zgvmadatum))
+				$this->_addWarning('ZGV Masterdatum fehlt', 'zgvMasterDatumFehlt');
+			else
+			{
+				if ($prestudentstatus->zgvmadatum > date("Y-m-d"))
+				{
+					return error("ZGV Masterdatum in Zukunft");
+				}
+				if ($prestudentstatus->zgvmadatum < $prestudentstatus->zgvdatum)
+				{
+					return error("ZGV Masterdatum vor Zgvdatum");
+				}
+				if ($prestudentstatus->zgvmadatum < $gebdatum)
+				{
+					return error("ZGV Masterdatum vor Geburtsdatum");
+				}
 
-			if (!isset($prestudentstatus->zgvmadatum))
-			{
-				return error("ZGV Masterdatum fehlt");
-			}
-			if ($prestudentstatus->zgvmadatum > date("Y-m-d"))
-			{
-				return error("ZGV Masterdatum in Zukunft");
-			}
-			if ($prestudentstatus->zgvmadatum < $prestudentstatus->zgvdatum)
-			{
-				return error("ZGV Masterdatum vor Zgvdatum");
-			}
-			if ($prestudentstatus->zgvmadatum < $gebdatum)
-			{
-				return error("ZGV Masterdatum vor Geburtsdatum");
-			}
+				// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
+				$zugangsvoraussetzung_ma = str_pad($prestudentstatus->zgvmas_code, 2, '0', STR_PAD_LEFT);
 
-			// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
-			$zugangsvoraussetzung_ma = str_pad($prestudentstatus->zgvmas_code, 2, '0', STR_PAD_LEFT);
+				$zugangsberechtigungMA = array(
+					'voraussetzung' => $zugangsvoraussetzung_ma,
+					'datum' => $prestudentstatus->zgvmadatum
+				);
 
-			$zugangsberechtigungMA = array(
-				'voraussetzung' => $zugangsvoraussetzung_ma,
-				'datum' => $prestudentstatus->zgvmadatum
-			);
-
-			if (!$isAusserordentlich && !$isIncoming)
-			{
-				$zugangsberechtigungMA['staat'] = $prestudentstatus->zgvmanation;
+				if (!$isAusserordentlich && !$isIncoming)
+				{
+					$zugangsberechtigungMA['staat'] = $prestudentstatus->zgvmanation;
+				}
 			}
 		}
 
 		return success($zugangsberechtigungMA);
+	}
+
+	/**
+	 * Adds warning to "warning log".
+	 * @param $warningtext
+	 * @param string $issue_fehler_kurzbz if set, issue is created
+	 * @param array $issue_fehlertext_params
+	 */
+	private function _addWarning($warningtext, $issue_fehler_kurzbz = null, $issue_fehlertext_params = null)
+	{
+		if (isEmptyString($issue_fehler_kurzbz))
+		{
+			$this->_warnings[] = error($warningtext);
+		}
+		else
+		{
+			$this->_warnings[] = createError($warningtext, $issue_fehler_kurzbz, $issue_fehlertext_params);
+		}
 	}
 }

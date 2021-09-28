@@ -112,6 +112,7 @@ class XMLReaderLib
 					{
 						$errResultobj->{$errAttr->tagName} = $errAttr->nodeValue;
 					}
+
 					$errResultobj->fehlertextKomplett = $errResultobj->fehlernummer . ': ' .
 						(!isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
 						$errResultobj->fehlertext .

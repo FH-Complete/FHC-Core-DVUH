@@ -349,8 +349,11 @@ var DVUHMenu = {
 			{
 				for (var i = 0; i < text.warnings.length; i++)
 				{
+					if (!FHC_AjaxClient.isError(text.warnings[i]))
+						continue;
+
 					textToWrite += "<span class='text-warning'>";
-					textToWrite += text.warnings[i];
+					textToWrite += FHC_AjaxClient.getError(text.warnings[i]);
 					textToWrite += "</span><br />";
 				}
 			}

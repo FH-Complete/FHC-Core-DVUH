@@ -1,15 +1,14 @@
 INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, fehlertext, fehlertyp_kurzbz, app) VALUES
 /* self-defined FHC Errors */
 ('DVUH_SC_0001', 'matrNrFehlt', NULL, 'Matrikelnummer nicht gesetzt', 'error', 'dvuh'),
-('DVUH_SC_0002', 'keineZustelladresse', NULL, 'Keine Zustelladresse angegeben!', 'error', 'dvuh'),
-('DVUH_SC_0003', 'keineHeimatadresse', NULL, 'Keine Heimatadresse angegeben!', 'error', 'dvuh'),
+('DVUH_SC_0002', 'keineZustelladresse', NULL, 'Keine Zustelladresse angegeben', 'error', 'dvuh'),
+('DVUH_SC_0003', 'keineHeimatadresse', NULL, 'Keine Heimatadresse angegeben', 'error', 'dvuh'),
 ('DVUH_SC_0004', 'adresseUngueltig', NULL, 'Adresse ungültig: %s', 'error', 'dvuh'),
 ('DVUH_SC_0005', 'stammdatenFehlen', NULL, 'Stammdaten fehlen: %s', 'error', 'dvuh'),
 ('DVUH_SC_0006', 'ungueltigeSonderzeichen', NULL, '%s enthält ungültige Sonderzeichen', 'error', 'dvuh'),
 ('DVUH_SC_0007', 'emailEnthaeltSonderzeichen', NULL, 'Email enthält Sonderzeichen', 'error', 'dvuh'),
 ('DVUH_SC_0008', 'oehbeitragNichtSpezifiziert', NULL, 'Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester %s spezifiziert, Buchung %s', 'error', 'dvuh'),
-('DVUH_SP_0001', 'offeneBuchungen', NULL, 'Es gibt noch offene Buchungen', 'error', 'dvuh'),
-('DVUH_SP_0002', 'zlgUngleichVorschreibung', NULL, 'Buchung: %s: Zahlungsbetrag abweichend von Vorschreibungsbetrag', 'error', 'dvuh'),
+('DVUH_SP_0001', 'zlgUngleichVorschreibung', NULL, 'Buchung: %s: Zahlungsbetrag abweichend von Vorschreibungsbetrag', 'error', 'dvuh'),
 ('DVUH_SS_0001', 'matrikelnrUngueltig', NULL, 'Matrikelnummer ungültig (%s)', 'error', 'dvuh'),
 ('DVUH_SS_0002', 'fehlerhafteZgvDaten', NULL, 'Fehlerhafte ZGV Daten: %s', 'error', 'dvuh'),
 ('DVUH_SS_0003', 'fehlerhafteZgvMasterDaten', NULL, 'Fehlerhafte ZGV Master Daten: %s', 'error', 'dvuh'),
@@ -24,10 +23,24 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SS_0012', 'studiumdatenFehlen', NULL, 'Studiumdaten fehlen: %s', 'error', 'dvuh'),
 /* DVUH Errors */
 ('DVUH_ERROR', 'dvuhFehler', NULL, 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
-('DVUH_SC_ZD10075', NULL, 'ZD10075', 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
-('DVUH_SC_ZD10076', NULL, 'ZD10076', 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
-('DVUH_SC_ZD10077', NULL, 'ZD10077', 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
-('DVUH_SS_ZD00030', NULL, 'ZD00030', 'DVUH Fehler ist aufgetreten', 'error', 'dvuh')
-ON CONFLICT (fehlercode, fehler_kurzbz) DO NOTHING;
-/*
-	'zlgKeineVorschreibungGesendet' => array('code' => 'DVUH_SP_0003', 'text' => 'Buchung %s: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet'),*/
+('DVUH_SM_MATRNR_STATUS_2', NULL, 'MATRNR_STATUS_2', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, Datenverbund kontaktieren.', 'error', 'dvuh'),
+('DVUH_SM_MATRNR_STATUS_4', NULL, 'MATRNR_STATUS_4', 'Aktive, noch nicht scharfgeschaltene Matrikelnummer an einer Bildungseinrichtung. In Evidenz halten, bis Student an einer Bildungseinrichtung scharf geschalten ist.', 'error', 'dvuh'),
+('DVUH_SM_MATRNR_STATUS_6', NULL, 'MATRNR_STATUS_6', 'Zwei Datensätze existieren zur Person mit der Matrikelnummer, Datenverbund kontaktieren.', 'error', 'dvuh'),
+('DVUH_SS_ZD00030', NULL, 'ZD00030', 'Keine Stammdaten vor den Studiendaten gesendet, evtl. Folgefehler wegen Stammdaten Sendefehler.', 'error', 'dvuh'),
+('DVUH_SC_ZD10075', NULL, 'ZD10075', 'Personendaten stimmen nicht mit Datenverbund Daten überein, u.a. Vorname, Nachname, Geburtsdatum... überprüfen.', 'error', 'dvuh'),
+('DVUH_SC_ZD10076', NULL, 'ZD10076', 'Es gibt eine andere, bereits scharf geschaltete Matrikelnummer. Matrikelnummer mit DVUH abgleichen.', 'error', 'dvuh'),
+('DVUH_SC_ZD10077', NULL, 'ZD10077', 'Matrikelnummer aus Kontingent einer anderen Bildungseinrichtung, Matrikelnummer prüfen.', 'error', 'dvuh'),
+('DVUH_SS_ZD10078', NULL, 'ZD10078', 'Matrikelnummer gesperrt, mit Datenverbund abklären.', 'error', 'dvuh'),
+/* self-defined FHC Warnings */
+('DVUH_SP_W_0001', 'vorgeschrBetragUngleichFestgesetzt', NULL, 'Vorgeschriebener Beitrag %s nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, %s, überein', 'warning', 'dvuh'),
+('DVUH_SP_W_0002', 'zlgKeineVorschreibungGesendet', NULL, 'Buchung %s: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet', 'warning', 'dvuh'),
+('DVUH_SP_W_0003', 'offeneBuchungen', NULL, 'Es gibt noch offene Buchungen', 'error', 'dvuh'),
+('DVUH_SS_W_0001', 'zgvFehlt', NULL, 'ZGV fehlt', 'warning', 'dvuh'),
+('DVUH_SS_W_0002', 'zgvDatumFehlt', NULL, 'ZGV Datum fehlt', 'warning', 'dvuh'),
+('DVUH_SS_W_0003', 'zgvMasterFehlt', NULL, 'Zgv Master fehlt', 'warning', 'dvuh'),
+('DVUH_SS_W_0004', 'zgvMasterDatumFehlt', NULL, 'ZGV Masterdatum fehlt', 'warning', 'dvuh'),
+('DVUH_SS_W_0005', 'berufstaetigkeitcodeFehlt', NULL, 'Berufstätigkeitcode fehlt', 'warning', 'dvuh'),
+/* DVUH Warnings */
+('DVUH_SC_W_AD10065', NULL, 'AD10065', 'Bpk fehlt oder im Datenverbund anders, Bpk prüfen', 'warning', 'dvuh'),
+('DVUH_SC_W_AD10208', NULL, 'AD10208', 'SVNR oder Ersatzkennzeichen fehlt, prüfen und ergänzen', 'warning', 'dvuh')
+ON CONFLICT (fehlercode) DO NOTHING;

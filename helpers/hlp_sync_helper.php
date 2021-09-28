@@ -24,11 +24,11 @@ function dateDiff($datum1, $datum2)
 }
 
 /**
- * Helper funciton for creating a custom error (issue) object.
+ * Helper function for creating a custom error object with issue data.
  * @param string $error_text_for_logging
  * @param string $issue_fehler_kurzbz short unique text id of issue
  * @param string $issue_fehlertext_params parameters for replacement of erroro text
- * @return mixed
+ * @return object the error
  */
 function createError($error_text_for_logging, $issue_fehler_kurzbz, $issue_fehlertext_params = null)
 {
@@ -37,4 +37,19 @@ function createError($error_text_for_logging, $issue_fehler_kurzbz, $issue_fehle
 	$error->issue_fehlertext_params = $issue_fehlertext_params;
 
 	return error($error_text_for_logging, $error);
+}
+
+/**
+ * Helper function for creating a DVUH external error object.
+ * @param string $error_text_for_logging
+ * @param string $fehlernummer DVUH error number
+ * @return object the error
+ */
+function createExternalError($error_text_for_logging, $fehlernummer)
+{
+	$error = new stdClass();
+	$error->fehlernummer = $fehlernummer;
+	$error->fehlertextKomplett = $error_text_for_logging;
+
+	return error($error_text_for_logging, array($error));
 }

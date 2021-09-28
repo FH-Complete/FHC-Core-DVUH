@@ -62,7 +62,13 @@ class DVUHManagement extends JQW_Controller
 					$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id, $studiensemester_kurzbz);
 
 					if (isError($requestMatrnrResult))
-						$this->logError("Fehler bei Matrikelnummernabfrage, person Id $person_id", getError($requestMatrnrResult));
+					{
+						$this->_logDVUHError(
+							"Fehler bei Matrikelnummernvergabe, person Id $person_id, Studiensemester $studiensemester_kurzbz",
+							$requestMatrnrResult,
+							$person_id
+						);
+					}
 					elseif (hasData($requestMatrnrResult))
 					{
 						$requestMatrnrArr = getData($requestMatrnrResult);
@@ -467,7 +473,7 @@ class DVUHManagement extends JQW_Controller
 	 */
 	private function _logDVUHInfosAndWarnings($resultarr, $idArr)
 	{
-		if ($this->_logInfos === true)
+		if ($this->_logInfos === true) // if info logging enabled
 		{
 			if (isset($resultarr['infos']) && is_array($resultarr['infos']))
 			{
@@ -489,7 +495,10 @@ class DVUHManagement extends JQW_Controller
 		{
 			foreach ($resultarr['warnings'] as $warning)
 			{
-				$warningTxt = $warning;
+				if (!isError($warning))
+					continue;
+
+				$warningTxt = getError($warning);
 
 				foreach ($idArr as $idname => $idvalue)
 				{
@@ -497,6 +506,9 @@ class DVUHManagement extends JQW_Controller
 				}
 
 				$this->logWarning($warningTxt);
+				$person_id = isset($idArr['person_id']) ? $idArr['person_id'] : null;
+				$prestudent_id = isset($idArr['prestudent_id']) ? $idArr['prestudent_id'] : null;
+				$this->_addDVUHIssue($warning, $person_id, $prestudent_id, true);
 			}
 		}
 	}
@@ -524,7 +536,19 @@ class DVUHManagement extends JQW_Controller
 		$this->logError($logging_prefix.': '.getError($errorObj), $errorObj);
 
 		// optionally add issue
-		$issueRes = $this->dvuherrorlib->addIssue($errorObj, $person_id, $prestudent_id);
+		$this->_addDVUHIssue($errorObj, $person_id, $prestudent_id);
+	}
+
+	/**
+	 * Adds DVUH issue. Logs error if issue adding failed.
+	 * @param $errorObj
+	 * @param int $person_id
+	 * @param int $prestudent_id
+	 * @param string $force_predefined
+	 */
+	private function _addDVUHIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined = false)
+	{
+		$issueRes = $this->dvuherrorlib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined);
 
 		if (isError($issueRes))
 		{

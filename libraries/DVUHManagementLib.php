@@ -18,7 +18,7 @@ class DVUHManagementLib
 	private $_matrnr_statuscodes = array(
 		'assignNew' => array('1', '5'),
 		'saveExisting' => array('3'),
-		'error' => array('4', '6')
+		'error' => array('2', '4', '6')
 	);
 
 	/**
@@ -194,7 +194,7 @@ class DVUHManagementLib
 					}
 					elseif (in_array($statuscode, $this->_matrnr_statuscodes['error']))
 					{
-						$result = error($statusmeldung);
+						$result = createExternalError($statusmeldung, 'MATRNR_STATUS_'.$statuscode);
 					}
 					else
 					{
@@ -292,7 +292,7 @@ class DVUHManagementLib
 			}
 
 			if ($paidOtherUniv === true)
-				$warnings[] = "An anderer Bildungseinrichtung bezahlt";
+				$warnings[] = error("An anderer Bildungseinrichtung bezahlt");
 			foreach ($buchungen as $buchung)
 			{
 				// if already paid on other university but not at own university, not send Vorschreibung
@@ -353,9 +353,10 @@ class DVUHManagementLib
 					// warning if amount in Buchung after Versicherung deduction not equal to amount in oehbeitrag table
 					if (-1 * $beitragAmount != $studierendenBeitragAmount)
 					{
-						$warnings[] = "Vorgeschriebener Beitrag " . number_format(-1 * $beitragAmount, 2, ',', '.')
-										. " nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, "
-										. number_format($studierendenBeitragAmount, 2, ',', '.') . ", überein";
+						$vorgeschrBeitrag = number_format(-1 * $beitragAmount, 2, ',', '.');
+						$festgesBeitrag = number_format($studierendenBeitragAmount, 2, ',', '.');
+						$warnings[] = createError("Vorgeschriebener Beitrag $vorgeschrBeitrag nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, "
+										. "$festgesBeitrag, überein", 'vorgeschrBetragUngleichFestgesetzt', array($vorgeschrBeitrag, $festgesBeitrag));
 					}
 				}
 				elseif ($dvuh_buchungstyp == 'studiengebuehr')
@@ -425,7 +426,7 @@ class DVUHManagementLib
 							array(
 								'buchungsdatum' => date('Y-m-d'),
 								'buchungsnr' => $bchng->buchungsnr,
-								'betrag' => $bchng->betrag
+								'betrag' => number_format($bchng->betrag, 2, '.', '') // number_format to be sure database saves decimal correclty
 							)
 						);
 
@@ -444,7 +445,7 @@ class DVUHManagementLib
 							array(
 								'buchungsdatum' => date('Y-m-d'),
 								'buchungsnr' => $bchng->buchungsnr,
-								'betrag' => $bchng->betrag
+								'betrag' => number_format($bchng->betrag, 2, '.', '') // number_format to be sure database saves decimal correclty
 							)
 						);
 
@@ -472,11 +473,6 @@ class DVUHManagementLib
 				{
 					$parsedWarnings = getData($warningsRes);
 
-					foreach ($parsedWarnings as $warning)
-					{
-						$warnings[] = $warning->fehlertextKomplett;
-					}
-
 					// if no bpk saved in FHC, but a BPK is returned by DVUH, save it in FHC
 					$saveBpkRes = $this->_saveBpkInFhc($person_id, $parsedWarnings);
 
@@ -491,7 +487,7 @@ class DVUHManagementLib
 				}
 
 				if (!isset($result))
-					$result = $this->_getResponseArr($xmlstr, $infos, $warnings);
+					$result = $this->_getResponseArr($xmlstr, $infos, $warnings, true);
 			}
 		}
 		else
@@ -597,19 +593,26 @@ class DVUHManagementLib
 				if (hasData($charges))
 				{
 					if (abs(getData($charges)[0]->betrag) != $buchung->summe_buchungen)
+					{
 						return createError(
 							"Buchung: $buchungsnr: Zahlungsbetrag abweichend von Vorschreibungsbetrag",
-							'offeneBuchungen',
+							'zlgUngleichVorschreibung',
 							array($buchungsnr)
 						);
-						return error();
+					}
 				}
 				else
 				{
 					return $this->_getResponseArr(
 						null,
 						null,
-						array("Buchung $buchungsnr: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet")
+						array(
+							createError(
+								"Buchung $buchungsnr: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet",
+								'zlgKeineVorschreibungGesendet',
+								array($buchungsnr)
+							)
+						)
 					);
 				}
 
@@ -619,7 +622,7 @@ class DVUHManagementLib
 				$payment->semester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($buchung->studiensemester_kurzbz);
 				$payment->zahlungsart = '1';
 				$payment->centbetrag = $buchung->betrag * 100;
-				$payment->eurobetrag = $buchung->betrag;
+				$payment->eurobetrag = number_format($buchung->betrag, 2, '.', '');
 				$payment->buchungsdatum = $buchung->buchungsdatum;
 				$payment->buchungstyp = $buchung->buchungstyp_kurzbz;
 				$payment->referenznummer = $buchung->buchungsnr;
@@ -732,6 +735,7 @@ class DVUHManagementLib
 			return $this->_getResponseArr(getData($postData));
 		}
 
+		// put if only for one prestudent, with post all data would be updated.
 		if (isset($prestudent_id))
 			$studiumResult = $this->_ci->StudiumModel->put($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
 		else
@@ -749,10 +753,12 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
+				$warnings = $this->_ci->dvuhsynclib->readWarnings();
+
 				$result = $this->_getResponseArr(
 					$xmlstr,
 					array('Studiumdaten erfolgreich in DVUH gespeichert'),
-					null,
+					$warnings,
 					true
 				);
 
@@ -865,7 +871,7 @@ class DVUHManagementLib
 						// if multiple bpks, at least 2 person tags are present
 						if (!isEmptyArray($parsedObj->person) && count($parsedObj->person) > 1)
 						{
-							$warnings[] = "Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.";
+							$warnings[] = error("Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.");
 
 							// remove any non-letter character (unicode for german)
 							$strasse = preg_replace('/[\P{L}]/u', '', $person->strasse);
@@ -896,9 +902,9 @@ class DVUHManagementLib
 									if (isEmptyArray($parsedObjAddr->bpk))
 									{
 										if (!isEmptyArray($parsedObjAddr->person) && count($parsedObjAddr->person) > 1)
-											$warnings[] = "Mehrere Bpks in DVUH gefunden, auch nach erneuter Anfrage mit Adresse.";
+											$warnings[] = error("Mehrere Bpks in DVUH gefunden, auch nach erneuter Anfrage mit Adresse.");
 										else
-											$warnings[] = "Keine Bpk in DVUH bei Neuanfrage mit Adresse gefunden.";
+											$warnings[] = error("Keine Bpk in DVUH bei Neuanfrage mit Adresse gefunden.");
 									}
 									else // single bpk found using adress
 									{
@@ -913,7 +919,7 @@ class DVUHManagementLib
 								return error("Fehler bei Bpk-Neuanfrage mit Adresse");
 						}
 						else
-							$warnings[] = "Keine Bpk in DVUH gefunden";
+							$warnings[] = error("Keine Bpk in DVUH gefunden");
 					}
 					else // bpk found on first try
 					{
@@ -1078,18 +1084,26 @@ class DVUHManagementLib
 			{
 				foreach ($prestudentsPosted as $prestudent_id => $ects)
 				{
+					$ects_angerechnet_posted = $ects['ects_angerechnet'] == 0
+												? null
+												: number_format($ects['ects_angerechnet'], 2, '.', '');
+
+					$ects_erworben_posted = $ects['ects_erworben'] == 0
+												? null
+												: number_format($ects['ects_erworben'], 2, '.', '');
+
 					$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
 						array(
 							'prestudent_id' => $prestudent_id,
 							'studiensemester_kurzbz' => $studiensemester_kurzbz,
-							'ects_angerechnet' => $ects['ects_angerechnet'] == 0 ? null : $ects['ects_angerechnet'],
-							'ects_erworben' => $ects['ects_erworben'] == 0 ? null : $ects['ects_erworben'],
+							'ects_angerechnet' => $ects_angerechnet_posted,
+							'ects_erworben' => $ects_erworben_posted,
 							'meldedatum' => date('Y-m-d')
 						)
 					);
 
 					if (isError($pruefungsaktivitaetenSaveResult))
-						$warnings[] = 'Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC';
+						$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');
 				}
 
 				$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
@@ -1224,7 +1238,6 @@ class DVUHManagementLib
 
 				$result = success($resArr);
 			}
-
 		}
 		else
 			$result = error("Fehler beim Senden der Stammdaten");
@@ -1385,16 +1398,16 @@ class DVUHManagementLib
 		if (hasData($buchungNullify))
 		{
 			$gegenbuchungNullify = $this->_ci->KontoModel->insert(array(
-					"person_id" => $buchung->person_id,
-					"studiengang_kz" => $buchung->studiengang_kz,
-					"studiensemester_kurzbz" => $buchung->studiensemester_kurzbz,
-					"betrag" => 0,
-					"buchungsdatum" => date('Y-m-d'),
-					"buchungstext" => $buchung->buchungstext,
-					"buchungstyp_kurzbz" => $buchung->buchungstyp_kurzbz,
-					"buchungsnr_verweis" => $buchung->buchungsnr,
-					"insertvon" => 'dvuhJob',
-					"insertamum" => date('Y-m-d H:i:s'),
+					'person_id' => $buchung->person_id,
+					'studiengang_kz' => $buchung->studiengang_kz,
+					'studiensemester_kurzbz' => $buchung->studiensemester_kurzbz,
+					'betrag' => 0,
+					'buchungsdatum' => date('Y-m-d'),
+					'buchungstext' => $buchung->buchungstext,
+					'buchungstyp_kurzbz' => $buchung->buchungstyp_kurzbz,
+					'buchungsnr_verweis' => $buchung->buchungsnr,
+					'insertvon' => 'dvuhJob',
+					'insertamum' => date('Y-m-d H:i:s'),
 					'anmerkung' => $andereBeBezahltTxt
 				)
 			);
@@ -1484,14 +1497,16 @@ class DVUHManagementLib
 					if (hasData($warningsRes))
 					{
 						$warningtext = '';
+						$parsedWarnings = array();
 
 						foreach (getData($warningsRes) as $warning)
 						{
 							if (!isEmptyString($warningtext))
 								$warningtext .= ', ';
 							$warningtext .= $warning->fehlertextKomplett;
+							$parsedWarnings[] = $warning;
 						}
-						$responseArr['warnings'][] = $warningtext;
+						$responseArr['warnings'][] = error($warningtext, $parsedWarnings);
 					}
 				}
 			}
