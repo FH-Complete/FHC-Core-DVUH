@@ -8,8 +8,9 @@ class DVUHManagementLib
 {
 	const DVUH_USER = 'dvuhsync';
 
-	const STATUS_PAID_OTHER_UNIV = '8';
-	const ERRORCODE_BPK_MISSING = 'AD10065';
+	const STATUS_PAID_OTHER_UNIV = '8'; // payment status if paid on another university, for check
+	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
+	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
 
 	private $_be;
 	private $_ci;
@@ -279,26 +280,8 @@ class DVUHManagementLib
 		{
 			$buchungen = getData($buchungenResult);
 
-			// check if paid on another university - if yes, Vorschreibung might not be necessary
-			$paidOtherUnivRes = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester, $matrikelnummer);
-
-			if (isError($paidOtherUnivRes))
-				return $paidOtherUnivRes;
-
-			$paidOtherUniv = false;
-			if (hasData($paidOtherUnivRes))
-			{
-				$paidOtherUniv = getData($paidOtherUnivRes)[0];
-			}
-
-			if ($paidOtherUniv === true)
-				$warnings[] = error("An anderer Bildungseinrichtung bezahlt");
 			foreach ($buchungen as $buchung)
 			{
-				// if already paid on other university but not at own university, not send Vorschreibung
-				if ($paidOtherUniv === true && $buchung->bezahlt == '0')
-					continue;
-
 				// add Vorschreibung
 				$studierendenBeitragAmount = 0;
 				$versicherungBeitragAmount = 0;
@@ -454,10 +437,17 @@ class DVUHManagementLib
 					}
 				}
 
-				// check if already paid on another university and nullify open buchung
+				// check if already paid on another university and nullify open buchung -
+				// because payment status gets refreshed after Stammdatenmeldung
 				if (isset($buchungen))
 				{
-					$paidOtherUnivRes = $this->_checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $matrikelnummer, $buchungen, $infos);
+					$paidOtherUnivRes = $this->_checkIfPaidOtherUnivAndNullify(
+						$person_id,
+						$dvuh_studiensemester,
+						$matrikelnummer,
+						$buchungen,
+						$warnings
+					);
 
 					if (isError($paidOtherUnivRes))
 						return $paidOtherUnivRes;
@@ -1284,7 +1274,7 @@ class DVUHManagementLib
 	 * @param array $infos for adding log infos
 	 * @return object success or error with boolean (paid or not)
 	 */
-	private function _checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $matrikelnummer, $buchungen, &$infos)
+	private function _checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $matrikelnummer, $buchungen, &$warnings)
 	{
 		// check if already paid on another university
 		$paidOtherUniv = $this->_checkIfPaidOtherUniv($person_id, $dvuh_studiensemester, $matrikelnummer);
@@ -1302,20 +1292,44 @@ class DVUHManagementLib
 				$alreadyPaidStr = 'Bereits an anderer Bildungseinrichtung bezahlt.';
 				foreach ($buchungen as $buchung)
 				{
-					if ($buchung->buchungstyp_kurzbz == 'OEH' && $buchung->bezahlt == '0')
+					$isSent = false;
+					$buchungsnr = $buchung->buchungsnr;
+
+					// For ÖH-payments paid on other BE, check if already sent to SAP, add warning if yes
+					if ($buchung->buchungstyp_kurzbz == self::BUCHUNGSTYP_OEH)
 					{
-						// set Buchungen to 0 since they don't need to be paid anymore
-						$nullifyResult = $this->_nullifyBuchung($buchung);
+						$sentToSap = $this->_checkIfSentToSap($buchungsnr);
 
-						if (isError($nullifyResult))
-							return $nullifyResult;
+						if (isError($sentToSap))
+							return $sentToSap;
 
-						$alreadyPaidStr .= ' Buchung nullifiziert.';
+						if (hasData($sentToSap))
+						{
+							$isSent = getData($sentToSap)[0];
+							if ($isSent == true)
+							{
+								$warnings[] = createError(
+									"Buchung $buchungsnr ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde",
+									'andereBeBezahltSapGesendet',
+									array($buchungsnr)
+								);
+							}
+						}
+
+						if ($buchung->bezahlt == '0' && $isSent === false)
+						{
+							// set ÖH-Buchungen to 0 since they don't need to be paid anymore
+							$nullifyResult = $this->_nullifyBuchung($buchung);
+
+							if (isError($nullifyResult))
+								return $nullifyResult;
+
+							$alreadyPaidStr .= ' Buchung nullifiziert.';
+						}
 					}
 				}
 
-				if (!in_array($alreadyPaidStr, $infos))
-					$infos[] = $alreadyPaidStr;
+				$warnings[] = error($alreadyPaidStr);
 			}
 		}
 
@@ -1378,6 +1392,40 @@ class DVUHManagementLib
 	}
 
 	/**
+	 * Checks if a certain Kontobuchung is already sent as salesorder to SAP.
+	 * @param int $buchungsnr
+	 * @return object success with true/false or error
+	 */
+	private function _checkIfSentToSap($buchungsnr)
+	{
+		$tblExistsQry = "SELECT 1
+							FROM information_schema.tables
+							WHERE table_schema = 'sync' and table_name='tbl_sap_salesorder'";
+
+		$tblExistsRes = $this->_dbModel->execReadOnlyQuery($tblExistsQry);
+
+		if (isError($tblExistsRes))
+			return $tblExistsRes;
+
+		if (hasData($tblExistsRes))
+		{
+			$sentToSapQry = "SELECT 1
+								FROM sync.tbl_sap_salesorder
+								WHERE buchungsnr = ?";
+
+			$sentToSapRes = $this->_dbModel->execReadOnlyQuery($sentToSapQry, array($buchungsnr));
+
+			if (isError($sentToSapRes))
+				return $sentToSapRes;
+
+			if (hasData($sentToSapRes))
+				return success(array(true));
+		}
+
+		return success(array(false));
+	}
+
+	/**
 	 * Sets a Buchung in FHC to 0 and creates a Gegenbuchung with 0.
 	 * @param object $buchung contains buchungsdata
 	 * @return object success or error
@@ -1406,7 +1454,7 @@ class DVUHManagementLib
 					'buchungstext' => $buchung->buchungstext,
 					'buchungstyp_kurzbz' => $buchung->buchungstyp_kurzbz,
 					'buchungsnr_verweis' => $buchung->buchungsnr,
-					'insertvon' => 'dvuhJob',
+					'insertvon' => self::DVUH_USER,
 					'insertamum' => date('Y-m-d H:i:s'),
 					'anmerkung' => $andereBeBezahltTxt
 				)

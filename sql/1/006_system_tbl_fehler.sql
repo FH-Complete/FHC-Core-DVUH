@@ -32,6 +32,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SC_ZD10077', NULL, 'ZD10077', 'Matrikelnummer aus Kontingent einer anderen Bildungseinrichtung, Matrikelnummer prüfen.', 'error', 'dvuh'),
 ('DVUH_SS_ZD10078', NULL, 'ZD10078', 'Matrikelnummer gesperrt, mit Datenverbund abklären.', 'error', 'dvuh'),
 /* self-defined FHC Warnings */
+('DVUH_SC_W_0001', 'andereBeBezahltSapGesendet', NULL, 'Buchung %s ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde', 'warning', 'dvuh'),
 ('DVUH_SP_W_0001', 'vorgeschrBetragUngleichFestgesetzt', NULL, 'Vorgeschriebener Beitrag %s nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, %s, überein', 'warning', 'dvuh'),
 ('DVUH_SP_W_0002', 'zlgKeineVorschreibungGesendet', NULL, 'Buchung %s: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet', 'warning', 'dvuh'),
 ('DVUH_SP_W_0003', 'offeneBuchungen', NULL, 'Es gibt noch offene Buchungen', 'error', 'dvuh'),
