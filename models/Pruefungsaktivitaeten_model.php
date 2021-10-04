@@ -120,7 +120,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 				if (isEmptyArray($studiumpruefungen))
 				{
-					// TODO if no pruefungen found for person, and there were ects sent last sync
+					// TODO if no pruefungen found for person or only angerechnete ects, and there were erworbene ects sent last sync -
 					// delete pruefungsaktivitaeten
 
 					$result = success(array());

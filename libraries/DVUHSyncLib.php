@@ -585,7 +585,7 @@ class DVUHSyncLib
 	public function getPruefungsaktivitaetenData($person_id, $studiensemester)
 	{
 		$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
-		$note_angerechnet_id = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
+		$note_angerechnet_ids = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
 
 		$prestudentEcts = array();
 
@@ -645,12 +645,12 @@ class DVUHSyncLib
 		{
 			$zeugnisNoten = getData($zeugnisNotenResult);
 
-			// sum up ects by prestudent, note "angerechnet" separately
+			// sum up ects by prestudent, angerechnete Noten separately
 			foreach ($zeugnisNoten as $note)
 			{
 				if (isset($prestudentEcts[$note->prestudent_id]) && isset($note->ects))
 				{
-					if ($note->note == $note_angerechnet_id)
+					if (in_array($note->note, $note_angerechnet_ids))
 						$prestudentEcts[$note->prestudent_id]->ects_angerechnet += $note->ects;
 					else
 						$prestudentEcts[$note->prestudent_id]->ects_erworben += $note->ects;
@@ -1218,9 +1218,9 @@ class DVUHSyncLib
 	}
 
 	/**
-	 * Adds warning to "warning log".
+	 * Adds warning to warning list.
 	 * @param $warningtext
-	 * @param string $issue_fehler_kurzbz if set, issue is created
+	 * @param string $issue_fehler_kurzbz if set, issue is created and added as warning
 	 * @param array $issue_fehlertext_params
 	 */
 	private function _addWarning($warningtext, $issue_fehler_kurzbz = null, $issue_fehlertext_params = null)

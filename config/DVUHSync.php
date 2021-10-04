@@ -3,8 +3,18 @@
 // if set to true, infos will be logged to webservicelog, otherwise only warnings and errors
 $config['fhc_dvuh_log_infos'] = false;
 
-/*$config['fhc_dvuh_bisdatum_ws'] = array('month' => '11', 'day' => '15');
-$config['fhc_dvuh_bisdatum_ss'] = array('month' => '03', 'day' => '15');*/
+// default time spans for Studiensemester for which data is sent to DVUH.
+// Only used when no Studiensemester parameters passed.
+$config['fhc_dvuh_studiensemester_meldezeitraum'] = array(
+	'SS2021' => array(
+		'von' => '2021-01-01', // SS von 01.01
+		'bis' => '2021-10-15' // SS bis 31.05
+	),
+	'WS2021' => array(
+		'von' => '2021-06-01', // WS von 01.06
+		'bis' => '2021-12-31' // WS bis 31.12
+	)
+);
 
 // Only students with given status_kurzbz (defined for each job) are sent to DVUH
 $config['fhc_dvuh_status_kurzbz'] = array(
@@ -37,5 +47,5 @@ $config['fhc_dvuh_sync_student_statuscode'] = array(
 	'Abbrecher' => 4
 );
 
-// "angerechnet" Noten-code for Prüfungsaktivitäten
-$config['fhc_dvuh_sync_note_angerechnet'] = 6;
+//  Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
+$config['fhc_dvuh_sync_note_angerechnet'] = array(6, 19);

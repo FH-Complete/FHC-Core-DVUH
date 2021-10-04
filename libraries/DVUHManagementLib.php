@@ -6,8 +6,6 @@
  */
 class DVUHManagementLib
 {
-	const DVUH_USER = 'dvuhsync';
-
 	const STATUS_PAID_OTHER_UNIV = '8'; // payment status if paid on another university, for check
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
@@ -33,6 +31,7 @@ class DVUHManagementLib
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
@@ -83,6 +82,16 @@ class DVUHManagementLib
 	public function requestMatrikelnummer($person_id, $studiensemester_kurzbz)
 	{
 		$result = null;
+		$infos = array();
+
+		// reset matrikelnr to NULL if it is an old, unused, non-active Matrikelnr so a new, current one can be assigned
+		$resetMatrikelnummerRes = $this->_ci->fhcmanagementlib->resetInactiveMatrikelnummer($person_id, $studiensemester_kurzbz);
+
+		if (isError($resetMatrikelnummerRes))
+			return $resetMatrikelnummerRes;
+
+		if (hasData($resetMatrikelnummerRes))
+			$infos[] = "Alte, inaktive Matrikelnummer gelöscht für Person $person_id";
 
 		// request Matrikelnr only for persons with prestudent in given Semester and no matrikelnr
 		$personResult = $this->_dbModel->execReadOnlyQuery("
@@ -90,7 +99,6 @@ class DVUHManagementLib
 								FROM public.tbl_person
 								JOIN public.tbl_prestudent USING (person_id)
 								JOIN public.tbl_prestudentstatus USING (prestudent_id)
-								JOIN public.tbl_student USING (prestudent_id)
 								WHERE person_id = ?
 									AND studiensemester_kurzbz = ?
 									AND tbl_person.matr_nr IS NULL	
@@ -171,7 +179,8 @@ class DVUHManagementLib
 								{
 									$reservedMatrnr = getData($reservedMatrnr);
 									$reservedMatrnrStr = $reservedMatrnr->matrikelnummer[0];
-									$result = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $reservedMatrnrStr, false);
+									$sendUpdateMatrRes = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $reservedMatrnrStr, false, $infos);
+									$result = $this->_getResponseArr($sendUpdateMatrRes, $infos);
 								}
 								else
 									$result = error("Es konnte keine Matrikelnummer reserviert werden");
@@ -188,7 +197,8 @@ class DVUHManagementLib
 					{
 						if (is_numeric($matrikelnummer))
 						{
-							$result = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, true);
+							$sendUpdateMatrRes = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, true, $infos);
+							$result = $this->_getResponseArr($sendUpdateMatrRes, $infos);
 						}
 						else
 							$result = error("ungültige Matrikelnummer");
@@ -200,7 +210,10 @@ class DVUHManagementLib
 					else
 					{
 						if (!isEmptyString($statusmeldung))
-							$result = $this->_getResponseArr(null, array($statusmeldung));
+						{
+							$infos[] = $statusmeldung;
+							$result = $this->_getResponseArr(null, $infos);
+						}
 						else
 							$result = error("Unbekannter Matrikelnr-Statuscode");
 					}
@@ -208,7 +221,10 @@ class DVUHManagementLib
 			}
 		}
 		else
-			$result = $this->_getResponseArr(null, array("Keine valide Person für Matrikelnummernanfrage gefunden"));
+		{
+			$infos[] = "Keine valide Person für Matrikelnummernanfrage gefunden";
+			$result = $this->_getResponseArr(null, $infos);
+		}
 
 		return $result;
 	}
@@ -464,7 +480,7 @@ class DVUHManagementLib
 					$parsedWarnings = getData($warningsRes);
 
 					// if no bpk saved in FHC, but a BPK is returned by DVUH, save it in FHC
-					$saveBpkRes = $this->_saveBpkInFhc($person_id, $parsedWarnings);
+					$saveBpkRes = $this->_saveBpkFromDvuhWarning($person_id, $parsedWarnings);
 
 					if (isError($saveBpkRes))
 						return error('Fehler beim Speichern der bpk in FHC');
@@ -619,8 +635,6 @@ class DVUHManagementLib
 
 				$paymentsToSend[] = $payment;
 			}
-
-			//TODO check: Sum of Betrag to send must be equal to sum of Betrag of Stammdatenmeldungen
 
 			// preview - only show date to be sent
 			if ($preview)
@@ -920,16 +934,7 @@ class DVUHManagementLib
 					// if bpk found, save it in FHC db
 					if (isset($bpk))
 					{
-						$bpkSaveResult = $this->_ci->PersonModel->update(
-							array(
-								'person_id' => $person_id
-							),
-							array(
-								'bpk' => $bpk,
-								'updateamum' => date('Y-m-d H:i:s'),
-								'updatevon' => self::DVUH_USER
-							)
-						);
+						$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
 
 						if (!hasData($bpkSaveResult))
 							return error("Fehler beim Speichern der Bpk in FHC");
@@ -1198,7 +1203,7 @@ class DVUHManagementLib
 	 * @param bool $matr_aktiv wether Matrnr is already active (or not yet valid)
 	 * @return object
 	 */
-	private function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv)
+	private function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv, &$infos)
 	{
 		$sendMasterDataResult = $this->sendMasterdata($person_id, $studiensemester_kurzbz, $matrikelnummer);
 
@@ -1206,9 +1211,9 @@ class DVUHManagementLib
 			$result = $sendMasterDataResult;
 		elseif (hasData($sendMasterDataResult))
 		{
-			$resArr = getData($sendMasterDataResult);
-			$updateMatrResult = $this->_updateMatrikelnummer($person_id, $matrikelnummer, $matr_aktiv);
-			$resArr['infos'][] = "Stammdaten mit Matrikelnr $matrikelnummer erfolgreich für Person Id $person_id gesendet";
+			$sendRes = getData($sendMasterDataResult);
+			$updateMatrResult = $this->_ci->fhcmanagementlib->updateMatrikelnummer($person_id, $matrikelnummer, $matr_aktiv);
+			$infos[] = "Stammdaten mit Matrikelnr $matrikelnummer erfolgreich für Person Id $person_id gesendet";
 
 			if (!hasData($updateMatrResult))
 				$result = error("Fehler beim Updaten der Matrikelnummer");
@@ -1219,51 +1224,20 @@ class DVUHManagementLib
 
 				if ($matrnr_aktiv == true)
 				{
-					$resArr['infos'][] = "Bestehende Matrikelnr $matrnr der Person Id $person_id zugewiesen";
+					$infos[] = "Bestehende Matrikelnr $matrnr der Person Id $person_id zugewiesen";
 				}
 				elseif ($matrnr_aktiv == false)
 				{
-					$resArr['infos'][] = "Neue Matrikelnr $matrnr erfolgreich der Person Id $person_id vorläufig zugewiesen";
+					$infos[] = "Neue Matrikelnr $matrnr erfolgreich der Person Id $person_id vorläufig zugewiesen";
 				}
 
-				$result = success($resArr);
+				$result = success($sendRes);
 			}
 		}
 		else
 			$result = error("Fehler beim Senden der Stammdaten");
 
 		return $result;
-	}
-
-	/**
-	 * Updates a Matrikelnummer in FHC database
-	 * @param int $person_id
-	 * @param string $matrikelnummer
-	 * @param bool $matr_aktiv
-	 * @return object success or error
-	 */
-	private function _updateMatrikelnummer($person_id, $matrikelnummer, $matr_aktiv)
-	{
-		$updateResult = $this->_ci->PersonModel->update(
-			$person_id,
-			array(
-				'matr_nr' => $matrikelnummer,
-				'matr_aktiv' => $matr_aktiv,
-				'updateamum' => date('Y-m-d H:i:s'),
-				'updatevon' => self::DVUH_USER
-			)
-		);
-
-		if (hasData($updateResult))
-		{
-			$updateResArr = array('matr_nr' => $matrikelnummer, 'matr_aktiv' => $matr_aktiv);
-
-			return success($updateResArr);
-		}
-		else
-		{
-			return error("Fehler beim Aktualisieren der Matrikelnummer in FHC");
-		}
 	}
 
 	/**
@@ -1298,7 +1272,7 @@ class DVUHManagementLib
 					// For ÖH-payments paid on other BE, check if already sent to SAP, add warning if yes
 					if ($buchung->buchungstyp_kurzbz == self::BUCHUNGSTYP_OEH)
 					{
-						$sentToSap = $this->_checkIfSentToSap($buchungsnr);
+						$sentToSap = $this->_ci->fhcmanagementlib->checkIfSentToSap($buchungsnr);
 
 						if (isError($sentToSap))
 							return $sentToSap;
@@ -1319,7 +1293,7 @@ class DVUHManagementLib
 						if ($buchung->bezahlt == '0' && $isSent === false)
 						{
 							// set ÖH-Buchungen to 0 since they don't need to be paid anymore
-							$nullifyResult = $this->_nullifyBuchung($buchung);
+							$nullifyResult = $this->_ci->fhcmanagementlib->nullifyBuchung($buchung);
 
 							if (isError($nullifyResult))
 								return $nullifyResult;
@@ -1392,90 +1366,12 @@ class DVUHManagementLib
 	}
 
 	/**
-	 * Checks if a certain Kontobuchung is already sent as salesorder to SAP.
-	 * @param int $buchungsnr
-	 * @return object success with true/false or error
-	 */
-	private function _checkIfSentToSap($buchungsnr)
-	{
-		$tblExistsQry = "SELECT 1
-							FROM information_schema.tables
-							WHERE table_schema = 'sync' and table_name='tbl_sap_salesorder'";
-
-		$tblExistsRes = $this->_dbModel->execReadOnlyQuery($tblExistsQry);
-
-		if (isError($tblExistsRes))
-			return $tblExistsRes;
-
-		if (hasData($tblExistsRes))
-		{
-			$sentToSapQry = "SELECT 1
-								FROM sync.tbl_sap_salesorder
-								WHERE buchungsnr = ?";
-
-			$sentToSapRes = $this->_dbModel->execReadOnlyQuery($sentToSapQry, array($buchungsnr));
-
-			if (isError($sentToSapRes))
-				return $sentToSapRes;
-
-			if (hasData($sentToSapRes))
-				return success(array(true));
-		}
-
-		return success(array(false));
-	}
-
-	/**
-	 * Sets a Buchung in FHC to 0 and creates a Gegenbuchung with 0.
-	 * @param object $buchung contains buchungsdata
-	 * @return object success or error
-	 */
-	private function _nullifyBuchung($buchung)
-	{
-		$andereBeBezahltTxt = 'An anderer Bildungseinrichtung bezahlt';
-		$buchungNullify = $this->_ci->KontoModel->update(
-			array('buchungsnr' => $buchung->buchungsnr),
-			array(
-				'betrag' => 0,
-				'anmerkung' => $andereBeBezahltTxt,
-				'updateamum' => date('Y-m-d H:i:s'),
-				'updatevon' => self::DVUH_USER
-			)
-		);
-
-		if (hasData($buchungNullify))
-		{
-			$gegenbuchungNullify = $this->_ci->KontoModel->insert(array(
-					'person_id' => $buchung->person_id,
-					'studiengang_kz' => $buchung->studiengang_kz,
-					'studiensemester_kurzbz' => $buchung->studiensemester_kurzbz,
-					'betrag' => 0,
-					'buchungsdatum' => date('Y-m-d'),
-					'buchungstext' => $buchung->buchungstext,
-					'buchungstyp_kurzbz' => $buchung->buchungstyp_kurzbz,
-					'buchungsnr_verweis' => $buchung->buchungsnr,
-					'insertvon' => self::DVUH_USER,
-					'insertamum' => date('Y-m-d H:i:s'),
-					'anmerkung' => $andereBeBezahltTxt
-				)
-			);
-
-			if (isError($gegenbuchungNullify))
-				return $gegenbuchungNullify;
-
-			return success("Buchung Erfolgreich nullifiziert");
-		}
-		else
-			return error("Fehler beim Nullifizieren der Buchung");
-	}
-
-	/**
-	 * Saves bpk in FHC db if not present.
+	 * Saves bpk in FHC db if DVUH returned bpk and there is no bpk in FHC.
 	 * @param int $person_id
 	 * @param array $parsedWarnings contains warning objects with error info and bpk, as returned from DVUH
 	 * @return object success with bpk if saved, or error
 	 */
-	private function _saveBpkInFhc($person_id, $parsedWarnings)
+	private function _saveBpkFromDvuhWarning($person_id, $parsedWarnings)
 	{
 		$result = success(array());
 		$this->_ci->PersonModel->addSelect('bpk');
@@ -1491,16 +1387,7 @@ class DVUHManagementLib
 				if ($warning->fehlernummer == self::ERRORCODE_BPK_MISSING &&
 					isset($warning->feldinhalt) && !isEmptyString($warning->feldinhalt))
 				{
-					$bpkUpdateRes = $this->_ci->PersonModel->update(
-						array(
-							'person_id' => $person_id
-						),
-						array(
-							'bpk' => $warning->feldinhalt,
-							'updateamum' => date('Y-m-d H:i:s'),
-							'updatevon' => self::DVUH_USER
-						)
-					);
+					$bpkUpdateRes = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $warning->feldinhalt);
 
 					if (hasData($bpkUpdateRes))
 						$result = success($warning->feldinhalt);

@@ -25,7 +25,7 @@ class JQMScheduler extends JQW_Controller
 	 * Creates jobs queue entries for requestMatrikelnummer job.
 	 * @param string $studiensemester_kurzbz semester for which Matrikelnr should be requested and Stammdaten should be sent
 	 */
-	public function requestMatrikelnummer($studiensemester_kurzbz)
+	public function requestMatrikelnummer($studiensemester_kurzbz = null)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->requestMatrikelnummer');
 
@@ -58,7 +58,7 @@ class JQMScheduler extends JQW_Controller
 	 * Creates jobs queue entries for sendCharge job.
 	 * @param string $studiensemester_kurzbz semester for which stammdaten should be sent
 	 */
-	public function sendCharge($studiensemester_kurzbz)
+	public function sendCharge($studiensemester_kurzbz = null)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendCharge');
 
@@ -91,7 +91,7 @@ class JQMScheduler extends JQW_Controller
 	 * Creates jobs queue entries for sendPayment job.
 	 * @param string $studiensemester_kurzbz semester for which payment data should be sent
 	 */
-	public function sendPayment($studiensemester_kurzbz)
+	public function sendPayment($studiensemester_kurzbz = null)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendPayment');
 
@@ -124,7 +124,7 @@ class JQMScheduler extends JQW_Controller
 	 * Creates jobs queue entries for sendStudy job.
 	 * @param string $studiensemester_kurzbz semester for which studydata should be sent
 	 */
-	public function sendStudyData($studiensemester_kurzbz)
+	public function sendStudyData($studiensemester_kurzbz = null)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendStudyData');
 
@@ -157,7 +157,7 @@ class JQMScheduler extends JQW_Controller
 	 * Creates jobs queue entries for requestBpk job.
 	 * @param string $studiensemester_kurzbz Bpk will be requested for students in this semester
 	 */
-	public function requestBpk($studiensemester_kurzbz)
+	public function requestBpk($studiensemester_kurzbz = null)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->requestBpk');
 
@@ -190,7 +190,7 @@ class JQMScheduler extends JQW_Controller
 	 * Creates jobs queue entries for sendPruefungsaktivitaeten job.
 	 * @param string $studiensemester_kurzbz semester for which Pruefungsaktivitaeten should be sent
 	 */
-	public function sendPruefungsaktivitaeten($studiensemester_kurzbz)
+	public function sendPruefungsaktivitaeten($studiensemester_kurzbz = null)
 	{
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->sendPruefungsaktivitaeten');
 
