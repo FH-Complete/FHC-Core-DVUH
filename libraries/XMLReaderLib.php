@@ -114,9 +114,9 @@ class XMLReaderLib
 					}
 
 					$errResultobj->fehlertextKomplett = $errResultobj->fehlernummer . ': ' .
-						(!isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
+						(isset($errResultobj->feldinhalt) && !isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
 						$errResultobj->fehlertext .
-						(!isEmptyString($errResultobj->massnahme) ? ', ' . $errResultobj->massnahme : '');
+						(isset($errResultobj->massnahme) && !isEmptyString($errResultobj->massnahme) ? ', ' . $errResultobj->massnahme : '');
 
 					if (in_array($errResultobj->kategorie, $error_categories))
 						$resultarr[] = $errResultobj;
