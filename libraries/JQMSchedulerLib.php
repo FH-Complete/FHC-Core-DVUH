@@ -155,31 +155,21 @@ class JQMSchedulerLib
 		$params = array($studiensemester_kurzbz_arr);
 
 		// get students with no BPK
-		$qry = "SELECT
-					DISTINCT person_id
-				FROM
-					public.tbl_person
-					JOIN public.tbl_benutzer USING (person_id)
-					JOIN public.tbl_student ON (tbl_student.student_uid=tbl_benutzer.uid)
-					LEFT JOIN public.tbl_studiengang stg USING (studiengang_kz)
-				WHERE
-					public.tbl_benutzer.aktiv = TRUE
-					AND tbl_person.matr_nr IS NOT NULL
-					AND (tbl_person.bpk IS NULL OR tbl_person.bpk = '')
+		$qry = "SELECT DISTINCT person_id
+				FROM public.tbl_person
+				    JOIN public.tbl_prestudent USING (person_id)
+				    JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+					JOIN public.tbl_studiengang stg USING (studiengang_kz)
+				WHERE (tbl_person.bpk IS NULL OR tbl_person.bpk = '')
 					AND stg.melderelevant = TRUE
-					AND EXISTS(SELECT 1 FROM public.tbl_prestudent
-					    		JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
-								WHERE person_id=tbl_person.person_id
-								AND bismelden = TRUE
-								AND pss.studiensemester_kurzbz IN ?";
+					AND bismelden = TRUE
+					AND pss.studiensemester_kurzbz IN ?";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK]))
 		{
 			$qry .= " AND pss.status_kurzbz IN ?";
 			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK];
 		}
-
-		$qry .=		" LIMIT 1)";
 
 		if (!isEmptyArray($this->_oe_kurzbz))
 		{

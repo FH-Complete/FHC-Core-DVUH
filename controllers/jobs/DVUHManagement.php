@@ -354,9 +354,9 @@ class DVUHManagement extends JQW_Controller
 					}
 					elseif (hasData($requestBpkResult))
 					{
-						$requestMatrnrArr = getData($requestBpkResult);
+						$requesBpkArr = getData($requestBpkResult);
 
-						$this->_logDVUHInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
+						$this->_logDVUHInfosAndWarnings($requesBpkArr, array('person_id' => $person_id));
 					}
 				}
 			}
@@ -371,7 +371,7 @@ class DVUHManagement extends JQW_Controller
 			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
 		}
 
-		$this->logInfo('DVUHRequestMatrikelnummer job stop');
+		$this->logInfo('DVUHRequestBpk job stop');
 	}
 
 	/**

@@ -821,18 +821,16 @@ class DVUHManagementLib
 		// request BPK only for persons with prestudent in given Semester and no BPK
 		$personResult = $this->_dbModel->execReadOnlyQuery("
 										SELECT
-											DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, tbl_benutzer.aktiv, strasse, plz	        
+											DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, strasse, plz	        
 										FROM
 											public.tbl_person
-											JOIN public.tbl_benutzer USING(person_id)
 											LEFT JOIN (SELECT DISTINCT ON (person_id) strasse, plz, person_id
 														FROM public.tbl_adresse
 											    		WHERE heimatadresse = TRUE
 											    		ORDER BY person_id, insertamum DESC NULLS LAST
 											    		) addr USING(person_id)
 										WHERE
-											public.tbl_person.person_id = ?
-										  	AND tbl_benutzer.aktiv = TRUE
+											tbl_person.person_id = ?
 											AND (tbl_person.bpk IS NULL OR tbl_person.bpk = '')",
 			array(
 				$person_id
@@ -951,7 +949,7 @@ class DVUHManagementLib
 				return error("Fehler beim Ermitteln der Bpk");
 		}
 		else
-			return error("Keine Person ohne Bpk mit aktivem Benutzer gefunden");
+			return error("Keine Person ohne Bpk gefunden");
 
 		return $result;
 	}
