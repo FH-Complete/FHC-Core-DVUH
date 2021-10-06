@@ -13,11 +13,18 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/0.5/pruefungsaktivitaeten.xml';
+		$this->_url = 'pruefungsaktivitaeten.xml';
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
+	/**
+	 * Get all Pruefungsaktivitäten of a person with a Matrikelnr from DVUH.
+	 * @param $be
+	 * @param string $semester
+	 * @param null $matrikelnummer
+	 * @return object success or error
+	 */
 	public function get($be, $semester, $matrikelnummer = null)
 	{
 		if (isEmptyString($semester))
@@ -39,6 +46,14 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Saves Pruefungsaktivitäten data in DVUH.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $studiensemester
+	 * @param array $posted passed by reference, to be filled with posted data to know for which prestudents Prüfungsaktivitäten were sent.
+	 * @return object success or error
+	 */
 	public function post($be, $person_id, $studiensemester, &$posted)
 	{
 		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $posted);
@@ -51,6 +66,14 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Retrieves xml Pruefungsaktivitäten data for request to send to DVUH, including ECTS sums.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $studiensemester
+	 * @param array $toPost
+	 * @return object success or error
+	 */
 	public function delete($be, $person_id, $semester)
 	{
 		if (isEmptyString($person_id))
@@ -86,18 +109,15 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 					$params['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
 					$params['semester'] = $dvuh_studiensemester;
 					$params['studiengang'] = $dvuh_stgkz;
-					$params['studienkennung'] = '';
+					//$params['studienkennung'] = $dvuh_stgkz;
 
 					//$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/pruefungsaktivitaeten_loeschen', $params, true);
 
 					//var_dump($params);
 
 
-					$this->_url = '/0.5/pruefungsaktivitaeten_loeschen.xml';
+					$this->_url = 'pruefungsaktivitaeten_loeschen.xml';
 					$callRes = $this->_call('POST', $params, $params);
-
-					var_dump($callRes);
-					die();
 
 					if (isSuccess($callRes))
 					{
@@ -160,7 +180,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 				if (isEmptyArray($studiumpruefungen))
 				{
-					// TODO if no pruefungen found for person, and there were ects sent last sync
+					// TODO if no pruefungen found for person or only angerechnete ects, and there were erworbene ects sent last sync -
 					// delete pruefungsaktivitaeten
 
 					$result = success(array());
