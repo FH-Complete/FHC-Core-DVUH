@@ -13,17 +13,17 @@ class Stammdaten_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/0.5/stammdaten.xml';
+		$this->_url = 'stammdaten.xml';
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	/**
-	 * Performs the Webservie Call
-	 *
-	 * @param $be Code of the Bildungseinrichtung
-	 * @param $matrikelnummer Matrikelnummer of the Person you are Searching for
-	 * @param $semester Studysemester in format 2019W (optional)
+	 * Performs the Webservie Call.
+	 * @param string $be Code of the Bildungseinrichtung
+	 * @param string $matrikelnummer Matrikelnummer of the Person you are Searching for
+	 * @param string $semester Studysemester in format 2019W (optional)
+	 * @return object success or error
 	 */
 	public function get($be, $matrikelnummer, $semester = null)
 	{
@@ -46,6 +46,20 @@ class Stammdaten_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Saving Stammdaten in DVUH, using person_id to retrieve data available in FHC and add additional payment data.
+	 * @param string $be
+	 * @param $person_id
+	 * @param string $semester
+	 * @param string $matrikelnummer
+	 * @param float $oehbeitrag OEH Beitrag payment amount without insurance
+	 * @param float $sonderbeitrag OEH Beitrag insurance amount
+	 * @param string $studiengebuehr OEH Beitrag payment amount
+	 * @param string $valutadatum
+	 * @param string $valutadatumnachfrist
+	 * @param string $studiengebuehrnachfrist
+	 * @return object  success or error
+	 */
 	public function post($be, $person_id, $semester,
 						 $matrikelnummer = null, $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
 						 $studiengebuehrnachfrist = null)
@@ -61,6 +75,20 @@ class Stammdaten_model extends DVUHClientModel
 		return $result;
 	}
 
+	/**
+	 * Retrieve person data needed for sending Stammdaten, as well as needed payment data to send charge with the Stammdaten.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $semester
+	 * @param string $matrikelnummer
+	 * @param string $oehbeitrag
+	 * @param string $sonderbeitrag
+	 * @param string $studiengebuehr
+	 * @param string $valutadatum
+	 * @param string $valutadatumnachfrist
+	 * @param string $studiengebuehrnachfrist
+	 * @return object success with person data or error
+	 */
 	public function retrievePostData($be, $person_id, $semester, $matrikelnummer = null,
 									  $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
 									  $studiengebuehrnachfrist = null)
@@ -84,7 +112,7 @@ class Stammdaten_model extends DVUHClientModel
 				$matrikelnummer = isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'];
 
 				if (isEmptyString($matrikelnummer))
-					$result = error('Matrikelnummer nicht gesetzt');
+					$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
 				else
 				{
 					$params = array(

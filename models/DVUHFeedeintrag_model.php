@@ -13,6 +13,11 @@ class DVUHFeedeintrag_model extends DB_Model
 		$this->pk = 'feedeintrag_id';
 	}
 
+	/**
+	 * Saves a feed entry in fhc db.
+	 * @param object $feedeintrag with feed data
+	 * @return object success or error
+	 */
 	public function saveFeedeintrag($feedeintrag)
 	{
 		$this->addSelect('feedeintrag_id');

@@ -19,7 +19,11 @@ abstract class DVUHClientModel extends CI_Model
 	// Protected methods
 
 	/**
-	 * Generic DVUH call. It checks also for specific blocking and non-blocking errors
+	 * Generic DVUH call. It checks also for specific blocking and non-blocking errors.
+	 * @param string $method POST, GET, PUT, ...
+	 * @param array $getParametersArray
+	 * @param array $postData
+	 * @return object success or error
 	 */
 	protected function _call($method, $getParametersArray, $postData = null)
 	{

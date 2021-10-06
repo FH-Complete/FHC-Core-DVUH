@@ -47,7 +47,11 @@ DO $$
     EXCEPTION WHEN OTHERS THEN NULL;
     END $$;
 
-CREATE INDEX idx_tbl_dvuh_pruefungsaktivitaeten_prestudent_id ON sync.tbl_dvuh_pruefungsaktivitaeten USING btree (prestudent_id);
+DO $$
+    BEGIN
+        CREATE INDEX idx_tbl_dvuh_pruefungsaktivitaeten_prestudent_id ON sync.tbl_dvuh_pruefungsaktivitaeten USING btree (prestudent_id);
+    EXCEPTION WHEN OTHERS THEN NULL;
+    END $$;
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE sync.tbl_dvuh_pruefungsaktivitaeten TO vilesci;
 GRANT SELECT ON TABLE sync.tbl_dvuh_pruefungsaktivitaeten TO web;

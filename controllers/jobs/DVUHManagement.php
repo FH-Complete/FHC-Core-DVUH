@@ -15,7 +15,9 @@ class DVUHManagement extends JQW_Controller
 	public function __construct()
 	{
 		parent::__construct();
+
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHErrorLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 		$this->_logInfos = $this->config->item('fhc_dvuh_log_infos');
@@ -60,12 +62,18 @@ class DVUHManagement extends JQW_Controller
 					$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id, $studiensemester_kurzbz);
 
 					if (isError($requestMatrnrResult))
-						$this->logError("Fehler bei Matrikelnummernabfrage, person Id $person_id", getError($requestMatrnrResult));
+					{
+						$this->_logDVUHError(
+							"Fehler bei Matrikelnummernvergabe, person Id $person_id, Studiensemester $studiensemester_kurzbz",
+							$requestMatrnrResult,
+							$person_id
+						);
+					}
 					elseif (hasData($requestMatrnrResult))
 					{
 						$requestMatrnrArr = getData($requestMatrnrResult);
 
-						$this->_logInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
+						$this->_logDVUHInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
 					}
 				}
 			}
@@ -119,15 +127,21 @@ class DVUHManagement extends JQW_Controller
 					$sendChargeResult = $this->dvuhmanagementlib->sendMasterData($person_id, $studiensemester);
 
 					if (isError($sendChargeResult))
-						$this->logError("Fehler beim Senden der Vorschreibung, Person Id $person_id, Studiensemester $studiensemester", getError($sendChargeResult));
+					{
+						$this->_logDVUHError(
+							"Fehler beim Senden der Vorschreibung, Person Id $person_id, Studiensemester $studiensemester",
+							$sendChargeResult,
+							$person_id
+						);
+					}
 					elseif (hasData($sendChargeResult))
 					{
 						$sendCharge = getData($sendChargeResult);
 
-						$this->_logInfosAndWarnings($sendCharge, array('person_id' => $person_id));
+						$this->_logDVUHInfosAndWarnings($sendCharge, array('person_id' => $person_id));
 
 						if (isset($sendCharge['result']))
-							$this->_logInfoIfEnabled("Stammdaten mit Vorschreibung Person Id $person_id, Studiensemester $studiensemester erfolgreich gesendet");
+							$this->_logDVUHInfoIfEnabled("Stammdaten mit Vorschreibung Person Id $person_id, Studiensemester $studiensemester erfolgreich gesendet");
 					}
 				}
 			}
@@ -181,20 +195,31 @@ class DVUHManagement extends JQW_Controller
 					$sendPaymentResult = $this->dvuhmanagementlib->sendPayment($person_id, $studiensemester);
 
 					if (isError($sendPaymentResult))
-						$this->logError("Fehler beim Senden der Zahlung, Person Id $person_id, Studiensemester $studiensemester", getError($sendPaymentResult));
+					{
+						$this->_logDVUHError(
+							"Fehler beim Senden der Zahlung, Person Id $person_id, Studiensemester $studiensemester",
+							$sendPaymentResult,
+							$person_id
+						);
+					}
 					elseif (hasData($sendPaymentResult))
 					{
 						$sendPaymentItems = getData($sendPaymentResult);
 
-
-						$this->_logInfosAndWarnings($sendPaymentItems, array('person_id' => $person_id));
+						$this->_logDVUHInfosAndWarnings($sendPaymentItems, array('person_id' => $person_id));
 
 						if (isset($sendPaymentItems['result']) && is_array($sendPaymentItems['result']))
 						{
 							foreach ($sendPaymentItems['result'] as $paymentRes)
 							{
 								if (isError($paymentRes))
-									$this->logError("Fehler beim Senden der Zahlung, Person Id $person_id, Studiensemester $studiensemester", getError($paymentRes));
+								{
+									$this->_logDVUHError(
+										"Fehler beim Senden der Zahlung, Person Id $person_id, Studiensemester $studiensemester",
+										$paymentRes,
+										$person_id
+									);
+								}
 							}
 						}
 					}
@@ -250,16 +275,23 @@ class DVUHManagement extends JQW_Controller
 					$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
 
 					if (isError($sendStudyDataResult))
-						$this->logError("Fehler beim Senden der Studiumdaten, Prestudent Id $prestudent_id, studiensemester $studiensemester", getError($sendStudyDataResult));
+					{
+						$this->_logDVUHError(
+							"Fehler beim Senden der Studiumdaten, Prestudent Id $prestudent_id, studiensemester $studiensemester",
+							$sendStudyDataResult,
+							null,
+							$prestudent_id
+						);
+					}
 					elseif (hasData($sendStudyDataResult))
 					{
 						$sendStudyData = getData($sendStudyDataResult);
 
-						$this->_logInfosAndWarnings($sendStudyData, array('prestudent_id' => $prestudent_id));
+						$this->_logDVUHInfosAndWarnings($sendStudyData, array('prestudent_id' => $prestudent_id));
 
 						if (isset($sendStudyData['result']))
 						{
-							$this->_logInfoIfEnabled("Studiumdaten für prestudent Id $prestudent_id, studiensemester $studiensemester erfolgreich gesendet");
+							$this->_logDVUHInfoIfEnabled("Studiumdaten für prestudent Id $prestudent_id, studiensemester $studiensemester erfolgreich gesendet");
 						}
 					}
 				}
@@ -313,12 +345,18 @@ class DVUHManagement extends JQW_Controller
 					$requestBpkResult = $this->dvuhmanagementlib->requestBpk($person_id);
 
 					if (isError($requestBpkResult))
-						$this->logError("Fehler bei Bpkanfrage, person Id $person_id", getError($requestBpkResult));
+					{
+						$this->_logDVUHError(
+							"Fehler bei Bpkanfrage, person Id $person_id",
+							$requestBpkResult,
+							$person_id
+						);
+					}
 					elseif (hasData($requestBpkResult))
 					{
-						$requestMatrnrArr = getData($requestBpkResult);
+						$requesBpkArr = getData($requestBpkResult);
 
-						$this->_logInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
+						$this->_logDVUHInfosAndWarnings($requesBpkArr, array('person_id' => $person_id));
 					}
 				}
 			}
@@ -333,7 +371,7 @@ class DVUHManagement extends JQW_Controller
 			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
 		}
 
-		$this->logInfo('DVUHRequestMatrikelnummer job stop');
+		$this->logInfo('DVUHRequestBpk job stop');
 	}
 
 	/**
@@ -372,12 +410,18 @@ class DVUHManagement extends JQW_Controller
 					$sendPruefungsaktivitaetenResult = $this->dvuhmanagementlib->sendPruefungsaktivitaeten($person_id, $studiensemester_kurzbz);
 
 					if (isError($sendPruefungsaktivitaetenResult))
-						$this->logError("Fehler beim Senden von Prüfungsaktivitäten, person Id $person_id", getError($sendPruefungsaktivitaetenResult));
+					{
+						$this->_logDVUHError(
+							"Fehler beim Senden von Prüfungsaktivitäten, person Id $person_id",
+							$sendPruefungsaktivitaetenResult,
+							$person_id
+						);
+					}
 					elseif (hasData($sendPruefungsaktivitaetenResult))
 					{
 						$requestMatrnrArr = getData($sendPruefungsaktivitaetenResult);
 
-						$this->_logInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
+						$this->_logDVUHInfosAndWarnings($requestMatrnrArr, array('person_id' => $person_id));
 					}
 				}
 			}
@@ -427,9 +471,9 @@ class DVUHManagement extends JQW_Controller
 	 * Extracts infos and warnings from a result and logs them.
 	 * @param array $resultarr
 	 */
-	private function _logInfosAndWarnings($resultarr, $idArr)
+	private function _logDVUHInfosAndWarnings($resultarr, $idArr)
 	{
-		if ($this->_logInfos === true)
+		if ($this->_logInfos === true) // if info logging enabled
 		{
 			if (isset($resultarr['infos']) && is_array($resultarr['infos']))
 			{
@@ -451,7 +495,10 @@ class DVUHManagement extends JQW_Controller
 		{
 			foreach ($resultarr['warnings'] as $warning)
 			{
-				$warningTxt = $warning;
+				if (!isError($warning))
+					continue;
+
+				$warningTxt = getError($warning);
 
 				foreach ($idArr as $idname => $idvalue)
 				{
@@ -459,6 +506,9 @@ class DVUHManagement extends JQW_Controller
 				}
 
 				$this->logWarning($warningTxt);
+				$person_id = isset($idArr['person_id']) ? $idArr['person_id'] : null;
+				$prestudent_id = isset($idArr['prestudent_id']) ? $idArr['prestudent_id'] : null;
+				$this->_addDVUHIssue($warning, $person_id, $prestudent_id, true);
 			}
 		}
 	}
@@ -467,9 +517,48 @@ class DVUHManagement extends JQW_Controller
 	 * Logs info message if info logging is enabled in config.
 	 * @param string $info
 	 */
-	private function _logInfoIfEnabled($info)
+	private function _logDVUHInfoIfEnabled($info)
 	{
 		if ($this->_logInfos === true)
 			$this->logInfo($info);
+	}
+
+	/**
+	 * Logs DVUH error, writes webservice log and issue (if necessary).
+	 * @param string $logging_prefix for log
+	 * @param object $errorObj containing log info
+	 * @param int $person_id for issue
+	 * @param int $prestudent_id for issue oe_kurzbz
+	 */
+	private function _logDVUHError($logging_prefix, $errorObj, $person_id = null, $prestudent_id = null)
+	{
+		// write in webserive log
+		$this->logError($logging_prefix.': '.getError($errorObj), $errorObj);
+
+		// optionally add issue
+		$this->_addDVUHIssue($errorObj, $person_id, $prestudent_id);
+	}
+
+	/**
+	 * Adds DVUH issue. Logs error if issue adding failed.
+	 * @param $errorObj
+	 * @param int $person_id
+	 * @param int $prestudent_id
+	 * @param string $force_predefined
+	 */
+	private function _addDVUHIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined = false)
+	{
+		$issueRes = $this->dvuherrorlib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined);
+
+		if (isError($issueRes))
+		{
+			$postfix = '';
+			$errors = getCode($issueRes);
+
+			if (!isEmptyArray($errors))
+				$postfix = implode(', ', $errors);
+
+			$this->logError(getError($issueRes).$postfix);
+		}
 	}
 }

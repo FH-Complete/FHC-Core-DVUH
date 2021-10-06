@@ -66,14 +66,6 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		return $result;
 	}
 
-	/**
-	 * Retrieves xml Pruefungsaktivitäten data for request to send to DVUH, including ECTS sums.
-	 * @param string $be
-	 * @param int $person_id
-	 * @param string $studiensemester
-	 * @param array $toPost
-	 * @return object success or error
-	 */
 	public function delete($be, $person_id, $semester)
 	{
 		if (isEmptyString($person_id))
@@ -134,6 +126,14 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		}
 	}
 
+	/**
+	 * Retrieves xml Pruefungsaktivitäten data for request to send to DVUH, including ECTS sums.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $studiensemester
+	 * @param array $toPost
+	 * @return object success or error
+	 */
 	public function retrievePostData($be, $person_id, $studiensemester, &$toPost = array())
 	{
 		if (isEmptyString($person_id))

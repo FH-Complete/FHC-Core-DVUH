@@ -35,7 +35,10 @@ class DVUHAuthLib
 			$this->_authenticate();
 		}
 
-		return $this->authentication->access_token;
+		if (isset($this->authentication->access_token))
+			return $this->authentication->access_token;
+
+		return null;
 	}
 
 	/**
@@ -119,7 +122,6 @@ class DVUHAuthLib
 				ROLE_bildungseinrichtung_A"
 				}
 			*/
-			//echo print_r($json_response, true);
 			$this->authentication = json_decode($json_response);
 
 			// Calculate Expire Date
