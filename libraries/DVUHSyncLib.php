@@ -180,7 +180,16 @@ class DVUHSyncLib
 				$studentinfo['svnr'] = $stammdaten->svnr;
 
 			if (isset($stammdaten->ersatzkennzeichen) && isEmptyString($stammdaten->svnr))
+			{
+				if (preg_match('/^[A-Z]{4}\d{6}$/', $stammdaten->ersatzkennzeichen) === 0)
+				{
+					return createError(
+						'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
+						'ersatzkennzeichenUngueltig'
+					);
+				}
 				$studentinfo['ekz'] = $stammdaten->ersatzkennzeichen;
+			}
 
 			if (isset($stammdaten->bpk))
 				$studentinfo['bpk'] = $stammdaten->bpk;
@@ -401,18 +410,17 @@ class DVUHSyncLib
 					}
 
 					// lehrgang
-					if ($prestudentstatus->studiengang_typ == 'l')
+					if ($prestudentstatus->studiengang_typ == 'l' && !$isAusserordentlich)
 					{
 						$lehrgang = array(
 							'lehrgangsnr' => $dvuh_stgkz,
-							'perskz' => $perskz,
-							'zugangsberechtigung' => $zugangsberechtigung
+							'perskz' => $perskz
 						);
 
 						foreach ($lehrgang as $idx => $item)
 						{
 							if (!isset($item) || isEmptyString($item))
-								return createError('Lehrgangdata missing: ' . $idx, 'lehrgangdatenFehlen', array($idx));
+								return createError('Lehrgangdaten fehlen: ' . $idx, 'lehrgangdatenFehlen', array($idx));
 						}
 
 						if (isset($zulassungsdatum) && !$isExtern)
@@ -429,6 +437,9 @@ class DVUHSyncLib
 
 						if (isset($zugangsberechtigungMA))
 							$lehrgang['zugangsberechtigungMA'] = $zugangsberechtigungMA;
+
+						if (isset($zugangsberechtigung))
+							$lehrgang['zugangsberechtigung'] = $zugangsberechtigung;
 
 						$lehrgaenge[] = $lehrgang;
 					}

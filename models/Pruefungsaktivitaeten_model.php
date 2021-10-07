@@ -127,7 +127,6 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 				}
 				else
 				{
-
 					$params = array(
 						'uuid' => getUUID(),
 						'be' => $be,

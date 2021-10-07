@@ -9,22 +9,24 @@
 	<studien>
 <?php
 	// Lehrgang
-	if(isset($lehrgaenge))
+	if (isset($lehrgaenge))
 	{
 		foreach ($lehrgaenge as $lehrgang):
 			echo "\t\t<lehrgang>\n";
 
-			if(isset($lehrgang['beendigungsdatum']))
+			if (isset($lehrgang['beendigungsdatum']))
 				echo "\t\t\t<beendigungsdatum>".$lehrgang['beendigungsdatum']."</beendigungsdatum>\n";
 
 			echo "\t\t\t<lehrgangsnr>".$lehrgang['lehrgangsnr']."</lehrgangsnr>\n"
-				."\t\t\t<perskz>".$lehrgang['perskz']."</perskz>\n"
-				."\t\t\t<standortcode>".$lehrgang['standortcode']."</standortcode>\n";
+				."\t\t\t<perskz>".$lehrgang['perskz']."</perskz>\n";
+
+			if (isset($lehrgang['standortcode']))
+				echo "\t\t\t<standortcode>".$lehrgang['standortcode']."</standortcode>\n";
 
 			if (isset($lehrgang['studstatuscode']))
 				echo "\t\t\t<studstatuscode>".$lehrgang['studstatuscode']."</studstatuscode>\n";
 
-			if(isset($lehrgang['zugangsberechtigung']))
+			if (isset($lehrgang['zugangsberechtigung']))
 			{
 				echo "\t\t\t<zugangsberechtigung>\n";
 				echo "\t\t\t\t<datum>".$lehrgang['zugangsberechtigung']['datum']."</datum>\n";
@@ -35,7 +37,7 @@
 				echo "\t\t\t\t<voraussetzung>".$lehrgang['zugangsberechtigung']['voraussetzung']."</voraussetzung>\n";
 				echo "\t\t\t</zugangsberechtigung>\n";
 			}
-			if(isset($lehrgang['zugangsberechtigungMA']))
+			if (isset($lehrgang['zugangsberechtigungMA']))
 			{
 				echo "\t\t\t<zugangsberechtigungMA>\n";
 				echo "\t\t\t\t<datum>".$lehrgang['zugangsberechtigungMA']['datum']."</datum>\n";
@@ -47,7 +49,7 @@
 				echo "\t\t\t</zugangsberechtigungMA>\n";
 			}
 
-			if(isset($lehrgang['zulassungsdatum']))
+			if (isset($lehrgang['zulassungsdatum']))
 			{
 				echo "\t\t\t<zulassungsdatum>".$lehrgang['zulassungsdatum']."</zulassungsdatum>\n";
 			}
@@ -56,7 +58,7 @@
 		endforeach;
 	}
 	// Studiengang
-	if(isset($studiengaenge))
+	if (isset($studiengaenge))
 	{
 		foreach ($studiengaenge as $studiengang):
 		echo "\t\t<studiengang disloziert='".$studiengang['disloziert']."'>\n";
@@ -66,19 +68,19 @@
 			echo "\t\t\t<ausbildungssemester>" . $studiengang['ausbildungssemester'] . "</ausbildungssemester>\n";
 		}
 
-		if(isset($studiengang['beendigungsdatum']) && $studiengang['beendigungsdatum']!='')
+		if (isset($studiengang['beendigungsdatum']) && $studiengang['beendigungsdatum']!='')
 		{
 			echo "\t\t\t<beendigungsdatum>".$studiengang['beendigungsdatum']."</beendigungsdatum>\n";
 		}
 
-		if(isset($studiengang['berufstaetigkeit_code']) && $studiengang['berufstaetigkeit_code']!='')
+		if (isset($studiengang['berufstaetigkeit_code']) && $studiengang['berufstaetigkeit_code']!='')
 		{
 			echo "\t\t\t<berufstaetigkeitcode>".$studiengang['berufstaetigkeit_code']."</berufstaetigkeitcode>\n";
 		}
 
 		echo "\t\t\t<bmwfwfoerderrelevant>".$studiengang['bmwfwfoerderrelevant']."</bmwfwfoerderrelevant>\n";
 
-		if(isset($studiengang['gemeinsam']))
+		if (isset($studiengang['gemeinsam']))
 		{
 			echo "\t\t\t<gemeinsam>\n".
 					"\t\t\t\t<ausbildungssemester>".$studiengang['gemeinsam']['ausbildungssemester']."</ausbildungssemester>\n".
@@ -90,7 +92,7 @@
 				"\t\t\t</gemeinsam>\n";
 		}
 
-		if(isset($studiengang['mobilitaet']))
+		if (isset($studiengang['mobilitaet']))
 		{
 			foreach ($studiengang['mobilitaet'] as $mobilitaet)
 			{
@@ -137,10 +139,10 @@
 		if (isset($studiengang['studstatuscode']))
 			echo "\t\t\t<studstatuscode>".$studiengang['studstatuscode']."</studstatuscode>\n";
 
-		if(isset($studiengang['vornachperskz']))
+		if (isset($studiengang['vornachperskz']))
 			echo "\t\t\t<vornachperskz>".$studiengang['vornachperskz']."</vornachperskz>\n";
 
-		if(isset($studiengang['zugangsberechtigung']))
+		if (isset($studiengang['zugangsberechtigung']))
 		{
 			echo "\t\t\t<zugangsberechtigung>\n";
 			echo "\t\t\t\t<datum>".$studiengang['zugangsberechtigung']['datum']."</datum>\n";
@@ -152,7 +154,7 @@
 			echo "\t\t\t</zugangsberechtigung>\n";
 		}
 
-		if(isset($studiengang['zugangsberechtigungMA']))
+		if (isset($studiengang['zugangsberechtigungMA']))
 		{
 			echo "\t\t\t<zugangsberechtigungMA>\n";
 			echo "\t\t\t\t<datum>".$studiengang['zugangsberechtigungMA']['datum']."</datum>\n";
@@ -164,7 +166,7 @@
 			echo "\t\t\t</zugangsberechtigungMA>\n";
 		}
 
-		if(isset($studiengang['zulassungsdatum']))
+		if (isset($studiengang['zulassungsdatum']))
 			echo "\t\t\t<zulassungsdatum>".$studiengang['zulassungsdatum']."</zulassungsdatum>\n";
 
 		echo "\t\t</studiengang>\n";
