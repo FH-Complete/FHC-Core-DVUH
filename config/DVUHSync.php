@@ -3,7 +3,7 @@
 // if set to true, infos will be logged to webservicelog, otherwise only warnings and errors
 $config['fhc_dvuh_log_infos'] = false;
 
-// default time spans for Studiensemester for which data is sent to DVUH.
+// Default time spans for Studiensemester for which data is sent to DVUH.
 // Only used when no Studiensemester parameters passed.
 $config['fhc_dvuh_studiensemester_meldezeitraum'] = array(
 	'SS2021' => array(
@@ -38,6 +38,9 @@ $config['fhc_dvuh_oe_kurzbz'] = null;
 $config['fhc_dvuh_sync_days_valutadatum'] = 30; // days after buchungsdatum for valutadatum for payment Frist
 $config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 90; // Nachfrist in days after valutadatum for payments
 $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; // amount to be added to studiengebuehr when Nachfrist is set
+
+// Ausserordentliche students are sent with this studiengang_kz
+$config['fhc_dvuh_sync_ausserordentlich_studiengang_kz'] = 9005;
 
 // StudStatusCode e.g. for gemeinsame Studien Statuscode
 $config['fhc_dvuh_sync_student_statuscode'] = array(

@@ -322,14 +322,19 @@ class DVUHSyncLib
 						$studstatuscode = getData($studstatuscodeResult);
 					}
 
-					// studiengang kz
-					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
-
 					// booleans isIncoming and isAusserordentlich
 					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
 					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
+
+					// if ausserordentlich, students are sent with special studiengang_kz
+					$ausserordentlich_studiengang_kz = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_studiengang_kz');
+					if ($isAusserordentlich && isset($ausserordentlich_studiengang_kz) && is_numeric($ausserordentlich_studiengang_kz))
+						$studiengang_kz = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_studiengang_kz');
+
+					// studiengang kz
+					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
 
 					// studtyp - if extern, certain data should not be sent to DVUH
 					$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
@@ -646,7 +651,7 @@ class DVUHSyncLib
 			}
 		}
 
-		// get ects sums of Noten which are aktiv, offiziell, positiv (but both lehre and non-lehre)
+		// get ects sums of Noten which are aktiv, offiziell, positiv, both lehre and non-lehre
 		$zeugnisNotenResult = $this->_ci->ZeugnisnoteModel->getByPerson($person_id, $studiensemester, true, null, true, true);
 
 		if (isError($zeugnisNotenResult))

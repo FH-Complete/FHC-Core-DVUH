@@ -818,7 +818,7 @@ class DVUHManagementLib
 		$infos = array();
 		$warnings = array();
 
-		// request BPK only for persons with prestudent in given Semester and no BPK
+		// request BPK only for persons with no BPK
 		$personResult = $this->_dbModel->execReadOnlyQuery("
 										SELECT
 											DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, strasse, plz	        
