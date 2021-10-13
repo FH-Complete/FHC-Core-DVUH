@@ -40,7 +40,7 @@ $config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 90; // Nachfrist in days af
 $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; // amount to be added to studiengebuehr when Nachfrist is set
 
 // Ausserordentliche students are sent with this studiengang_kz
-$config['fhc_dvuh_sync_ausserordentlich_studiengang_kz'] = 9005;
+$config['fhc_dvuh_sync_ausserordentlich_prefix'] = 9;
 
 // StudStatusCode e.g. for gemeinsame Studien Statuscode
 $config['fhc_dvuh_sync_student_statuscode'] = array(

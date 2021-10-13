@@ -327,13 +327,14 @@ class DVUHSyncLib
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
 					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
 
-					// if ausserordentlich, students are sent with special studiengang_kz
-					$ausserordentlich_studiengang_kz = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_studiengang_kz');
-					if ($isAusserordentlich && isset($ausserordentlich_studiengang_kz) && is_numeric($ausserordentlich_studiengang_kz))
-						$studiengang_kz = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_studiengang_kz');
-
 					// studiengang kz
 					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
+
+					// if ausserordentlich, students are sent with special studiengang_kz
+					$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
+					if ($isAusserordentlich && isset($ausserordentlich_prefix) && is_numeric($ausserordentlich_prefix))
+						$studiengang_kz = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix').$erhalter_kz;
+
 					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
 
 					// studtyp - if extern, certain data should not be sent to DVUH
