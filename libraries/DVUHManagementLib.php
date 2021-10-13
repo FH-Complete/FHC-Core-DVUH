@@ -350,7 +350,7 @@ class DVUHManagementLib
 					$vorschreibung['origoehbuchung'][] = $buchung;
 
 					// warning if amount in Buchung after Versicherung deduction not equal to amount in oehbeitrag table
-					if (-1 * $beitragAmount != $studierendenBeitragAmount)
+					if (-1 * $beitragAmount != $studierendenBeitragAmount && $beitragAmount > 0)
 					{
 						$vorgeschrBeitrag = number_format(-1 * $beitragAmount, 2, ',', '.');
 						$festgesBeitrag = number_format($studierendenBeitragAmount, 2, ',', '.');
