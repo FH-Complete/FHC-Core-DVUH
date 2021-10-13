@@ -9,6 +9,8 @@ class DVUHClientLib
 {
 	// Configs parameters names
 	const ACTIVE_CONNECTION = 'fhc_dvuh_active_connection';
+	const URL_PATH = 'fhc_dvuh_path';
+	const API_VERSION = 'fhc_dvuh_api_version';
 	const CONNECTIONS = 'fhc_dvuh_connections';
 
 	const MISSING_REQUIRED_PARAMETERS = 'ERR001';
@@ -17,6 +19,7 @@ class DVUHClientLib
 	const REQUEST_FAILED = 'ERR004';
 
 	private $_connectionsArray;		// connections array
+	private $_urlPath;				// url path
 
 	private $_error;				// true if an error occurred
 	private $_errorMessage;			// contains the error message
@@ -109,6 +112,7 @@ class DVUHClientLib
 		$activeConnectionName = $this->_ci->config->item(self::ACTIVE_CONNECTION);
 		$connectionsArray = $this->_ci->config->item(self::CONNECTIONS);
 
+		$this->_urlPath = $this->_ci->config->item(self::URL_PATH).'/'.$this->_ci->config->item(self::API_VERSION);
 		$this->_connectionsArray = $connectionsArray[$activeConnectionName];
 	}
 
@@ -133,8 +137,8 @@ class DVUHClientLib
 			}
 			$url .= '?'.implode('&', $params);
 		}
-		echo "Calling: ".$url;
-		curl_setopt($curl, CURLOPT_URL, $this->_connectionsArray['portal'].$url);
+
+		curl_setopt($curl, CURLOPT_URL, $this->_connectionsArray['portal'].'/'.$this->_urlPath.'/'.$url);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
 		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
@@ -157,11 +161,13 @@ class DVUHClientLib
 				break;
 
 			case 'PUT':
-				curl_setopt($curl, CURLOPT_PUT, true);
+				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
+				if (!is_null($postData))
+					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 				break;
 
 			case 'HEAD':
-				curl_setopt($ch, CURLOPT_NOBODY, true);
+				curl_setopt($curl, CURLOPT_NOBODY, true);
 				break;
 
 			case 'GET':
@@ -176,13 +182,13 @@ class DVUHClientLib
 		$curl_info = curl_getinfo($curl);
 		curl_close($curl);
 
-		if ($curl_info['http_code'] == '200')
+		if (substr($curl_info['http_code'], 0,1) == '2')
 		{
 			return $response;
 		}
 		else
 		{
-			$this->_error(self::REQUEST_FAILED, 'HTTP Code not 200 - Value:'.$curl_info['http_code'].$url.print_r($response,true));
+			$this->_error(self::REQUEST_FAILED, 'HTTP Code not starting with 2 - Value:'.$curl_info['http_code'].$url.print_r($response,true));
 			return null;
 		}
 	}

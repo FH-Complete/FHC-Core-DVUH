@@ -3,7 +3,7 @@
 require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
 
 /**
- * Read and save Student Data
+ * Read and save Student Master Data
  */
 class Stammdaten_model extends DVUHClientModel
 {
@@ -13,145 +13,151 @@ class Stammdaten_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/rws/0.5/stammdaten.xml';
+		$this->_url = 'stammdaten.xml';
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	/**
-	 * Performs the Webservie Call
-	 *
-	 * @param $be Code of the Bildungseinrichtung
-	 * @param $matrikelnummer Matrikelnummer of the Person you are Searching for
-	 * @param $semester Studysemester in format 2019W (optional)
+	 * Performs the Webservie Call.
+	 * @param string $be Code of the Bildungseinrichtung
+	 * @param string $matrikelnummer Matrikelnummer of the Person you are Searching for
+	 * @param string $semester Studysemester in format 2019W (optional)
+	 * @return object success or error
 	 */
 	public function get($be, $matrikelnummer, $semester = null)
 	{
-		$callParametersArray = array(
-			'be' => $be,
-			'matrikelnummer' => $matrikelnummer,
-			'uuid' => getUUID()
-		);
+		if (isEmptyString($matrikelnummer))
+			$result = error('Matrikelnummer nicht gesetzt');
+		else
+		{
+			$callParametersArray = array(
+				'be' => $be,
+				'matrikelnummer' => $matrikelnummer,
+				'uuid' => getUUID()
+			);
 
-		if (!is_null($semester))
-			$callParametersArray['semester'] = $semester;
+			if (!is_null($semester))
+				$callParametersArray['semester'] = $semester;
 
-		$result = $this->_call('GET', $callParametersArray);
-		echo print_r($result,true);
-		// TODO Parse Result, Handle Errors
+			$result = $this->_call('GET', $callParametersArray);
+		}
+
+		return $result;
 	}
 
-	public function post()
+	/**
+	 * Saving Stammdaten in DVUH, using person_id to retrieve data available in FHC and add additional payment data.
+	 * @param string $be
+	 * @param $person_id
+	 * @param string $semester
+	 * @param string $matrikelnummer
+	 * @param float $oehbeitrag OEH Beitrag payment amount without insurance
+	 * @param float $sonderbeitrag OEH Beitrag insurance amount
+	 * @param string $studiengebuehr OEH Beitrag payment amount
+	 * @param string $valutadatum
+	 * @param string $valutadatumnachfrist
+	 * @param string $studiengebuehrnachfrist
+	 * @return object  success or error
+	 */
+	public function post($be, $person_id, $semester,
+						 $matrikelnummer = null, $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+						 $studiengebuehrnachfrist = null)
 	{
-		/*
-		$adressen = array(
-			array(
-				'coname' => $coname, // optional
-				'ort' => $ort,
-				'plz' => $plz,
-				'strasse' => $strasse,
-				'typ' => $typ // H = Heimatadresse, S = Studienadresse/Zustelladresse
-			)
-		);
+		$postData = $this->retrievePostData($be, $person_id, $semester, $matrikelnummer, $oehbeitrag, $sonderbeitrag, $studiengebuehr, $valutadatum,
+			$valutadatumnachfrist, $studiengebuehrnachfrist);
 
-		$emailliste = array(
-			array(
-				'emailadresse' => $mail,
-				'emailtyp' => $mailtyp // BE | PR
-			)
-		);
-		$params = array(
-			"uuid" => getUUID(),
-			"studierendenkey" => array(
-				"matrikelnummer" => $matrikelnummer,
-				"be" => $be,
-				"semester" => $semester
-			),
-			'adressen' => $adressen,
-			'akadgrad' => $titelpre,
-			'akadgradnach' => $titelpost,
-			'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
-			'bpk' => $bpk,
-			'ekz' => $ersatzkennzeichen,
-			'emailliste' => $emailliste,
-			'geburtsdatum' => $gebdatum,
-			'geschlecht' => $geschlecht, // M, W, X
-			'nachname' => $nachname,
-			'staatsbuergerschaft' => $staatsbuergerschaft,
-			'svnr' => $svnr,
-			'vorname' => $vorname,
+		if (isError($postData))
+			$result = $postData;
+		else
+			$result = $this->_call('POST', null, getData($postData));
 
-			'oehbeitrag' => $oehbeitrag, // IN CENT!!
-			'sonderbeitrag' => $sonderbeitrag,
-			'studienbeitrag' => $studienbeitrag, // Bei FH immer 0, CENT !!
-			'studienbeitragnachfrist' => $studienbeitragnachfrist, // Bei FH immer 0, CENT!!
-			'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
-			'studiengebuehrnachfrist' => $studiengebuehrnachfirst, //  in CENT!!!
-			'valutadatum' => $valutadatum,
-			'valutadatumnachfrist' => $valutadatumnachfrist
-		);
-		*/
-
-
-		$adressen = array(
-			array(
-			//	'coname' => 'Karl Lagerfeld', // optional
-				'ort' => 'Wien',
-				'plz' => '1100',
-				'strasse' => 'Rathausplatz 1',
-				'staat' => 'A',
-				'typ' => 'H' // H = Heimatadresse, S = Studienadresse/Zustelladresse
-			),
-			array(
-			//	'coname' => 'Karl Lagerfeld', // optional
-				'ort' => 'Wien',
-				'plz' => '1100',
-				'strasse' => 'Rathausplatz 1',
-				'staat' => 'A',
-				'typ' => 'S' // H = Heimatadresse, S = Studienadresse/Zustelladresse
-			)
-		);
-
-		$emailliste = array(
-			array(
-				'emailadresse' => 'invalid@technikum-wien.at',
-				'emailtyp' => 'BE' // BE | PR
-			)
-		);
-		$params = array(
-			"uuid" => getUUID(),
-			"studierendenkey" => array(
-				"matrikelnummer" => '520012345',
-				"be" => 'FT',
-				"semester" => '2020S'
-			),
-			'adressen' => $adressen,
-			'akadgrad' => 'Ing.',
-			'akadgradnach' => 'BSc',
-			'beitragsstatus' => 'X', // TODO: X gilt nur für FHs, Bei Uni anders
-			//'bpk' => '1234',
-			//'ekz' => 'ez1234',
-			'emailliste' => $emailliste,
-			'geburtsdatum' => '1984-04-26',
-			'geschlecht' => 'M',
-			'nachname' => 'TEST',
-			'staatsbuergerschaft' => 'A',
-			//'svnr' => '12345',
-			'vorname' => 'Karl',
-
-			'oehbeitrag' => '1920', // IN CENT!!
-			'sonderbeitrag' => '0',
-			'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
-			'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
-			'studiengebuehr' => '36336', // FH Studiengebuehr in CENT!!!
-			'studiengebuehrnachfrist' => '36336', //  in CENT!!!
-			'valutadatum' => '2020-09-01',
-			'valutadatumnachfrist' => '2020-11-30'
-		);
-		$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
-		echo $postData;
-
-		$result = $this->_call('POST', null, $postData);
-		echo print_r($result, true);
 		return $result;
+	}
 
+	/**
+	 * Retrieve person data needed for sending Stammdaten, as well as needed payment data to send charge with the Stammdaten.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $semester
+	 * @param string $matrikelnummer
+	 * @param string $oehbeitrag
+	 * @param string $sonderbeitrag
+	 * @param string $studiengebuehr
+	 * @param string $valutadatum
+	 * @param string $valutadatumnachfrist
+	 * @param string $studiengebuehrnachfrist
+	 * @return object success with person data or error
+	 */
+	public function retrievePostData($be, $person_id, $semester, $matrikelnummer = null,
+									  $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+									  $studiengebuehrnachfrist = null)
+	{
+		$result = null;
+
+		if (isEmptyString($person_id))
+			$result = error('personID nicht gesetzt');
+		elseif (isEmptyString($semester))
+			$result = error('Semester nicht gesetzt');
+		else
+		{
+			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id);
+
+			if (isError($stammdatenDataResult))
+				$result = $stammdatenDataResult;
+			elseif (hasData($stammdatenDataResult))
+			{
+				$stammdatenData = getData($stammdatenDataResult);
+
+				$matrikelnummer = isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'];
+
+				if (isEmptyString($matrikelnummer))
+					$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+				else
+				{
+					$params = array(
+						"uuid" => getUUID(),
+						"studierendenkey" => array(
+							"matrikelnummer" => $matrikelnummer,
+							"be" => $be,
+							"semester" => $semester
+						),
+						"studentinfo" => $stammdatenData['studentinfo']
+					);
+
+					$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
+					$sonderbeitrag = isset($sonderbeitrag) ? $sonderbeitrag : '0';
+					$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
+					$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
+
+					// betragstatus 'O' if no oehbeitrag, otherwese Z error
+					if ($oehbeitrag == '0' && $sonderbeitrag == '0')
+						$params["studentinfo"]["beitragstatus"] = 'O';
+
+					// valutadatum?? Buchungsdatum + Mahnspanne
+					$valutadatum = isset($valutadatum) ? $valutadatum : date_format(date_create(), 'Y-m-d');
+					$valutadatumnachfrist = isset($valutadatumnachfrist) ? $valutadatumnachfrist : date_format(date_create(), 'Y-m-d');
+
+					$params["vorschreibung"] = array(
+						'oehbeitrag' => $oehbeitrag, // IN CENT!!
+						'sonderbeitrag' => $sonderbeitrag, // IN CENT!!,
+						'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
+						'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
+						'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
+						'studiengebuehrnachfrist' => $studiengebuehrnachfrist, //  in CENT!!!
+						'valutadatum' => $valutadatum,
+						'valutadatumnachfrist' => $valutadatumnachfrist
+					);
+
+					$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
+
+					$result = success($postData);
+				}
+			}
+			else
+				$result = error("Keine Stammdaten gefunden");
+		}
+
+		return $result;
 	}
 }

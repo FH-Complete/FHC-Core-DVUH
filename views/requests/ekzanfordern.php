@@ -1,69 +1,29 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ekzUseCase xmlns="http://www.brz.gv.at/datenverbund-unis">
 	<ekzAnforderung>
-		<ekz>string</ekz>
 		<ekzBasis>
 			<adresse>
-				<ort>Wien</ort>
-				<plz>1030</plz>
-				<staat>A</staat>
-				<strasse>Hintere Zollamtstraße 4</strasse>
+				<ort><?php echo $ekzbasisdaten['adresse']['ort'] ?></ort>
+				<plz><?php echo $ekzbasisdaten['adresse']['plz'] ?></plz>
+				<staat><?php echo $ekzbasisdaten['adresse']['staat'] ?></staat>
+				<strasse><?php echo $ekzbasisdaten['adresse']['strasse'] ?></strasse>
 			</adresse>
-			<gebDatum>2001-03-18</gebDatum>
-			<geschlecht>W</geschlecht>
-			<nachname>string</nachname>
-			<orgKey>UNIA</orgKey>
-			<requestTimestamp>2018-04-19T15:06:31.162+02:00</requestTimestamp>
-			<svnr>string</svnr>
-			<vorname>string</vorname>
+			<gebDatum><?php echo $ekzbasisdaten['geburtsdatum'] ?></gebDatum>
+			<geschlecht><?php echo $ekzbasisdaten['geschlecht'] ?></geschlecht>
+			<nachname><?php echo $ekzbasisdaten['nachname'] ?></nachname>
+		<?php if (isset($ekzbasisdaten['orgKey'])): ?>
+			<orgKey><?php echo $ekzbasisdaten['orgKey'] ?></orgKey>
+		<?php endif; ?>
+		<?php if (isset($ekzbasisdaten['requestTimestamp'])): ?>
+			<requestTimestamp><?php echo $ekzbasisdaten['requestTimestamp'] ?></requestTimestamp>
+		<?php endif; ?>
+		<?php if (isset($ekzbasisdaten['svnr'])): ?>
+			<svnr><?php echo $ekzbasisdaten['svnr'] ?></svnr>
+		<?php endif; ?>
+			<vorname><?php echo $ekzbasisdaten['vorname'] ?></vorname>
 		</ekzBasis>
-		<forcierungskey>string</forcierungskey>
-		<kandidaten>
-			<kandidat>
-				<ekz>string</ekz>
-				<ekzBasisdaten>
-					<adresse>
-						<ort>Wien</ort>
-						<plz>1030</plz>
-						<staat>A</staat>
-						<strasse>Hintere Zollamtstraße 4</strasse>
-					</adresse>
-					<gebDatum>2001-03-18</gebDatum>
-					<geschlecht>W</geschlecht>
-					<nachname>string</nachname>
-					<orgKey>UNIA</orgKey>
-					<requestTimestamp>2018-04-19T15:06:31.162+02:00</requestTimestamp>
-					<svnr>string</svnr>
-					<vorname>string</vorname>
-				</ekzBasisdaten>
-			</kandidat>
-		</kandidaten>
-		<returncode>string</returncode>
-		<returntext>
-			<text>string</text>
-		</returntext>
+	<?php if (isset($forcierungskey)):?>
+		<forcierungskey><?php echo $forcierungskey ?></forcierungskey>
+	<?php endif; ?>
 	</ekzAnforderung>
-	<ekzForcierung>
-		<ekz>string</ekz>
-		<ekzBasis>
-			<adresse>
-				<ort>Wien</ort>
-				<plz>1030</plz>
-				<staat>A</staat>
-				<strasse>Hintere Zollamtstraße 4</strasse>
-			</adresse>
-			<gebDatum>2001-03-18</gebDatum>
-			<geschlecht>W</geschlecht>
-			<nachname>string</nachname>
-			<orgKey>UNIA</orgKey>
-			<requestTimestamp>2018-04-19T15:06:31.162+02:00</requestTimestamp>
-			<svnr>string</svnr>
-			<vorname>string</vorname>
-		</ekzBasis>
-		<forcierungskey>string</forcierungskey>
-		<returncode>string</returncode>
-		<returntext>
-			<text>string</text>
-		</returntext>
-	</ekzForcierung>
 </ekzUseCase>

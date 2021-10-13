@@ -19,5 +19,10 @@ $config['navigation_menu']['extensions/FHC-Core-DVUH/*'] = array(
 		'link' => site_url('extensions/FHC-Core-DVUH/Codex/index'),
 		'description' => 'Codex',
 		'icon' => 'user-secret'
+	),
+	'feeds' => array(
+		'link' => site_url('extensions/FHC-Core-DVUH/FeedOverview/index'),
+		'description' => 'Feedübersicht',
+		'icon' => 'rss'
 	)
 );

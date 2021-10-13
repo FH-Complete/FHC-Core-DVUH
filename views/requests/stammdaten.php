@@ -9,7 +9,7 @@
 	<stammdaten>
 		<adressen>
 <?php
-			foreach($adressen as $adresse)
+			foreach($studentinfo['adressen'] as $adresse)
 			{
 				echo "\t\t\t<adresse>\n";
 
@@ -26,30 +26,30 @@
 ?>
 		</adressen>
 <?php
-		if(isset($akadgrad) && $akadgrad!='')
+		if(isset($studentinfo['akadgrad']) && $studentinfo['akadgrad']!='')
 		{
-			echo "\t\t\t<akadgrad>".$akadgrad."</akadgrad>\n";
+			echo "\t\t\t<akadgrad>".$studentinfo['akadgrad']."</akadgrad>\n";
 		}
-		if(isset($akadnach) && $akadnach != '')
+		if(isset($studentinfo['akadgradnach']) && $studentinfo['akadgradnach'] != '')
 		{
-			echo "\t\t\t<akadnach>".$akadgradnach."</akadnach>\n";
+			echo "\t\t\t<akadnach>".$studentinfo['akadgradnach']."</akadnach>\n";
 		}
 ?>
-		<beitragstatus><?php echo $beitragsstatus; ?></beitragstatus>
+		<beitragstatus><?php echo $studentinfo['beitragstatus']; ?></beitragstatus>
 <?php
-		if(isset($svnr) && $svnr != '')
+		if(isset($studentinfo['bpk']) && $studentinfo['bpk'] != '')
 		{
-			echo "\t\t<bpk>".$bpk."</bpk>\n";
+			echo "\t\t<bpk>".$studentinfo['bpk']."</bpk>\n";
 		}
 
-		if(isset($svnr) && $svnr != '')
+		if(isset($studentinfo['ekz']) && $studentinfo['ekz'] != '')
 		{
-			echo "\t\t<ekz>".$ekz."</ekz>";
+			echo "\t\t<ekz>".$studentinfo['ekz']."</ekz>";
 		}
 ?>
 		<emailliste>
 <?php
-			foreach($emailliste as $email)
+			foreach($studentinfo['emailliste'] as $email)
 			{
 				echo "\t\t\t<email>\n";
 				echo "\t\t\t\t<emailadresse>".$email['emailadresse']."</emailadresse>\n";
@@ -58,26 +58,28 @@
 			}
 ?>
 		</emailliste>
-		<geburtsdatum><?php echo $geburtsdatum; ?></geburtsdatum>
-		<geschlecht><?php echo $geschlecht; ?></geschlecht>
-		<nachname><?php echo $nachname; ?></nachname>
-		<staatsbuergerschaft><?php echo $staatsbuergerschaft; ?></staatsbuergerschaft>
+		<geburtsdatum><?php echo $studentinfo['geburtsdatum']; ?></geburtsdatum>
+		<geschlecht><?php echo $studentinfo['geschlecht']; ?></geschlecht>
+		<nachname><?php echo $studentinfo['nachname']; ?></nachname>
+		<staatsbuergerschaft><?php echo $studentinfo['staatsbuergerschaft']; ?></staatsbuergerschaft>
 <?php
-		if(isset($svnr) && $svnr != '')
+		if(isset($studentinfo['svnr']) && $studentinfo['svnr'] != '')
 		{
-			echo "\t\t<svnr>".$svnr."</svnr>";
+			echo "\t\t<svnr>".$studentinfo['svnr']."</svnr>";
 		}
 ?>
-		<vorname><?php echo $vorname; ?></vorname>
+		<vorname><?php echo $studentinfo['vorname']; ?></vorname>
 	</stammdaten>
+	<?php if(isset($vorschreibung)): ?>
 	<vorschreibung>
-		<oehbeitrag><?php echo $oehbeitrag; ?></oehbeitrag>
-		<sonderbeitrag><?php echo $sonderbeitrag; ?></sonderbeitrag>
-		<studienbeitrag><?php echo $studienbeitrag; ?></studienbeitrag>
-		<studienbeitragnachfrist><?php echo $studienbeitragnachfrist; ?></studienbeitragnachfrist>
-		<studiengebuehr><?php echo $studiengebuehr; ?></studiengebuehr>
-		<studiengebuehrnachfrist><?php echo $studiengebuehrnachfrist; ?></studiengebuehrnachfrist>
-		<valutadatum><?php echo $valutadatum; ?></valutadatum>
-		<valutadatumnachfrist><?php echo $valutadatumnachfrist; ?></valutadatumnachfrist>
+		<oehbeitrag><?php echo $vorschreibung['oehbeitrag']; ?></oehbeitrag>
+		<sonderbeitrag><?php echo $vorschreibung['sonderbeitrag']; ?></sonderbeitrag>
+		<studienbeitrag><?php echo $vorschreibung['studienbeitrag']; ?></studienbeitrag>
+		<studienbeitragnachfrist><?php echo $vorschreibung['studienbeitragnachfrist']; ?></studienbeitragnachfrist>
+		<studiengebuehr><?php echo $vorschreibung['studiengebuehr']; ?></studiengebuehr>
+		<studiengebuehrnachfrist><?php echo $vorschreibung['studiengebuehrnachfrist']; ?></studiengebuehrnachfrist>
+		<valutadatum><?php echo $vorschreibung['valutadatum']; ?></valutadatum>
+		<valutadatumnachfrist><?php echo $vorschreibung['valutadatumnachfrist']; ?></valutadatumnachfrist>
 	</vorschreibung>
+	<?php endif ?>
 </stammdatenanfrage>

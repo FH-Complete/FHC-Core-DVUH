@@ -13,7 +13,7 @@ class Exportbecodes_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/rws/0.5/exportBecodes';
+		$this->_url = 'exportBecodes';
 	}
 
 	public function get()

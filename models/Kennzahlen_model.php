@@ -13,6 +13,6 @@ class Kennzahlen_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/rws/0.5/kennzahlen.xml';
+		$this->_url = 'kennzahlen.xml';
 	}
 }

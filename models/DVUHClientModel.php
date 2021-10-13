@@ -11,23 +11,27 @@ abstract class DVUHClientModel extends CI_Model
 	{
 		parent::__construct();
 		$this->load->helper('extensions/FHC-Core-DVUH/hlp_uuid_helper');
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHClientLib');
 	}
 
 	// --------------------------------------------------------------------------------------------
 	// Protected methods
 
 	/**
-	 * Generic DVUH call. It checks also for specific blocking and non-blocking errors
+	 * Generic DVUH call. It checks also for specific blocking and non-blocking errors.
+	 * @param string $method POST, GET, PUT, ...
+	 * @param array $getParametersArray
+	 * @param array $postData
+	 * @return object success or error
 	 */
 	protected function _call($method, $getParametersArray, $postData = null)
 	{
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHClientLib');
-
 		// Checks if the url is valid
 		if ($this->_url == null || trim($this->_url) == '')
 		{
 			$this->dvuhclientlib->resetToDefault();
-			return error('URL not valid');
+			return error('URL ungültig');
 		}
 
 		// Call the webservice with the given parameters

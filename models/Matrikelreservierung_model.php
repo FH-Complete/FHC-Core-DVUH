@@ -14,49 +14,59 @@ class Matrikelreservierung_model extends DVUHClientModel
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/rws/0.5/matrikelreservierung.xml';
+		$this->_url = 'matrikelreservierung.xml';
 	}
 
 	/**
-	 * Performs the Webservie Call to get a list of already reserved Numbers
-	 *
-	 * @param $be Code of the Bildungseinrichtung
-	 * @param $sj Studienjahr
+	 * Performs the Webservie Call to get a list of already reserved Numbers.
+	 * @param string $be Code of the Bildungseinrichtung
+	 * @param string $sj Studienjahr
+	 * @return object success or error
 	 */
 	public function get($be, $sj)
 	{
-		$callParametersArray = array(
-			'be' => $be,
-			'sj' => $sj,
-			'uuid' => getUUID()
-		);
+		if (isEmptyString($sj))
+			$result = error('Studienjahr nicht gesetzt');
+		else
+		{
+			$callParametersArray = array(
+				'be' => $be,
+				'sj' => $sj,
+				'uuid' => getUUID()
+			);
 
-		$result = $this->_call('GET', $callParametersArray);
-		echo print_r($result,true);
-		// TODO Parse Result, Handle Errors
+			$result = $this->_call('GET', $callParametersArray);
+		}
+
+		return $result;
 	}
 
 	/**
-	 * Performs a Webservice Call to Reserve a list of matrikelnumbers
-	 *
+	 * Performs a Webservice Call to Reserve a list of matrikelnumbers.
 	 * @param $be Code of the Bildungseinrichtung
 	 * @param $sj Studienjahr
 	 * @param $anzahl number of matrikelnumbers to reserve
+	 * @return object success or error
 	 */
 	public function post($be, $sj, $anzahl)
 	{
-		$params = array(
-			"uuid" => getUUID(),
-			"anzahl" => $anzahl,
-			"sj" => $sj,
-			"be" => $be
-		);
-		$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/matrikelreservierung', $params, true);
-		echo $postData;
+		if (isEmptyString($sj))
+			$result = error('Studienjahr nicht gesetzt');
+		elseif(isEmptyString($anzahl))
+			$result = error('Anzahl nicht gesetzt');
+		else
+		{
+			$params = array(
+				"uuid" => getUUID(),
+				"anzahl" => $anzahl,
+				"sj" => $sj,
+				"be" => $be
+			);
+			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/matrikelreservierung', $params, true);
 
-		$result = $this->_call('POST', null, $postData);
-		echo print_r($result, true);
+			$result = $this->_call('POST', null, $postData);
+		}
+
 		return $result;
-
 	}
 }

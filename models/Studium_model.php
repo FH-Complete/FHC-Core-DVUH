@@ -3,26 +3,30 @@
 require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
 
 /**
- * Read and Update Student Data
+ * Read and save Student Study Data
  */
 class Studium_model extends DVUHClientModel
 {
+	private $_prestudentIdsToSave = array();
+
 	/**
 	 * Set the properties to perform calls
 	 */
 	public function __construct()
 	{
 		parent::__construct();
-		$this->_url = '/rws/0.5/studium.xml';
+		$this->_url = 'studium.xml';
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	/**
-	 * Performs the Webservie Call
-	 *
-	 * @param $be Code of the Bildungseinrichtung
-	 * @param $matrikelnummer Matrikelnummer of the Person you are Searching for
-	 * @param $semester Studysemester in format 2019W (optional)
-	 * @param $studienkennung Die Studienkennung muss mindestens sechs Zeichen lang sein (optional)
+	 * Performs the Webservice Call
+	 * @param string $be Code of the Bildungseinrichtung
+	 * @param string $matrikelnummer Matrikelnummer of the Person you are Searching for
+	 * @param string $semester Studysemester in format 2019W (optional)
+	 * @param string $studienkennung Die Studienkennung muss mindestens sechs Zeichen lang sein (optional)
+	 * @return object success or error
 	 */
 	public function get($be, $matrikelnummer, $semester = null, $studienkennung = null)
 	{
@@ -32,142 +36,113 @@ class Studium_model extends DVUHClientModel
 			'uuid' => getUUID()
 		);
 
-		if (!is_null($semester))
-			$callParametersArray['semester'] = $semester;
-		if (!is_null($studienkennung))
-			$callParametersArray['studienkennung'] = $studienkennung;
+		if (isEmptyString($matrikelnummer))
+			$result = error('Matrikelnummer nicht gesetzt');
+		else
+		{
+			if (!is_null($semester))
+				$callParametersArray['semester'] = $semester;
+			if (!is_null($studienkennung))
+				$callParametersArray['studienkennung'] = $studienkennung;
 
-		$result = $this->_call('GET', $callParametersArray);
-		echo print_r($result,true);
-		// TODO Parse Result, Handle Errors
+			$result = $this->_call('GET', $callParametersArray);
+		}
+
+		return $result;
 	}
 
-	public function post()
+	/**
+	 * Send Studium data to DVUH. If only person_id is passed, data of all prestudents is included in the request.
+	 * Prestudent_id can be additionally passed to send data for only one prestudent.
+	 * The API will attempt to delete all previously sent studentsif only one is sent.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $semester
+	 * @param int $prestudent_id
+	 * @return object success or error
+	 */
+	public function post($be, $person_id, $semester, $prestudent_id = null)
 	{
-		$params = array(
-			"uuid" => getUUID(),
-			"studierendenkey" => array(
-				"matrikelnummer" => '52012345',
-				"be" => 'FT',
-				"semester" => '2020S'
-			)
-		);
+		$postData = $this->retrievePostData($be, $person_id, $semester, $prestudent_id);
 
-		/*
-		$lehrgang = array(
-			'beendigungsdatum' => $beendigungsdatum,
-			'lehrgangsnr' => $lehrgangsnr,
-			'perskz' => $perskz,
-			'studstatuscode' = $studstatuscode,
-			'zugangsberechtigung' => array(
-				'datum' => $zgv_datum,
-				'staat' => $zgv_nation,
-				'voraussetzung' => $zgv
-			),
-			'zugangsberechtigungMA' => array(
-				'datum' => $zgvmadatum,
-				'staat' => $zgvmanation,
-				'voraussetzung' => $zgvma
-			),
-			'zulassungsdatum' => $zgvdatum
-		);
+		if (isError($postData))
+			$result = $postData;
+		else
+			$result = $this->_call('POST', null, getData($postData));
 
-		$params['lehrgang'] = $lehrgang;
-		*/
-		/*
-		$studiengang = array(
-			'disloziert' => '?', // Prüfen welchen wert das hat
-			'ausbildungssemester' => $ausbildungssemester,
-			'beendigungsdatum' => $beendigungsdatum,
-			'berufstaetigkeitcode' => $berufstaetigkeitcode,
-			'bmwfwfoerderrelevant' => $bmwfwfoerderrelevant,
-			'gemeinsam' = array(
-				'ausbildungssemester' => $gs_ausbildungssemester,
-				'mobilitaetprogrammcode' => $gs_mobilitaetsprogrammcode,
-				'partnercode' => $gs_partnercode,
-				'programmnr' => $gs_programmnr,
-				'studstatuscode' => $gs_studstatuscode,
-				'studtyp' => $gs_studtyp
-			),
-			'mobilitaet' = array(
-				'aufenthaltfoerderungcode' => $mo_aufenthaltsfoerderungcode,
-				'bis' => $mo_bis,
-				'ectsangerechnet' => $mo_ectsangerechnet,
-				'ectserworben' => $mo_ectserworben,
-				'programm' => $mo_programm,
-				'staat' => $mo_staat,
-				'von' => $mo_von,
-				'zweck' => $mo_zweck
-			),
-			'orgformcode' => $orgform,
-			'perskz' => $perskz,
-			'standortcode' => $standortcode,
-			'stgkz' => $stgkz,
-			'studstatuscode' => $studstatuscode,
-			'vornachperskz' => $vornachperskz,
-			'zugangsberechtigung' => array(
-				'datum' => $zgvdatum,
-				'staat' => $zgvnation,
-				'voraussetzung' => $zgv
-			),
-			'zugangsberechtigungMA' => array(
-				'datum' => $zgvmadatum,
-				'staat' => $zgvmanation,
-				'voraussetzung' => $zgvma
-			),
-			'zulassungsdatum' => $zulassungsdatum
-		)*/
-		$studiengang = array(
-			'disloziert' => 'N', // J,N,j,n
-			'ausbildungssemester' => '1',
-			//'beendigungsdatum' => '2019-01-01',
-			'berufstaetigkeitcode' => '1',
-			'bmwfwfoerderrelevant' => 'J',
-			'gemeinsam' => array(
-				'ausbildungssemester' => '1',
-				'mobilitaetprogrammcode' => '0',
-				'partnercode' => '1',
-				'programmnr' => '1',
-				'studstatuscode' => '1',
-				'studtyp' => 'I'
-			),
-			'mobilitaet' => array(
-				'aufenthaltfoerderungcode' => '1',
-				'bis' => '2020-06-01',
-				'ectsangerechnet' => '25',
-				'ectserworben' => '30',
-				'programm' => '1',
-				'staat' => 'GB',
-				'von' => '2020-01-01',
-				'zweck' => '1'
-			),
-			'orgformcode' => '1',
-			'perskz' => '1920331002',
-			'standortcode' => '022',
-			'stgkz' => '0050331', // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
-			'studstatuscode' => '1',
-			//'vornachperskz' => '1910331006',
-			'zugangsberechtigung' => array(
-				'datum' => '1983-01-02',
-				'staat' => 'A',
-				'voraussetzung' => '04' // Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden??
-			),
-			'zugangsberechtigungMA' => array(
-				'datum' => '1994-12-23',
-				'staat' => 'A',
-				'voraussetzung' => '03'  // Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden??
-			),
-			'zulassungsdatum' => '2020-03-14'
-		);
-		$params['studiengang'] = $studiengang;
-
-		$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/studium', $params, true);
-		echo $postData;
-
-		$result = $this->_call('POST', null, $postData);
-		echo print_r($result, true);
 		return $result;
+	}
 
+	/**
+	 * Put request, same as post, but previously safed students are not deleted if only one student is sent.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $semester
+	 * @param int $prestudent_id
+	 * @return object success or error
+	 */
+	public function put($be, $person_id, $semester, $prestudent_id = null)
+	{
+		$postData = $this->retrievePostData($be, $person_id, $semester, $prestudent_id);
 
+		if (isError($postData))
+			$result = $postData;
+		else
+			$result = $this->_call('PUT', null, getData($postData));
+
+		return $result;
+	}
+
+	/**
+	 * Retrieves necessary xml study data from fhc db for all prestudents of a person or a single prestudent.
+	 * @param string $be
+	 * @param int $person_id
+	 * @param string $semester
+	 * @param int $prestudent_id
+	 * @return object success with study data or error
+	 */
+	public function retrievePostData($be, $person_id, $semester, $prestudent_id)
+	{
+		$studiumDataResult = $this->dvuhsynclib->getStudyData($person_id, $semester, $prestudent_id);
+
+		if (isError($studiumDataResult))
+			$result = $studiumDataResult;
+		elseif (hasData($studiumDataResult))
+		{
+			$studiumData = getData($studiumDataResult);
+
+			$params = array(
+				"uuid" => getUUID(),
+				"studierendenkey" => array(
+					"matrikelnummer" => $studiumData->matrikelnummer,
+					"be" => $be,
+					"semester" => $semester
+				)
+			);
+
+			$params['studiengaenge'] = $studiumData->studiengaenge;
+			$params['lehrgaenge'] = $studiumData->lehrgaenge;
+			$this->_prestudentIdsToSave = $studiumData->prestudent_ids;
+
+			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/studium', $params, true);
+
+			$result = success($postData);
+		}
+		else
+			$result = error("Keine Studiumdaten gefunden");
+
+		return $result;
+	}
+
+	/**
+	 * Gets saved prestudent ids. Helper function for saving the ids in sync table in fhc db.
+	 * @return array
+	 */
+	public function retrieveSyncedPrestudentIds()
+	{
+		if (!is_array($this->_prestudentIdsToSave))
+			return array();
+
+		return $this->_prestudentIdsToSave;
 	}
 }
