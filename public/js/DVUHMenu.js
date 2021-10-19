@@ -164,6 +164,12 @@ var DVUHMenu = {
 				method = 'post';
 				writePreviewButton = true;
 				break;
+			case 'deletePruefungsaktivitaeten':
+				html = '<h4>Prüfungsaktivitäten löschen</h4>';
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+					+ DVUHMenu._getSemesterRow()
+				method = 'post';
+				break;
 		}
 
 		// reset Gui
