@@ -7,12 +7,12 @@ $config['fhc_dvuh_log_infos'] = false;
 // Only used when no Studiensemester parameters passed.
 $config['fhc_dvuh_studiensemester_meldezeitraum'] = array(
 	'SS2021' => array(
-		'von' => '2021-01-01', // SS from 01.01
-		'bis' => '2021-05-31' // SS to 31.05
+		'von' => '2021-01-01',
+		'bis' => '2021-11-15'
 	),
 	'WS2021' => array(
-		'von' => '2021-06-01', // WS from 01.06
-		'bis' => '2021-12-31' // WS to 31.12
+		'von' => '2021-06-01',
+		'bis' => '2021-04-15'
 	)
 );
 
