@@ -28,10 +28,11 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SM_MATRNR_STATUS_4', NULL, 'MATRNR_STATUS_4', 'Aktive, noch nicht scharfgeschaltene Matrikelnummer an einer Bildungseinrichtung. In Evidenz halten, bis Student an einer Bildungseinrichtung scharf geschalten ist.', 'error', 'dvuh'),
 ('DVUH_SM_MATRNR_STATUS_6', NULL, 'MATRNR_STATUS_6', 'Zwei Datensätze existieren zur Person mit der Matrikelnummer, Datenverbund kontaktieren.', 'error', 'dvuh'),
 ('DVUH_SS_ZD00030', NULL, 'ZD00030', 'Keine Stammdaten vor den Studiendaten gesendet, evtl. Folgefehler wegen Stammdaten Sendefehler.', 'error', 'dvuh'),
+('DVUH_SS_ZD10074', NULL, 'ZD10074', 'Studienjahr der Matrikelnummer (zweite und dritte Stelle) passt nicht mit Semester des Gemeldeten überein, Matrikelnummer prüfen und evtl. neue vergeben.', 'error', 'dvuh'),
 ('DVUH_SC_ZD10075', NULL, 'ZD10075', 'Personendaten stimmen nicht mit Datenverbund Daten überein, u.a. Vorname, Nachname, Geburtsdatum... überprüfen.', 'error', 'dvuh'),
 ('DVUH_SC_ZD10076', NULL, 'ZD10076', 'Es gibt eine andere, bereits scharf geschaltete Matrikelnummer. Matrikelnummer mit DVUH abgleichen.', 'error', 'dvuh'),
 ('DVUH_SC_ZD10077', NULL, 'ZD10077', 'Matrikelnummer aus Kontingent einer anderen Bildungseinrichtung, Matrikelnummer prüfen.', 'error', 'dvuh'),
-('DVUH_SS_ZD10078', NULL, 'ZD10078', 'Matrikelnummer gesperrt, mit Datenverbund abklären.', 'error', 'dvuh'),
+('DVUH_SS_ZD10078', NULL, 'ZD10078', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, mit Datenverbund abklären.', 'error', 'dvuh'),
 /* self-defined FHC Warnings */
 ('DVUH_SC_W_0001', 'andereBeBezahltSapGesendet', NULL, 'Buchung %s ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde', 'warning', 'dvuh'),
 ('DVUH_SP_W_0001', 'vorgeschrBetragUngleichFestgesetzt', NULL, 'Vorgeschriebener Beitrag %s nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, %s, überein', 'warning', 'dvuh'),
