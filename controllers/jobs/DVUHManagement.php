@@ -544,11 +544,11 @@ class DVUHManagement extends JQW_Controller
 	 * @param $errorObj
 	 * @param int $person_id
 	 * @param int $prestudent_id
-	 * @param string $force_predefined
+	 * @param string $force_predefined_for_external
 	 */
-	private function _addDVUHIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined = false)
+	private function _addDVUHIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
-		$issueRes = $this->dvuherrorlib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined);
+		$issueRes = $this->dvuherrorlib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined_for_external);
 
 		if (isError($issueRes))
 		{
