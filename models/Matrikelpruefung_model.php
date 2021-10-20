@@ -14,6 +14,8 @@ class Matrikelpruefung_model extends DVUHClientModel
 	{
 		parent::__construct();
 		$this->_url = 'matrikelpruefung.xml';
+
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	/**
@@ -36,7 +38,17 @@ class Matrikelpruefung_model extends DVUHClientModel
 
 		if (($vorname != '' || $nachname != '') && $geburtsdatum == '')
 		{
-			$result = error('Wenn der Name angegeben ist muss auch ein Geburtsdatum angegeben werden');
+			$result = createError(
+				'Wenn der Name angegeben ist muss auch ein Geburtsdatum angegeben werden',
+				'nameUndGebdatumAngeben'
+			);
+		}
+		elseif (!isEmptyString($ekz) && !$this->dvuhsynclib->checkEkz($ekz))
+		{
+			$result = createError(
+				'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
+				'ersatzkennzeichenUngueltig'
+			);
 		}
 		else
 		{

@@ -1,5 +1,6 @@
 INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, fehlertext, fehlertyp_kurzbz, app) VALUES
 /* self-defined FHC Errors */
+('DVUH_SM_0001', 'nameUndGebdatumAngeben', NULL, 'Wenn der Name angegeben ist muss auch ein Geburtsdatum angegeben werden', 'error', 'dvuh'),
 ('DVUH_SC_0001', 'matrNrFehlt', NULL, 'Matrikelnummer nicht gesetzt', 'error', 'dvuh'),
 ('DVUH_SC_0002', 'keineZustelladresse', NULL, 'Keine Zustelladresse angegeben', 'error', 'dvuh'),
 ('DVUH_SC_0003', 'keineHeimatadresse', NULL, 'Keine Heimatadresse angegeben', 'error', 'dvuh'),

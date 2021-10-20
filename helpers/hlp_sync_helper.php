@@ -25,9 +25,9 @@ function dateDiff($datum1, $datum2)
 
 /**
  * Helper function for creating a custom error object with issue data.
- * @param string $error_text_for_logging
+ * @param string $error_text_for_logging error text (NOT The issue error text)
  * @param string $issue_fehler_kurzbz short unique text id of issue
- * @param string $issue_fehlertext_params parameters for replacement of erroro text
+ * @param string $issue_fehlertext_params parameters for replacement of issue error text
  * @return object the error
  */
 function createError($error_text_for_logging, $issue_fehler_kurzbz, $issue_fehlertext_params = null)
