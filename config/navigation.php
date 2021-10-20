@@ -1,7 +1,7 @@
 <?php
 
 // Add Menu-Entry to Main Page
-$config['navigation_header']['*']['Administration']['children']['dvuh'] = array(
+$config['navigation_header']['*']['Personen']['children']['dvuh'] = array(
 			'link' => site_url('extensions/FHC-Core-DVUH/DVUH'),
 			'description' => 'Datenverbund',
 			'expand' => true,
