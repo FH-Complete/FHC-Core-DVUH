@@ -40,7 +40,7 @@ var DVUHMenu = {
 				+ DVUHMenu._getTextfieldHtml('ekz', 'Ersatzkennzeichen', '', 10)
 				+ DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 				+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
-				+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: YYYY-MM-DD', 10);
+				+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10);
 				method = 'get';
 				break;
 			case 'getMatrikelnummerReservierungen':
@@ -58,7 +58,7 @@ var DVUHMenu = {
 				html = '<h4>Kontostand abfragen</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
 					+ DVUHMenu._getSemesterRow()
-					+ DVUHMenu._getTextfieldHtml('seit', 'Dateineingang seit', 'Format: YYYY-MM-DD, optional', 10)
+					+ DVUHMenu._getTextfieldHtml('seit', 'Dateineingang seit', 'Format: DD.MM.YYYY oder YYYY-MM-DD, optional', 10)
 				method = 'get';
 				break;
 			case 'getStudium':
@@ -80,7 +80,7 @@ var DVUHMenu = {
 				html = '<h4>BPK ermitteln (manuell)</h4>';
 				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
-					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: YYYY-MM-DD', 10)
+					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X, optional', 1)
 					+ DVUHMenu._getTextfieldHtml('strasse', 'Strasse', 'der Heimatadresse, ohne Hausnummer, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('plz', 'PLZ', 'optional', 15)
@@ -141,7 +141,7 @@ var DVUHMenu = {
 					'wenn für die Person keine BPK ermittelt werden kann.<br />Beim Punkt "BPK ermitteln" sollte dementsprechend keine BPK zurückgegeben werden. ' +
 					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein BPK vorhanden.</b><br /><br />';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
-					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: YYYY-MM-DD', 10)
+					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
 					+ DVUHMenu._getTextfieldHtml('ausstellland', 'Ausstellland', '1-3 Stellen Codex (zb D für Deutschland)', 3)
 					+ DVUHMenu._getTextfieldHtml('dokumentnr', 'Dokumentnr', '1 bis 255 Stellen', 255)

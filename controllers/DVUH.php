@@ -63,7 +63,7 @@ class DVUH extends Auth_Controller
 
 		$bpk = isset($data['bpk']) ? $data['bpk'] : null;
 		$ekz = isset($data['ekz']) ? $data['ekz'] : null;
-		$geburtsdatum = isset($data['geburtsdatum']) ? $data['geburtsdatum'] : null;
+		$geburtsdatum = isset($data['geburtsdatum']) ? convertDateToIso($data['geburtsdatum']) : null;
 		$matrikelnummer = null;
 		$nachname = isset($data['nachname']) ? $data['nachname'] : null;
 		$vorname = isset($data['vorname']) ? $data['vorname'] : null;
@@ -119,7 +119,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->get('data');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$seit = isset($data['seit']) ? $data['seit'] : null;
+		$seit = isset($data['seit']) ? convertDateToIso($data['seit']) : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 
@@ -177,7 +177,7 @@ class DVUH extends Auth_Controller
 
 		$vorname = isset($data['vorname']) ? $data['vorname'] : null;
 		$nachname = isset($data['nachname']) ? $data['nachname'] : null;
-		$geburtsdatum = isset($data['geburtsdatum']) ? $data['geburtsdatum'] : null;
+		$geburtsdatum = isset($data['geburtsdatum']) ? convertDateToIso($data['geburtsdatum']) : null;
 		$geschlecht = isset($data['geschlecht']) ? $data['geschlecht'] : null;
 		$strasse = isset($data['strasse']) ? $data['strasse'] : null;
 		$plz = isset($data['plz']) ? $data['plz'] : null;
@@ -305,7 +305,7 @@ class DVUH extends Auth_Controller
 
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$writeonerror = isset($data['writeonerror']) ? $data['writeonerror'] : null;
-		$ausgabedatum = isset($data['ausgabedatum']) ? $data['ausgabedatum'] : null;
+		$ausgabedatum = isset($data['ausgabedatum']) ? convertDateToIso($data['ausgabedatum']) : null;
 		$ausstellBehoerde = isset($data['ausstellBehoerde']) ? $data['ausstellBehoerde'] : null;
 		$ausstellland = isset($data['ausstellland']) ? $data['ausstellland'] : null;
 		$dokumentnr = isset($data['dokumentnr']) ? $data['dokumentnr'] : null;

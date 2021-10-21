@@ -10,6 +10,34 @@ function validateXmlTextValue($textValue)
 }
 
 /**
+ * Checks if date exists and is in valid format.
+ * @param string $date
+ * @param string $format
+ * @return bool
+ */
+function validateDate($date, $format = 'Y-m-d')
+{
+	$d = DateTime::createFromFormat($format, $date);
+	// The Y ( 4 digits year ) returns TRUE for any integer with any number of digits so changing the comparison from == to === fixes the issue.
+	return $d && $d->format($format) === $date;
+}
+
+/**
+ * Converts date to ISO date yyyy-mm-dd
+ * @param string $date
+ */
+function convertDateToIso($date)
+{
+	if (validateDate($date, 'd.m.Y'))
+	{
+		$dateObj = new DateTime($date);
+		return $dateObj->format('Y-m-d');
+	}
+
+	return $date;
+}
+
+/**
  * Helper function for returning difference between two dates in days.
  * @param string $datum1
  * @param string $datum2
