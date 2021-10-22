@@ -38,6 +38,17 @@ function convertDateToIso($date)
 }
 
 /**
+ * Extracts street name from full adress.
+ * @param $street
+ * @return string
+ */
+function getStreetFromAddress($street)
+{
+	// remove any non-letter character (unicode /u for german letters), but keep space inbetween
+	return trim(preg_replace('/([^\s\p{L}])/u', '', $street));
+}
+
+/**
  * Helper function for returning difference between two dates in days.
  * @param string $datum1
  * @param string $datum2

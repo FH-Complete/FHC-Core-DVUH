@@ -35,6 +35,7 @@ var DVUHMenu = {
 		{
 			case 'getMatrikelnummer':
 				html = '<h4>Matrikelnummer pr&uuml;fen</h4>';
+				html += DVUHMenu._getPreviewInputfieldHtml('matrnrDatenVorausfuellen');
 				html += DVUHMenu._getTextfieldHtml('bpk', 'BPK', '', 30)
 				+ DVUHMenu._getTextfieldHtml('svnr', 'SVNR', '', 10)
 				+ DVUHMenu._getTextfieldHtml('ekz', 'Ersatzkennzeichen', '', 10)
@@ -78,6 +79,7 @@ var DVUHMenu = {
 				break;
 			case 'getBpk':
 				html = '<h4>BPK ermitteln (manuell)</h4>';
+				html += DVUHMenu._getPreviewInputfieldHtml('bpkDatenVorausfuellen', 'bpkDatenVorausfuellenVoll');
 				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
 					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
@@ -172,6 +174,25 @@ var DVUHMenu = {
 		// form
 		$("#dvuhForm").html(html);
 
+		// prefill from Person Id
+		var buttonIds = ['matrnrDatenVorausfuellen', 'bpkDatenVorausfuellen', 'bpkDatenVorausfuellenVoll'];
+
+		for (var i = 0; i < buttonIds.length; i++)
+		{
+			var buttonId = buttonIds[i];
+			if ($("#"+buttonId).length)
+			{
+				$("#"+buttonId).click(
+					function()
+					{
+						var person_id = $("#person_id").val();
+
+						DVUHMenu.getPersonPrefillData(person_id, $(this).attr("id"));
+					}
+				);
+			}
+		}
+
 		// data preview
 		if (writePreviewButton)
 		{
@@ -195,6 +216,55 @@ var DVUHMenu = {
 			{
 				DVUHMenu._writeSyncoutputBox();
 				DVUHMenu.sendForm(action, method);
+			}
+		);
+	},
+	getPersonPrefillData: function(person_id, buttonId)
+	{
+		FHC_AjaxClient.ajaxCallGet(
+			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/getPersonPrefillData',
+			{"person_id": person_id},
+			{
+				successCallback: function(data)
+				{
+					if (FHC_AjaxClient.hasData(data))
+					{
+						var prefillData = FHC_AjaxClient.getData(data);
+
+						$("#vorname").val(prefillData.vorname);
+						$("#nachname").val(prefillData.nachname);
+						$("#geburtsdatum").val(prefillData.gebdatum);
+
+						if (buttonId == 'matrnrDatenVorausfuellen')
+						{
+							$("#bpk").val(prefillData.bpk);
+							$("#svnr").val(prefillData.svnr);
+							$("#ekz").val(prefillData.ersatzkennzeichen);
+						}
+						else if (buttonId == 'bpkDatenVorausfuellen')
+						{
+							$("#geschlecht").val('');
+							$("#geburtsland").val('');
+							$("#strasse").val('');
+							$("#plz").val('');
+							$("#akadgrad").val('');
+							$("#akadnach").val('');
+						}
+						else if (buttonId == 'bpkDatenVorausfuellenVoll')
+						{
+							$("#geschlecht").val(prefillData.geschlecht);
+							$("#geburtsland").val(prefillData.geburtsland);
+							$("#strasse").val(prefillData.strasse);
+							$("#plz").val(prefillData.plz);
+							$("#akadgrad").val(prefillData.akadgrad);
+							$("#akadnach").val(prefillData.akadnach);
+						}
+					}
+				},
+				errorCallback: function(jqXHR, textStatus, errorThrown)
+				{
+					DVUHMenu._writeResult("Fehler beim Vorausfüllen", 'dvuhOutput', 'error');
+				}
 			}
 		);
 	},
@@ -302,6 +372,34 @@ var DVUHMenu = {
 			'</div>' +
 			'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
 			'</div>';
+
+		return html;
+	},
+	_getPreviewInputfieldHtml(buttonId, secondButtonId)
+	{
+		var html = '<div class="form-group">' +
+					'<label class="col-lg-2 control-label" for="person_id">Person Id</label>'+
+					'<div class="col-lg-5">'+
+						'<div class="form-group input-group prefill-input-group">' +
+							'<input type="text" class="form-control" id="person_id">' +
+							'<span class="input-group-btn">' +
+								'<button class="btn btn-default" type="button" id="'+buttonId+'">' +
+									'Vorausfüllen' +
+								'</button>' +
+							'</span>' +
+						'</div>' +
+					'</div>';
+
+		if (typeof secondButtonId !== 'undefined')
+		{
+			html += '<div class="col-lg-5">'+
+						'<button class="btn btn-default" type="button" id="'+secondButtonId+'">' +
+							'Vorausfüllen (vollständig)' +
+						'</button>' +
+					'</div>';
+		}
+
+		html += '</div>';
 
 		return html;
 	},
@@ -538,7 +636,7 @@ var DVUHMenu = {
 
 		$("#scrollToTop").click(function()
 			{
-				$('html,body').animate({scrollTop:0},250,'linear');
+				$('html,body').animate({scrollTop: 0}, 250, 'linear');
 			}
 		)
 	}

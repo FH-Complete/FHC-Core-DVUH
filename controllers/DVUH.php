@@ -16,6 +16,7 @@ class DVUH extends Auth_Controller
 			array(
 				'index'=>'admin:r',
 				'getMatrikelnummer'=>'admin:r',
+				'getPersonPrefillData'=>'admin:r',
 				'getMatrikelnummerReservierungen'=>'admin:r',
 				'getStammdaten'=>'admin:r',
 				'getKontostaende'=>'admin:r',
@@ -24,15 +25,15 @@ class DVUH extends Auth_Controller
 				'getBpk' =>'admin:r',
 				'getBpkByPersonId' =>'admin:r',
 				'getPruefungsaktivitaeten' =>'admin:r',
-				'reserveMatrikelnummer'=>'admin:r',
-				'postMasterData'=>'admin:r',
-				'postCharge'=>'admin:r',
-				'postStudium'=>'admin:r',
-				'postPayment'=>'admin:r',
-				'postMatrikelkorrektur'=>'admin:r',
-				'postErnpmeldung'=>'admin:r',
-				'postPruefungsaktivitaeten'=>'admin:r',
-				'postEkzanfordern'=>'admin:r'
+				'reserveMatrikelnummer'=>'admin:rw',
+				'postMasterData'=>'admin:rw',
+				'postCharge'=>'admin:rw',
+				'postStudium'=>'admin:rw',
+				'postPayment'=>'admin:rw',
+				'postMatrikelkorrektur'=>'admin:rw',
+				'postErnpmeldung'=>'admin:rw',
+				'postPruefungsaktivitaeten'=>'admin:rw',
+				'postEkzanfordern'=>'admin:rw'
 			)
 		);
 
@@ -79,11 +80,59 @@ class DVUH extends Auth_Controller
 		$this->outputJson($queryResult);
 	}
 
+	public function getPersonPrefillData()
+	{
+		$person_id = $this->input->get('person_id');
+
+		$this->load->model('person/Person_model', 'PersonModel');
+
+		$stammdatenRes = $this->PersonModel->getPersonStammdaten($person_id, true);
+
+		if (hasData($stammdatenRes))
+		{
+			$stammdaten = getData($stammdatenRes);
+
+			$personPrefillData = array(
+				'vorname' => $stammdaten->vorname,
+				'nachname' => $stammdaten->nachname,
+				'gebdatum' => date_format(date_create($stammdaten->gebdatum), 'd.m.Y'),
+				'bpk' => $stammdaten->bpk,
+				'svnr' => $stammdaten->svnr,
+				'geschlecht' => $this->dvuhsynclib->convertGeschlechtToDVUH($stammdaten->geschlecht),
+				'geburtsland' => $stammdaten->geburtsnation_code,
+				'akadgrad' => $stammdaten->titelpre,
+				'akadnach' => $stammdaten->titelpost
+			);
+
+			$latestInsertamum = '';
+			$latestAdresse = null;
+
+			// get latest Zustelladresse
+			foreach ($stammdaten->adressen as $adresse)
+			{
+				if (isEmptyString($latestInsertamum) || $adresse->insertamum > $latestInsertamum)
+					$latestAdresse = $adresse;
+			}
+
+			if (isset($latestAdresse->strasse))
+				$personPrefillData['strasse'] = getStreetFromAddress($latestAdresse->strasse);
+
+			if (isset($latestAdresse->plz))
+				$personPrefillData['plz'] = $latestAdresse->plz;
+
+			$this->outputJsonSuccess($personPrefillData);
+		}
+		else
+		{
+			$this->outputJsonError("Fehler beim Holen der Person");
+		}
+	}
+
 	public function getMatrikelnummerReservierungen()
 	{
 		$data = $this->input->get('data');
 
-		$studienjahr = isset($data['studienjahr']) ? $data['studienjahr'] : null; // TODO studienjahr abfangen?
+		$studienjahr = isset($data['studienjahr']) ? $data['studienjahr'] : null;
 		$be = $this->config->item('fhc_dvuh_be_code');
 
 		$this->load->model('extensions/FHC-Core-DVUH/Matrikelreservierung_model', 'MatrikelreservierungModel');

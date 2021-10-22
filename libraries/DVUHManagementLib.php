@@ -878,8 +878,7 @@ class DVUHManagementLib
 						{
 							$warnings[] = error("Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.");
 
-							// remove any non-letter character (unicode for german)
-							$strasse = preg_replace('/[\P{L}]/u', '', $person->strasse);
+							$strasse = getStreetFromAddress($person->strasse);
 
 							// retry getting single bpk with adress
 							$pruefeBpkWithAddrResult = $this->_ci->PruefebpkModel->get(
