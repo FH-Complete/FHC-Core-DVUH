@@ -378,7 +378,7 @@ var DVUHMenu = {
 	_getPreviewInputfieldHtml(buttonId, secondButtonId)
 	{
 		var html = '<div class="form-group">' +
-					'<label class="col-lg-2 control-label" for="person_id">Person Id</label>'+
+					'<label class="col-lg-2 control-label" for="person_id">PersonID</label>'+
 					'<div class="col-lg-5">'+
 						'<div class="form-group input-group prefill-input-group">' +
 							'<input type="text" class="form-control" id="person_id">' +
@@ -394,7 +394,7 @@ var DVUHMenu = {
 		{
 			html += '<div class="col-lg-5">'+
 						'<button class="btn btn-default" type="button" id="'+secondButtonId+'">' +
-							'Vorausfüllen (vollständig)' +
+							'Vorausfüllen (inkl. optional)' +
 						'</button>' +
 					'</div>';
 		}
