@@ -73,7 +73,7 @@ class Pruefebpk_model extends DVUHClientModel
 	}
 
 	/**
-	 * Performs request wto check if bpk exists, tetrieving necessary person data from person_id.
+	 * Performs request to check if bpk exists, retrieving necessary person data from person_id.
 	 * @param int $person_id
 	 * @return object success or error
 	 */
@@ -82,19 +82,16 @@ class Pruefebpk_model extends DVUHClientModel
 		if (!isset($person_id))
 			return error("Person muss angegeben werden");
 
-		$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id);
+		$stammdatenDataResult = $this->PersonModel->getPersonStammdaten($person_id);
 
 		if (isError($stammdatenDataResult))
 			return $stammdatenDataResult;
 		elseif (hasData($stammdatenDataResult))
 		{
-			$stammdatenData = getData($stammdatenDataResult)['studentinfo'];
+			$stammdatenData = getData($stammdatenDataResult);
 
-			$akadgrad = isset($stammdatenData['akadgrad']) ? $stammdatenData['akadgrad'] : null;
-			$akadgradnach = isset($stammdatenData['akadgradnach']) ? $stammdatenData['akadgradnach'] : null;
-
-			return $this->get($stammdatenData['vorname'], $stammdatenData['nachname'], $stammdatenData['geburtsdatum'],
-				$stammdatenData['geschlecht'], null, null, null, $akadgrad, $akadgradnach);
+			return $this->get($stammdatenData->vorname, $stammdatenData->nachname, $stammdatenData->gebdatum,
+				$stammdatenData->geschlecht, null, null, null, $stammdatenData->titelpre, $stammdatenData->titelpost);
 		}
 		else
 			return error("No data found for person.");

@@ -188,11 +188,22 @@ class DVUHSyncLib
 						'ersatzkennzeichenUngueltig'
 					);
 				}
+
 				$studentinfo['ekz'] = $stammdaten->ersatzkennzeichen;
 			}
 
 			if (isset($stammdaten->bpk))
+			{
+				if (!$this->checkBpk($stammdaten->bpk))
+				{
+					return createError(
+						'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
+						'bpkUngueltig'
+					);
+				}
+
 				$studentinfo['bpk'] = $stammdaten->bpk;
+			}
 
 			$textValues = array('vorname', 'nachname', 'akadgrad', 'akadgradnach', 'bpk', 'titelpre', 'titelpost', 'ersatzkennzeichen');
 
@@ -765,7 +776,17 @@ class DVUHSyncLib
 	 */
 	public function checkEkz($ekz)
 	{
-		return preg_match('/^[A-Z]{4}\d{6}$/', $ekz) === 1;
+		return preg_match('/^[A-Z]{4}[0-9]{6}$/', $ekz) === 1;
+	}
+
+	/**
+	 * Checks Bpk for validity.
+	 * @param string $bpk
+	 * @return bool valid or not
+	 */
+	public function checkBpk($bpk)
+	{
+		return preg_match("/^([A-Za-z0-9+\/]{27})=$/", $bpk) === 1;
 	}
 
 	/**

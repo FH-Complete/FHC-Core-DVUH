@@ -50,6 +50,13 @@ class Matrikelpruefung_model extends DVUHClientModel
 				'ersatzkennzeichenUngueltig'
 			);
 		}
+		elseif (!isEmptyString($bpk) && !$this->dvuhsynclib->checkBpk($bpk))
+		{
+			$result = createError(
+				'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
+				'bpkUngueltig'
+			);
+		}
 		else
 		{
 			if (!is_null($bpk))

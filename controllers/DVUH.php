@@ -98,6 +98,7 @@ class DVUH extends Auth_Controller
 				'gebdatum' => date_format(date_create($stammdaten->gebdatum), 'd.m.Y'),
 				'bpk' => $stammdaten->bpk,
 				'svnr' => $stammdaten->svnr,
+				'ersatzkennzeichen' => $stammdaten->ersatzkennzeichen,
 				'geschlecht' => $this->dvuhsynclib->convertGeschlechtToDVUH($stammdaten->geschlecht),
 				'geburtsland' => $stammdaten->geburtsnation_code,
 				'akadgrad' => $stammdaten->titelpre,
