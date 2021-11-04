@@ -181,18 +181,29 @@ class DVUHSyncLib
 
 			if (isset($stammdaten->ersatzkennzeichen) && isEmptyString($stammdaten->svnr))
 			{
-				if (preg_match('/^[A-Z]{4}\d{6}$/', $stammdaten->ersatzkennzeichen) === 0)
+				if (!$this->checkEkz($stammdaten->ersatzkennzeichen))
 				{
 					return createError(
 						'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
 						'ersatzkennzeichenUngueltig'
 					);
 				}
+
 				$studentinfo['ekz'] = $stammdaten->ersatzkennzeichen;
 			}
 
 			if (isset($stammdaten->bpk))
+			{
+				if (!$this->checkBpk($stammdaten->bpk))
+				{
+					return createError(
+						'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
+						'bpkUngueltig'
+					);
+				}
+
 				$studentinfo['bpk'] = $stammdaten->bpk;
+			}
 
 			$textValues = array('vorname', 'nachname', 'akadgrad', 'akadgradnach', 'bpk', 'titelpre', 'titelpost', 'ersatzkennzeichen');
 
@@ -232,7 +243,10 @@ class DVUHSyncLib
 		{
 			$person = getData($personresult)[0];
 
-			if (isEmptyString($person->matr_nr) || !preg_match("/^\d{8}$/", $person->matr_nr))
+			if (isEmptyString($person->matr_nr))
+				return createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+
+			if (!$this->checkMatrikelnummer($person->matr_nr))
 				return createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($person->matr_nr));
 
 			$resultObj->matrikelnummer = $person->matr_nr;
@@ -743,6 +757,36 @@ class DVUHSyncLib
 			$result = error('Nation fehlt');
 
 		return $result;
+	}
+
+	/**
+	 * Checks Matrikelnummer for validity.
+	 * @param string $svnr
+	 * @return bool valid or not
+	 */
+	public function checkMatrikelnummer($svnr)
+	{
+		return preg_match("/^\d{8}$/", $svnr) === 1;
+	}
+
+	/**
+	 * Checks Ersatzkennzeichen for validity.
+	 * @param string $ekz
+	 * @return bool valid or not
+	 */
+	public function checkEkz($ekz)
+	{
+		return preg_match('/^[A-Z]{4}[0-9]{6}$/', $ekz) === 1;
+	}
+
+	/**
+	 * Checks Bpk for validity.
+	 * @param string $bpk
+	 * @return bool valid or not
+	 */
+	public function checkBpk($bpk)
+	{
+		return preg_match("/^([A-Za-z0-9+\/]{27})=$/", $bpk) === 1;
 	}
 
 	/**

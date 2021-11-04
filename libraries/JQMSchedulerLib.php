@@ -30,6 +30,8 @@ class JQMSchedulerLib
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync'); // load sync config
 
+		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper'); // load helper
+
 		// set config items
 		$this->_status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
@@ -43,7 +45,7 @@ class JQMSchedulerLib
 
 		foreach ($studiensemesterMeldezeitraum as $studiensemester_kurzbz => $meldezeitraum)
 		{
-			if ($this->_validateDate($meldezeitraum['von']) && $this->_validateDate($meldezeitraum['bis'])
+			if (validateDate($meldezeitraum['von']) && validateDate($meldezeitraum['bis'])
 				&& $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
 			{
 				$this->_studiensemester[] = $studiensemester_kurzbz;
@@ -569,19 +571,6 @@ class JQMSchedulerLib
 
 	// --------------------------------------------------------------------------------------------
 	// Private methods
-
-	/**
-	 * Checks if date exists and is in valid format.
-	 * @param string $date
-	 * @param string $format
-	 * @return bool
-	 */
-	private function _validateDate($date, $format = 'Y-m-d')
-	{
-		$d = DateTime::createFromFormat($format, $date);
-		// The Y ( 4 digits year ) returns TRUE for any integer with any number of digits so changing the comparison from == to === fixes the issue.
-		return $d && $d->format($format) === $date;
-	}
 
 	/**
 	 * Gets Studiensemester in an array, uses given parameter if valid or from config array field.

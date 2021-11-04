@@ -113,6 +113,8 @@ class Stammdaten_model extends DVUHClientModel
 
 				if (isEmptyString($matrikelnummer))
 					$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+				elseif (!$this->dvuhsynclib->checkMatrikelnummer($matrikelnummer))
+					$result = createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($matrikelnummer));
 				else
 				{
 					$params = array(

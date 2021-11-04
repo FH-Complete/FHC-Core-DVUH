@@ -28,10 +28,10 @@ class DVUHErrorLib
 	 * @param object $errorObj containing info for writing the issue.
 	 * @param int $person_id person for which issue occured.
 	 * @param int $prestudent_id prestudent for which issue occured, will be resolved to oe_kurzbz.
-	 * @param bool $force_predefined if true, external issues won't be added if no error/warning is predefined
+	 * @param bool $force_predefined_for_external if true, external issues won't be added if no error/warning is predefined
 	 * @return object success or error
 	 */
-	public function addIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined = false)
+	public function addIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
 		$oe_kurzbz = null;
 		$code = getCode($errorObj);
@@ -79,7 +79,7 @@ class DVUHErrorLib
 							$person_id,
 							$oe_kurzbz,
 							null,
-							$force_predefined
+							$force_predefined_for_external
 						);
 
 						if (isError($extIssueRes))

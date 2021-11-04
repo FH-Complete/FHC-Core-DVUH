@@ -475,11 +475,13 @@ class DVUHManagementLib
 				if (isError($warningsRes))
 					return error('Fehler beim Auslesen der Warnungen');
 
+				$warningCodesToExcludeFromIssues = array();
+
 				if (hasData($warningsRes))
 				{
 					$parsedWarnings = getData($warningsRes);
 
-					// if no bpk saved in FHC, but a BPK is returned by DVUH, save it in FHC
+					// if no bpk saved in FHC, but a BPK is returned by DVUH in a warning, save it in FHC
 					$saveBpkRes = $this->_saveBpkFromDvuhWarning($person_id, $parsedWarnings);
 
 					if (isError($saveBpkRes))
@@ -488,12 +490,13 @@ class DVUHManagementLib
 					if (hasData($saveBpkRes))
 					{
 						$bpkRes = getData($saveBpkRes);
+						$warningCodesToExcludeFromIssues[] = self::ERRORCODE_BPK_MISSING; // if bpk already added automatically, no need to write issue
 						$infos[] = "Neue Bpk ($bpkRes) gespeichert für Person mit Id $person_id";
 					}
 				}
 
 				if (!isset($result))
-					$result = $this->_getResponseArr($xmlstr, $infos, $warnings, true);
+					$result = $this->_getResponseArr($xmlstr, $infos, $warnings, true, $warningCodesToExcludeFromIssues);
 			}
 		}
 		else
@@ -525,7 +528,7 @@ class DVUHManagementLib
 								       zahlungsreferenz, buchungstyp_kurzbz, studiensemester_kurzbz, matr_nr,
 								       sum(betrag) OVER (PARTITION BY buchungsnr_verweis) AS summe_buchungen
 								FROM public.tbl_konto
-								JOIN public.tbl_person using(person_id)
+								JOIN public.tbl_person USING (person_id)
 								WHERE person_id = ?
 								  AND studiensemester_kurzbz = ?
 								  AND buchungsnr_verweis IS NOT NULL
@@ -875,8 +878,7 @@ class DVUHManagementLib
 						{
 							$warnings[] = error("Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.");
 
-							// remove any non-letter character (unicode for german)
-							$strasse = preg_replace('/[\P{L}]/u', '', $person->strasse);
+							$strasse = getStreetFromAddress($person->strasse);
 
 							// retry getting single bpk with adress
 							$pruefeBpkWithAddrResult = $this->_ci->PruefebpkModel->get(
@@ -1388,7 +1390,9 @@ class DVUHManagementLib
 					$bpkUpdateRes = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $warning->feldinhalt);
 
 					if (hasData($bpkUpdateRes))
+					{
 						$result = success($warning->feldinhalt);
+					}
 				}
 			}
 		}
@@ -1403,9 +1407,10 @@ class DVUHManagementLib
 	 * @param array $infos array with info strings
 	 * @param array $warnings array with warning strings
 	 * @param bool $getWarningsFromResult if true, parse the result for warnings and include them in response
+	 * @param array $warningCodesToExcludeFromIssues
 	 * @return object response object with result, infos and warnings
 	 */
-	private function _getResponseArr($result, $infos = null, $warnings = null, $getWarningsFromResult = false)
+	private function _getResponseArr($result, $infos = null, $warnings = null, $getWarningsFromResult = false, $warningCodesToExcludeFromIssues = array())
 	{
 		$responseArr = array();
 		$responseArr['infos'] = isset($infos) ? $infos : array();
@@ -1437,6 +1442,12 @@ class DVUHManagementLib
 							if (!isEmptyString($warningtext))
 								$warningtext .= ', ';
 							$warningtext .= $warning->fehlertextKomplett;
+							if (!isEmptyArray($warningCodesToExcludeFromIssues)
+								&& in_array($warning->fehlernummer, $warningCodesToExcludeFromIssues))
+							{
+								unset($warning->fehlernummer); // unset fehlernummer if it doesn't need to be written as issue
+							}
+
 							$parsedWarnings[] = $warning;
 						}
 						$responseArr['warnings'][] = error($warningtext, $parsedWarnings);
