@@ -34,7 +34,6 @@ class Matrikelkorrektur_model extends DVUHClientModel
 			$result = error('Matrikelnr alt nicht gesetzt');
 		else
 		{
-
 			$params = array(
 				"uuid" => getUUID(),
 				"matrikelnummer" => $matrikelnummer,
