@@ -7,7 +7,9 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  */
 class DVUHManagement extends JQW_Controller
 {
-	private $_logInfos;
+	const ERRORCODE_TOO_MANY_SZR_REQUESTS = 'ZD00001';
+
+	private $_logInfos; // stores config param for info display
 
 	/**
 	 * Controller initialization
@@ -333,6 +335,8 @@ class DVUHManagement extends JQW_Controller
 			);
 
 			$person_arr = $this->_getInputObjArray(getData($lastJobs));
+			$resendBpkQueryCount = 0;
+			$maxResendBpkQueryCount = 5; // limit for sleeping times because of "too many szr requests" error
 
 			foreach ($person_arr as $persobj)
 			{
@@ -341,22 +345,49 @@ class DVUHManagement extends JQW_Controller
 				else
 				{
 					$person_id = $persobj->person_id;
+					$continueLoop = true;
 
-					$requestBpkResult = $this->dvuhmanagementlib->requestBpk($person_id);
-
-					if (isError($requestBpkResult))
+					while ($continueLoop)
 					{
-						$this->_logDVUHError(
-							"Fehler bei Bpkanfrage, person Id $person_id",
-							$requestBpkResult,
-							$person_id
-						);
-					}
-					elseif (hasData($requestBpkResult))
-					{
-						$requesBpkArr = getData($requestBpkResult);
+						$continueLoop = false;
+						$requestBpkResult = $this->dvuhmanagementlib->requestBpk($person_id);
 
-						$this->_logDVUHInfosAndWarnings($requesBpkArr, array('person_id' => $person_id));
+						if (isError($requestBpkResult))
+						{
+							$errCode = getCode($requestBpkResult);
+
+							if (isset($errCode) && is_array($errCode))
+							{
+								foreach ($errCode as $code)
+								{
+									// if "too many szr requests per minute" error, sleep for 30 seconds and retry for the person.
+									if (isset($code->fehlernummer) && $code->fehlernummer == self::ERRORCODE_TOO_MANY_SZR_REQUESTS)
+									{
+										$resendBpkQueryCount++;
+										if ($resendBpkQueryCount <= $maxResendBpkQueryCount)
+										{
+											sleep(30);
+											$continueLoop = true;
+										}
+									}
+								}
+							}
+
+							if (!$continueLoop || $resendBpkQueryCount > $maxResendBpkQueryCount)
+							{
+								$this->_logDVUHError(
+									"Fehler bei Bpkanfrage, person Id $person_id",
+									$requestBpkResult,
+									$person_id
+								);
+							}
+						}
+						elseif (hasData($requestBpkResult))
+						{
+							$requesBpkArr = getData($requestBpkResult);
+
+							$this->_logDVUHInfosAndWarnings($requesBpkArr, array('person_id' => $person_id));
+						}
 					}
 				}
 			}
