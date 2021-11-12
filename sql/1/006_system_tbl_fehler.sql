@@ -40,7 +40,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SC_W_0001', 'andereBeBezahltSapGesendet', NULL, 'Buchung %s ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde', 'warning', 'dvuh'),
 ('DVUH_SP_W_0001', 'vorgeschrBetragUngleichFestgesetzt', NULL, 'Vorgeschriebener Beitrag %s nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, %s, überein', 'warning', 'dvuh'),
 ('DVUH_SP_W_0002', 'zlgKeineVorschreibungGesendet', NULL, 'Buchung %s: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet', 'warning', 'dvuh'),
-('DVUH_SP_W_0003', 'offeneBuchungen', NULL, 'Es gibt noch offene Buchungen', 'error', 'dvuh'),
+('DVUH_SP_W_0003', 'offeneBuchungen', NULL, 'Es gibt noch offene Buchungen', 'warning', 'dvuh'),
 ('DVUH_SS_W_0001', 'zgvFehlt', NULL, 'ZGV fehlt', 'warning', 'dvuh'),
 ('DVUH_SS_W_0002', 'zgvDatumFehlt', NULL, 'ZGV Datum fehlt', 'warning', 'dvuh'),
 ('DVUH_SS_W_0003', 'zgvMasterFehlt', NULL, 'Zgv Master fehlt', 'warning', 'dvuh'),

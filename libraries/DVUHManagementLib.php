@@ -83,6 +83,7 @@ class DVUHManagementLib
 	{
 		$result = null;
 		$infos = array();
+		$warnings = array();
 
 		// reset matrikelnr to NULL if it is an old, unused, non-active Matrikelnr so a new, current one can be assigned
 		$resetMatrikelnummerRes = $this->_ci->fhcmanagementlib->resetInactiveMatrikelnummer($person_id, $studiensemester_kurzbz);
@@ -113,7 +114,7 @@ class DVUHManagementLib
 			$person = getData($personResult)[0];
 
 			$matrPruefungResult = $this->_ci->MatrikelpruefungModel->get(
-				$bpk = null,
+				$bpk = !isEmptyString($person->bpk) ? $person->bpk : null,
 				$ekz = $person->ersatzkennzeichen,
 				$geburtsdatum = $person->gebdatum,
 				$matrikelnummer = null,
@@ -126,7 +127,7 @@ class DVUHManagementLib
 			{
 				$result = $matrPruefungResult;
 			}
-			else
+			elseif (hasData($matrPruefungResult))
 			{
 				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($matrPruefungResult), array('statuscode', 'statusmeldung', 'matrikelnummer'));
 
@@ -180,7 +181,21 @@ class DVUHManagementLib
 									$reservedMatrnr = getData($reservedMatrnr);
 									$reservedMatrnrStr = $reservedMatrnr->matrikelnummer[0];
 									$sendUpdateMatrRes = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $reservedMatrnrStr, false, $infos);
-									$result = $this->_getResponseArr($sendUpdateMatrRes, $infos);
+
+									if (isError($sendUpdateMatrRes))
+										$result = $sendUpdateMatrRes;
+									else
+									{
+										if (hasData($sendUpdateMatrRes))
+										{
+											$updateMatrnrObj = getData($sendUpdateMatrRes);
+
+											// merge infos from save matrnr result
+											$infos = array_merge($updateMatrnrObj['infos'], $infos);
+											$warnings = $updateMatrnrObj['warnings'];
+										}
+										$result = $this->_getResponseArr(null, $infos, $warnings);
+									}
 								}
 								else
 									$result = error("Es konnte keine Matrikelnummer reserviert werden");
@@ -198,7 +213,21 @@ class DVUHManagementLib
 						if (is_numeric($matrikelnummer))
 						{
 							$sendUpdateMatrRes = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, true, $infos);
-							$result = $this->_getResponseArr($sendUpdateMatrRes, $infos);
+
+							if (isError($sendUpdateMatrRes))
+								$result = $sendUpdateMatrRes;
+							else
+							{
+								if (hasData($sendUpdateMatrRes))
+								{
+									$updateMatrnrObj = getData($sendUpdateMatrRes);
+
+									// merge infos from save matrnr result
+									$infos = array_merge($updateMatrnrObj['infos'], $infos);
+									$warnings = $updateMatrnrObj['warnings'];
+								}
+								$result = $this->_getResponseArr(null, $infos, $warnings);
+							}
 						}
 						else
 							$result = error("ungültige Matrikelnummer");
@@ -218,7 +247,11 @@ class DVUHManagementLib
 							$result = error("Unbekannter Matrikelnr-Statuscode");
 					}
 				}
+				else
+					$result = error("Matrikelnummernanfrage konnte nicht geparst werden");
 			}
+			else
+				$result = error("Matrikelnummernanfrage lieferte keine Daten");
 		}
 		else
 		{
@@ -576,7 +609,17 @@ class DVUHManagementLib
 
 			if (hasData($openPayments))
 			{
-				return createError("Es gibt noch offene Buchungen.", 'offeneBuchungen');
+				// return warning
+				return $this->_getResponseArr(
+					null,
+					null,
+					array(
+						createError(
+							"Es gibt noch offene Buchungen.",
+							'offeneBuchungen'
+						)
+					)
+				);
 			}
 
 			$buchungen = getData($buchungenResult);
@@ -1201,6 +1244,7 @@ class DVUHManagementLib
 	 * @param string $studiensemester_kurzbz semester for which stammdaten are sent
 	 * @param string $matrikelnummer
 	 * @param bool $matr_aktiv wether Matrnr is already active (or not yet valid)
+	 * @param array $infos for storing info messages
 	 * @return object
 	 */
 	private function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv, &$infos)

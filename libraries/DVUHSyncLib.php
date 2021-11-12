@@ -953,7 +953,7 @@ class DVUHSyncLib
 				$avon = $ioitem->von;
 				$abis = $ioitem->bis;
 				$adauer = (is_null($avon) || is_null($abis)) ? null : dateDiff($avon, $abis);
-				if (strtotime($abis) < strtotime(date('Y-m-d')))
+				if (strtotime($abis) <= strtotime(date('Y-m-d')))
 					$aufenthalt_finished = true;
 				else
 					$aufenthalt_finished = false;
@@ -965,7 +965,6 @@ class DVUHSyncLib
 
 				if (hasData($bisio_zweck_result))
 				{
-
 					$bisio_zweck = getData($bisio_zweck_result);
 
 					$zweck_code_arr = array();

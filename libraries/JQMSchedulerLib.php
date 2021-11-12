@@ -442,7 +442,7 @@ class JQMSchedulerLib
 					JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
 					WHERE max_studiumdaten_meldedatum IS NULL /* either not sent to DVUH or data modified since last send */
 					OR prestudent_status_datum = NOW() /* if prestudent status gets active today */
-					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, mobilitaeten in future are sent with no endedatum */
+					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
 					OR pss_insertamum >= max_studiumdaten_meldedatum OR ps_insertamum >= max_studiumdaten_meldedatum
 					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
 					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
