@@ -42,6 +42,8 @@ $this->load->view('templates/FHC-Header', array(
 				</div>
 				<div class="col-xs-2 text-right">
 					Umgebung: <strong><?php echo $environment ?></strong>
+					<br />
+					API-Version: <strong><?php echo $apiVersion ?></strong>
 				</div>
 			</div>
 			<br />

@@ -51,8 +51,9 @@ class DVUH extends Auth_Controller
 
 		// display system path (e.g. rws or sandbox)
 		$environment = $this->config->item(DVUHClientLib::URL_PATH);
+		$apiVersion = $this->config->item(DVUHClientLib::API_VERSION);
 
-		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array('environment' => $environment));
+		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array('environment' => $environment, 'apiVersion' => $apiVersion));
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -80,6 +81,9 @@ class DVUH extends Auth_Controller
 		$this->outputJson($queryResult);
 	}
 
+	/**
+	 * Gets person data for input field prefills.
+	 */
 	public function getPersonPrefillData()
 	{
 		$person_id = $this->input->get('person_id');

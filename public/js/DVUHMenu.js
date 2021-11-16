@@ -74,7 +74,7 @@ var DVUHMenu = {
 			case 'getFullstudent':
 				html = '<h4>Detaillierte Studiendaten abfragen</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
-					+ DVUHMenu._getSemesterRow()
+					+ DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. 2016S für Sommer-, 2016W für Wintersemester 2016', 5)
 				method = 'get';
 				break;
 			case 'getBpk':
