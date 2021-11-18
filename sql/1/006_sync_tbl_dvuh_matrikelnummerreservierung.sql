@@ -8,8 +8,6 @@ COMMENT ON TABLE sync.tbl_dvuh_matrikelnummerreservierung IS 'Table to save Matr
 COMMENT ON COLUMN sync.tbl_dvuh_matrikelnummerreservierung.matrikelnummer IS 'the Matrikelnummer';
 COMMENT ON COLUMN sync.tbl_dvuh_matrikelnummerreservierung.jahr IS 'year for which Mtrikelnummer was reserved';
 
-
-
 DO $$
     BEGIN
         ALTER TABLE sync.tbl_dvuh_matrikelnummerreservierung ADD CONSTRAINT tbl_dvuh_matrikelnummerreservierung_pkey PRIMARY KEY (matrikelnummer, jahr);
