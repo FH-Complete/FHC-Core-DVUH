@@ -336,10 +336,13 @@ class DVUHSyncLib
 						$studstatuscode = getData($studstatuscodeResult);
 					}
 
-					// booleans isIncoming and isAusserordentlich
+					// booleans isIncoming, isAusserordentlich, isLehrgang
 					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
 					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
+					// lehrgang - either typ l or studiengang_kz < 0, but not ausserordentlich
+					$isLehrgang = !$isAusserordentlich && ($prestudentstatus->studiengang_typ == 'l' || $studiengang_kz < 0);
+
 
 					// studiengang kz
 					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
@@ -347,7 +350,7 @@ class DVUHSyncLib
 					// if ausserordentlich, students are sent with special studiengang_kz
 					$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
 					if ($isAusserordentlich && isset($ausserordentlich_prefix) && is_numeric($ausserordentlich_prefix))
-						$studiengang_kz = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix').$erhalter_kz;
+						$studiengang_kz = $ausserordentlich_prefix.$erhalter_kz;
 
 					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
 
@@ -430,7 +433,7 @@ class DVUHSyncLib
 					}
 
 					// lehrgang
-					if ($prestudentstatus->studiengang_typ == 'l' && !$isAusserordentlich)
+					if ($isLehrgang)
 					{
 						$lehrgang = array(
 							'lehrgangsnr' => $dvuh_stgkz,
