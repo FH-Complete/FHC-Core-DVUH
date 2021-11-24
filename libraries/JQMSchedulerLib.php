@@ -420,8 +420,8 @@ class JQMSchedulerLib
 											AND kto.studiensemester_kurzbz = pss.studiensemester_kurzbz
 											AND zlg.betrag <= 0
 											LIMIT 1)
-										/*exception: Abbrecher, Unterbrecher might not need to pay*/
-									OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Absolvent')
+										/*exception: Abbrecher, Unterbrecher etc. might not need to pay*/
+									OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Diplomand', 'Absolvent')
 							   )";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_STUDY_DATA]))
