@@ -51,11 +51,11 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ekzanfordern_model', 'EkzanfordernModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStammdaten_model', 'DVUHStammdatenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHPruefungsaktivitaeten_model', 'DVUHPruefungsaktivitaetenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHMatrikelnummerreservierung_model', 'DVUHMatrikelnummerreservierungModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHZahlungen_model', 'DVUHZahlungenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHStammdaten_model', 'DVUHStammdatenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHPruefungsaktivitaeten_model', 'DVUHPruefungsaktivitaetenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHMatrikelnummerreservierung_model', 'DVUHMatrikelnummerreservierungModel');
 
 		// load helpers
 		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
@@ -1000,13 +1000,13 @@ class DVUHManagementLib
 									}
 								}
 								else
-									return error("Fehler beim Auslesen der BPK Antwort (Anfrage mit Adresse)");
+									return error("Fehler beim Auslesen der bPK Antwort (Anfrage mit Adresse)");
 							}
 							else
-								return error("Fehler bei Bpk-Neuanfrage mit Adresse");
+								return error("Fehler bei bPK-Neuanfrage mit Adresse");
 						}
 						else
-							$warnings[] = error("Keine Bpk in DVUH gefunden");
+							$warnings[] = error("Keine bPK in DVUH gefunden");
 					}
 					else // bpk found on first try
 					{
