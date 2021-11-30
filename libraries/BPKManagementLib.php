@@ -104,7 +104,7 @@ class BPKManagementLib
 				$bpkRequestData['geburtsdatum'] = $personData['gebdatum'];
 
 				// execute bpk call
-				$bpkRes = $this->checkBpk($bpkRequestData);
+				$bpkRes = $this->executeBpkRequest($bpkRequestData);
 
 				if (isError($bpkRes))
 					return $bpkRes;
@@ -115,7 +115,7 @@ class BPKManagementLib
 
 					$this->_addBpkResponseToResults($bpkRequestData, $bpkResponseData, $allBpkResults);
 
-					if ($bpkResponseData['numberBpkFound'] > 1)
+					if ($bpkResponseData['numberPersonsFound'] > 1)
 					{
 						// if multiple person results, check with more parameters
 						$additionalParamms = array(
@@ -128,7 +128,7 @@ class BPKManagementLib
 						{
 							$bpkRequestData[$name] = $param;
 
-							$bpkRes = $this->checkBpk($bpkRequestData);
+							$bpkRes = $this->executeBpkRequest($bpkRequestData);
 
 							if (isError($bpkRes))
 								return $bpkRes;
@@ -140,7 +140,7 @@ class BPKManagementLib
 								$this->_addBpkResponseToResults($bpkRequestData, $bpkNewResponseData, $allBpkResults);
 
 								// single bpk found
-								if ($bpkNewResponseData['numberBpkFound'] === 1)
+								if ($bpkNewResponseData['numberPersonsFound'] === 1)
 									break;
 							}
 						}
@@ -203,9 +203,9 @@ class BPKManagementLib
 		}
 	}
 
-	public function checkBpk($personData)
+	public function executeBpkRequest($personData)
 	{
-		$bpkRes = null;
+		$bpkRes =  array('bpk' => null, 'personData' => array(), 'numberPersonsFound' => 0);
 
 		$pruefeBpkResult = $this->_ci->PruefebpkModel->get(
 			$personData['vorname'],
@@ -223,7 +223,7 @@ class BPKManagementLib
 
 		if (hasData($pruefeBpkResult))
 		{
-			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkResult), array('bpk', 'person'));
+			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkResult), array('bpk', 'personInfo'));
 
 			if (isError($parsedObj))
 				return $parsedObj;
@@ -232,14 +232,27 @@ class BPKManagementLib
 			{
 				$parsedObj = getData($parsedObj);
 
+				$personData = array();
+
+				foreach ($parsedObj->personInfo as $personInfo)
+				{
+					$person = new stdClass();
+					foreach ($personInfo as $pInfoPropName => $pInfoPropValue) {
+						foreach ($pInfoPropValue as $propName => $propValue) {
+							$person->{$propName} = $propValue;
+						}
+					}
+					$personData[] = $person;
+				}
+
 				// no bpk found
 				if (isEmptyArray($parsedObj->bpk))
 				{
-					$bpkRes = array('bpk' => null, 'personData' => $parsedObj->person, 'numberBpkFound' => count($parsedObj->person));
+					$bpkRes = array('bpk' => null, 'personData' => $personData, 'numberPersonsFound' => count($parsedObj->personInfo));
 				}
 				else // bpk found
 				{
-					$bpkRes = array('bpk' => $parsedObj->bpk[0], 'personData' => $parsedObj->person, 'numberBpkFound' => count($parsedObj->bpk));
+					$bpkRes = array('bpk' => $parsedObj->bpk[0], 'personData' => $personData, 'numberPersonsFound' => count($parsedObj->bpk));
 				}
 			}
 		}
@@ -343,8 +356,10 @@ class BPKManagementLib
 					$nachname = $names[$j];
 					foreach ($nachname['variations'] as $nnVariation)
 					{
-						// wildcard to match anything after name
-						$combination = array('vorname' => $vnVariation.'*', 'nachname' => $nnVariation.'*');
+						// wildcard to match anything after name, but min 3 chars
+						$vnVariation = mb_strlen($vnVariation) < 3 ? $vnVariation : $vnVariation.'*';
+						$nnVariation = mb_strlen($nnVariation) < 3 ? $nnVariation : $nnVariation.'*';
+						$combination = array('vorname' => $vnVariation, 'nachname' => $nnVariation);
 
 						// avoid dublicates (can still occur if Vorname and Nachname contain same name)
 						$exists = false;
@@ -430,24 +445,26 @@ class BPKManagementLib
 
 			foreach ($partNames as $partNameIdx => $partName)
 			{
-				// name too short - append next name afterwards.
-				if (mb_strlen($partName) < 3 && isset($partNames[$partNameIdx + 1]))
+				// name too short
+				if (mb_strlen($partName) < 3)
 				{
-					foreach ($separators as $separator)
+					// append next name part if it exists
+					if (isset($partNames[$partNameIdx + 1]))
 					{
-						if ($separator == '\s')
-							$separator = ' ';
-						$pn = $partName . $separator . $partNames[$partNameIdx + 1];
-						$variations = $this->_getVariationsFromName($pn, $replacements);
-						$nameVariationsArr[] = array('name' => $pn, 'variations' => $variations);
+						foreach ($separators as $separator)
+						{
+							if ($separator == '\s')
+								$separator = ' ';
+							$pn = $partName . $separator . $partNames[$partNameIdx + 1];
+							$variations = $this->_getVariationsFromName($pn, $replacements);
+							$nameVariationsArr[] = array('name' => $pn, 'variations' => $variations);
+						}
 					}
 				}
-				else
-				{
-					// get variations (e.g. with chars in different languages) from a name
-					$variations = $this->_getVariationsFromName($partName, $replacements);
-					$nameVariationsArr[] = array('name' => $partName, 'variations' => $variations);
-				}
+
+				// get variations (e.g. with chars in different languages) from a name
+				$variations = $this->_getVariationsFromName($partName, $replacements);
+				$nameVariationsArr[] = array('name' => $partName, 'variations' => $variations);
 			}
 		}
 

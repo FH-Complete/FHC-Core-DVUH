@@ -32,6 +32,7 @@ class DVUHManagementLib
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
@@ -930,11 +931,13 @@ class DVUHManagementLib
 			if (!isEmptyString($person->geschlecht))
 				$geschlecht = $this->_ci->dvuhsynclib->convertGeschlechtToDVUH($person->geschlecht);
 
-			$pruefeBpkResult = $this->_ci->PruefebpkModel->get(
-				$person->vorname,
-				$person->nachname,
-				$person->gebdatum,
-				$geschlecht
+			$pruefeBpkResult = $this->_ci->bpkmanagementlib->executeBpkRequest(
+				array(
+					'vorname' => $person->vorname,
+					'nachname' => $person->nachname,
+					'geburtsdatum' => $person->gebdatum,
+					'geschlecht' => $geschlecht
+				)
 			);
 
 			if (isError($pruefeBpkResult))
@@ -944,99 +947,82 @@ class DVUHManagementLib
 
 			if (hasData($pruefeBpkResult))
 			{
-				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkResult), array('bpk', 'person'));
+				$pruefeBpkResultData = getData($pruefeBpkResult);
 
-				if (isError($parsedObj))
-					return $parsedObj;
-
-				if (hasData($parsedObj))
+				// no bpk found
+				if (isEmptyString($pruefeBpkResultData['bpk']))
 				{
-					$parsedObj = getData($parsedObj);
-
-					// no bpk found
-					if (isEmptyArray($parsedObj->bpk))
+					// if multiple bpks, at least 2 person tags are present
+					if ($pruefeBpkResultData['numberPersonsFound'] > 1)
 					{
-						// if multiple bpks, at least 2 person tags are present
-						if (!isEmptyArray($parsedObj->person) && count($parsedObj->person) > 1)
+						$warnings[] = error("Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.");
+
+						$strasse = getStreetFromAddress($person->strasse);
+
+						// retry getting single bpk with adress
+						$pruefeBpkWithAddrResult = $this->_ci->bpkmanagementlib->executeBpkRequest(
+							array(
+								'vorname' => $person->vorname,
+								'nachname' => $person->nachname,
+								'geburtsdatum' => $person->gebdatum,
+								'geschlecht' => $geschlecht,
+								'strasse' => $strasse,
+								'plz' => $person->plz
+							)
+						);
+
+						if (isError($pruefeBpkWithAddrResult))
 						{
-							$warnings[] = error("Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.");
+							return $pruefeBpkWithAddrResult;
+						}
 
-							$strasse = getStreetFromAddress($person->strasse);
+						if (hasData($pruefeBpkWithAddrResult))
+						{
+							$parsedObjAddr = getData($pruefeBpkWithAddrResult);
 
-							// retry getting single bpk with adress
-							$pruefeBpkWithAddrResult = $this->_ci->PruefebpkModel->get(
-								$person->vorname,
-								$person->nachname,
-								$person->gebdatum,
-								$geschlecht,
-								$strasse,
-								$person->plz
-							);
-
-							if (isError($pruefeBpkWithAddrResult))
+							if (isEmptyArray($parsedObjAddr['bpk']))
 							{
-								return $pruefeBpkWithAddrResult;
-							}
-
-							if (hasData($pruefeBpkWithAddrResult))
-							{
-								$parsedObjAddr = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkWithAddrResult), array('bpk', 'person'));
-
-								if (hasData($parsedObjAddr))
-								{
-									$parsedObjAddr = getData($parsedObjAddr);
-
-									if (isEmptyArray($parsedObjAddr->bpk))
-									{
-										if (!isEmptyArray($parsedObjAddr->person) && count($parsedObjAddr->person) > 1)
-											$warnings[] = error("Mehrere Bpks in DVUH gefunden, auch nach erneuter Anfrage mit Adresse.");
-										else
-											$warnings[] = error("Keine Bpk in DVUH bei Neuanfrage mit Adresse gefunden.");
-									}
-									else // single bpk found using adress
-									{
-										$infos[] = "Bpk nach Neuanfrage mit Adresse erfolgreich ermittelt!";
-										$bpk = $parsedObjAddr->bpk[0];
-									}
-								}
+								if ($parsedObjAddr['numberPersonsFound'] > 1)
+									$warnings[] = error("Mehrere bPK in DVUH gefunden, auch nach erneuter Anfrage mit Adresse.");
 								else
-									return error("Fehler beim Auslesen der bPK Antwort (Anfrage mit Adresse)");
+									$warnings[] = error("Keine bPK in DVUH bei Neuanfrage mit Adresse gefunden.");
 							}
-							else
-								return error("Fehler bei bPK-Neuanfrage mit Adresse");
+							else // single bpk found using adress
+							{
+								$infos[] = "bPK nach Neuanfrage mit Adresse erfolgreich ermittelt!";
+								$bpk = $parsedObjAddr['bpk'];
+							}
 						}
 						else
-							$warnings[] = error("Keine bPK in DVUH gefunden");
+							return error("Fehler bei bPK-Neuanfrage mit Adresse");
 					}
-					else // bpk found on first try
-					{
-						$infos[] = "Bpk erfolgreich ermittelt!";
-						$bpk = $parsedObj->bpk[0];
-					}
-
-					// if bpk found, save it in FHC db
-					if (isset($bpk))
-					{
-						$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
-
-						if (!hasData($bpkSaveResult))
-							return error("Fehler beim Speichern der Bpk in FHC");
-
-						$infos[] = "Bpk erfolgreich in FHC gespeichert!";
-					}
-
-					return $this->_getResponseArr($bpk, $infos, $warnings);
+					else
+						$warnings[] = error("Keine bPK in DVUH gefunden");
 				}
-				else
-					return error("Fehler beim Auslesen der Bpk");
+				else // bpk found on first try
+				{
+					$infos[] = "Bpk erfolgreich ermittelt!";
+					$bpk = $pruefeBpkResultData['bpk'];
+				}
+
+				// if bpk found, save it in FHC db
+				if (isset($bpk))
+				{
+					$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
+
+					if (!hasData($bpkSaveResult))
+						return error("Fehler beim Speichern der Bpk in FHC");
+
+					$infos[] = "Bpk erfolgreich in FHC gespeichert!";
+				}
+
+				return $this->_getResponseArr($bpk, $infos, $warnings);
 			}
 			else
 				return error("Fehler beim Ermitteln der Bpk");
 		}
 		else
 			return error("Keine Person ohne Bpk gefunden");
-
-		return $result;
 	}
 
 	/**
