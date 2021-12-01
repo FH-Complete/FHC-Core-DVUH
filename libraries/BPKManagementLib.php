@@ -18,6 +18,7 @@ class BPKManagementLib
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+		$this->_ci->load->model('person/Adresse_model', 'AdresseModel');
 		$this->_ci->load->model('crm/Akte_model', 'AkteModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 
@@ -126,9 +127,10 @@ class BPKManagementLib
 
 						foreach ($additionalParamms as $name => $param)
 						{
-							$bpkRequestData[$name] = $param;
+							$bpkExtendedRequestData = $bpkRequestData;
+							$bpkExtendedRequestData[$name] = $param;
 
-							$bpkRes = $this->executeBpkRequest($bpkRequestData);
+							$bpkRes = $this->executeBpkRequest($bpkExtendedRequestData);
 
 							if (isError($bpkRes))
 								return $bpkRes;
@@ -137,11 +139,7 @@ class BPKManagementLib
 							{
 								$bpkNewResponseData = getData($bpkRes);
 
-								$this->_addBpkResponseToResults($bpkRequestData, $bpkNewResponseData, $allBpkResults);
-
-								// single bpk found
-								if ($bpkNewResponseData['numberPersonsFound'] === 1)
-									break;
+								$this->_addBpkResponseToResults($bpkExtendedRequestData, $bpkNewResponseData, $allBpkResults);
 							}
 						}
 					}
@@ -156,7 +154,7 @@ class BPKManagementLib
 
 	public function getPersonDataForBpkCheck($person_id)
 	{
-		$stammdatenRes = $this->_ci->PersonModel->getPersonStammdaten($person_id, true);
+		$stammdatenRes = $this->_ci->PersonModel->getPersonStammdaten($person_id);
 
 		if (isError($stammdatenRes))
 			return $stammdatenRes;
@@ -182,11 +180,14 @@ class BPKManagementLib
 			$latestInsertamum = '';
 			$latestAdresse = null;
 
-			// get latest Zustelladresse
+			// get latest Heimatadresse
 			foreach ($stammdaten->adressen as $adresse)
 			{
-				if (isEmptyString($latestInsertamum) || $adresse->insertamum > $latestInsertamum)
+				if ($adresse->heimatadresse === true && (isEmptyString($latestInsertamum) || $adresse->insertamum > $latestInsertamum))
+				{
 					$latestAdresse = $adresse;
+					$latestInsertamum = $adresse->insertamum;
+				}
 			}
 
 			if (isset($latestAdresse->strasse))

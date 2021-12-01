@@ -182,41 +182,47 @@ var BpkDetails = {
 		let boxhtml = '<div class="panel panel-default">' +
 							'<div class="panel-heading text-center">' + heading + '</div>' +
 								'<div class="panel-body">'+
-									'<div class="row">'+
-										'<div class="col-lg-6">';
+									'<div class="row">';
 
-		for (let i = 0; i < responsePersonData.length; i++)
+		let showPersonResults = responsePersonData.length > 1;
+		if (showPersonResults)
 		{
-			let persData = responsePersonData[i];
+			boxhtml += '<div class="col-lg-6">';
 
-			boxhtml += '<div class="table-responsive">' +
-							'<table class="table table-condensed table-bordered">' +
-								'<colgroup>' +
-									'<col style="width: 30%;">' +
-									'<col style="width: 70%;">' +
-								'</colgroup>' +
-								'<thead>' +
-									'<tr>' +
-										'<th colspan="2" class="text-center">Gefunden:</th>' +
-									'</tr>' +
-								'</thead>' +
-								'<tbody>';
-
-			for (let fieldname in persData)
+			for (let i = 0; i < responsePersonData.length; i++)
 			{
-				boxhtml += '<tr>' +
-								'<td>' + fieldname + '</td>' +
-								'<td>' + persData[fieldname] + '</td>' +
-							'</tr>';
+				let persData = responsePersonData[i];
+
+				boxhtml += '<div class="table-responsive">' +
+								'<table class="table table-condensed table-bordered">' +
+									'<colgroup>' +
+										'<col style="width: 30%;">' +
+										'<col style="width: 70%;">' +
+									'</colgroup>' +
+									'<thead>' +
+										'<tr>' +
+											'<th colspan="2" class="text-center">Gefunden:</th>' +
+										'</tr>' +
+									'</thead>' +
+									'<tbody>';
+
+				for (let fieldname in persData)
+				{
+					boxhtml += '<tr>' +
+									'<td>' + fieldname + '</td>' +
+									'<td>' + persData[fieldname] + '</td>' +
+								'</tr>';
+				}
+
+				boxhtml += 			'</tbody>' +
+								'</table>' +
+							'</div>';
 			}
-
-			boxhtml += 			'</tbody>' +
-							'</table>' +
-						'</div>';
+			boxhtml += '</div>'; // first column end
 		}
-		boxhtml += '</div>'; // first column end
 
-		boxhtml += '<div class="col-lg-6">' +
+		let width = showPersonResults ? 6 : 12;
+		boxhtml += '<div class="col-lg-'+width+'">' +
 						'<div class="table-responsive">' +
 							'<table class="table table-condensed table-bordered">' +
 								'<thead>' +

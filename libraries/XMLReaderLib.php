@@ -191,10 +191,15 @@ class XMLReaderLib
 	{
 		foreach ($domElement->childNodes as $child)
 		{
-			if (isset($child->childNodes) && count($child->childNodes) > 0)
+			if (isset($child->childNodes))
 			{
-				$phpObject->{$child->tagName} = new stdClass();
-				$this->_convertDomElementToPhpObj($child, $phpObject->{$child->tagName});
+				if ($child->childNodes->length > 0)
+				{
+					$phpObject->{$child->tagName} = new stdClass();
+					$this->_convertDomElementToPhpObj($child, $phpObject->{$child->tagName});
+				}
+				else
+					$phpObject->{$child->tagName} = '';
 			}
 			else
 			{
