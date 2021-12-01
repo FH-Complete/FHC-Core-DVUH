@@ -346,21 +346,21 @@ class BPKManagementLib
 		$combinations = array();
 		$firstNameEqFirstNameCombinations = array();
 
-		for ($i = 0; $i < count($names); $i++)
+		for ($i = 0; $i < count($names); $i++) // come from front
 		{
-			for ($j = count($names) - 1; $j >= 0; $j--)
+			for ($j = count($names) - 1; $j >= 0; $j--) // come from behind
 			{
 				$vorname = $names[$i];
 
-				foreach ($vorname['variations'] as $vnVariation)
+				foreach ($vorname['variations'] as $vnVariation) // try all vorname variations with all nachname variations
 				{
 					$nachname = $names[$j];
 					foreach ($nachname['variations'] as $nnVariation)
 					{
 						// wildcard to match anything after name, but min 3 chars
-						$vnVariation = mb_strlen($vnVariation) < 3 ? $vnVariation : $vnVariation.'*';
-						$nnVariation = mb_strlen($nnVariation) < 3 ? $nnVariation : $nnVariation.'*';
-						$combination = array('vorname' => $vnVariation, 'nachname' => $nnVariation);
+						$vnVariationWildcard = mb_strlen($vnVariation) < 3 ? $vnVariation : $vnVariation.'*';
+						$nnVariationWildcard = mb_strlen($nnVariation) < 3 ? $nnVariation : $nnVariation.'*';
+						$combination = array('vorname' => $vnVariationWildcard, 'nachname' => $nnVariationWildcard);
 
 						// avoid dublicates (can still occur if Vorname and Nachname contain same name)
 						$exists = false;
@@ -379,7 +379,7 @@ class BPKManagementLib
 
 						if ($j == $i)
 						{
-							// check combination with vorname = nachname after other combinations
+							// add combination with vorname = nachname after other combinations
 							if ($vnVariation == $nnVariation)
 							{
 								$firstNameEqFirstNameCombinations[] = $combination;
