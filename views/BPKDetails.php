@@ -264,7 +264,7 @@ $this->load->view(
 							<div class="panel-body">
 								<div class="row">
 									<div class="col-lg-5">
-										<a id="showAllCombinations">
+										<a id="showAllCombinations" target="_self">
 											<i class="fa fa-info"></i>&nbsp;Alle abzufragenden Namenskombinationen anzeigen
 										</a>
 									</div>
