@@ -39,6 +39,8 @@ $config['fhc_dvuh_sync_days_valutadatum'] = 30; // days after buchungsdatum for 
 $config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 90; // Nachfrist in days after valutadatum for payments
 $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; // amount to be added to studiengebuehr when Nachfrist is set
 
+$config['fhc_dvuh_sync_nullify_buchungen_paid_other_univ'] = true; // if true, Buchungen are set to 0 if paid only on other university
+
 // Ausserordentliche students are sent with this studiengang_kz
 $config['fhc_dvuh_sync_ausserordentlich_prefix'] = 9;
 

@@ -335,7 +335,7 @@ class DVUHManagementLib
 								WHERE person_id = ?
 								  AND studiensemester_kurzbz = ?
 								  AND buchungsnr_verweis IS NULL
-								  AND betrag < 0
+								  AND betrag <= 0
 								  /*AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto /* no Gegenbuchung yet */
 								  					WHERE kto.person_id = tbl_konto.person_id
 								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
@@ -388,9 +388,14 @@ class DVUHManagementLib
 					{
 						$oehbeitragAmounts = getData($oehbeitragAmountsRes)[0];
 						$studierendenBeitragAmount = $oehbeitragAmounts->studierendenbeitrag;
-						$versicherungBeitragAmount = $oehbeitragAmounts->versicherung;
-						// plus because buchungsbetrag is negative
-						$beitragAmount += $versicherungBeitragAmount;
+
+						if ($beitragAmount < 0) // no insurance if oehbeitrag is 0
+						{
+							$versicherungBeitragAmount = $oehbeitragAmounts->versicherung;
+
+							// plus because buchungsbetrag is negative
+							$beitragAmount += $versicherungBeitragAmount;
+						}
 					}
 					else
 					{
@@ -441,12 +446,12 @@ class DVUHManagementLib
 		}
 
 		// convert Vorschreibungdata
-		$oehbeitrag = isset($vorschreibung['oehbeitrag']) ? $vorschreibung['oehbeitrag'] * -100 : null;
+		$oehbeitrag = isset($vorschreibung['oehbeitrag']) ? abs($vorschreibung['oehbeitrag']) * 100 : null;
 		$sonderbeitrag = isset($vorschreibung['sonderbeitrag']) ? $vorschreibung['sonderbeitrag'] * 100 : null;
-		$studiengebuehr = isset($vorschreibung['studiengebuehr']) ? $vorschreibung['studiengebuehr'] * -100 : null;
+		$studiengebuehr = isset($vorschreibung['studiengebuehr']) ? abs($vorschreibung['studiengebuehr']) * 100 : null;
 		$valutadatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
 		$valutadatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
-		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist']  * -100 : null;
+		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? abs($vorschreibung['studiengebuehrnachfrist'])  * 100 : null;
 
 		if ($preview)
 		{
@@ -490,7 +495,7 @@ class DVUHManagementLib
 					$result = error("Stammdaten erfolgreich in DVUH gespeichert, Fehler beim Speichern der Stammdaten in FHC");
 
 				if (isset($vorschreibung['oehbeitrag']) && isset($vorschreibung['origoehbuchung'])
-					&& $vorschreibung['oehbeitrag'] < 0)
+					&& $vorschreibung['oehbeitrag'] <= 0)
 				{
 					foreach ($vorschreibung['origoehbuchung'] as $bchng)
 					{
@@ -509,7 +514,7 @@ class DVUHManagementLib
 				}
 
 				if (isset($vorschreibung['studiengebuehr']) && isset($vorschreibung['origstudiengebuehrbuchung'])
-					&& $vorschreibung['studiengebuehr'] < 0)
+					&& $vorschreibung['studiengebuehr'] <= 0)
 				{
 					foreach ($vorschreibung['origstudiengebuehrbuchung'] as $bchng)
 					{
@@ -1350,7 +1355,7 @@ class DVUHManagementLib
 						if (hasData($sentToSap))
 						{
 							$isSent = getData($sentToSap)[0];
-							if ($isSent == true)
+							if ($isSent === true)
 							{
 								$warnings[] = createError(
 									"Buchung $buchungsnr ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde",
@@ -1360,7 +1365,10 @@ class DVUHManagementLib
 							}
 						}
 
-						if ($buchung->bezahlt == '0' && $isSent === false)
+						// check for nullify flag
+						$nullifyFlag = $this->_ci->config->item('fhc_dvuh_sync_nullify_buchungen_paid_other_univ');
+
+						if ($buchung->bezahlt == '0' && $isSent === false && $nullifyFlag === true)
 						{
 							// set ÖH-Buchungen to 0 since they don't need to be paid anymore
 							$nullifyResult = $this->_ci->fhcmanagementlib->nullifyBuchung($buchung);
