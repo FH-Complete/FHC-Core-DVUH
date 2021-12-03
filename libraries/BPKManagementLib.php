@@ -24,6 +24,8 @@ class BPKManagementLib
 
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+
+		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHBpkCheck');
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -47,6 +49,8 @@ class BPKManagementLib
 		if (!hasData($stammdatenRes))
 			return error("Person nicht gefunden");
 
+		$dokument_kurzbz = $this->_ci->config->item('fhc_dvuh_bpkcheck_relevant_documenttypes');
+
 		// get documents
 		$qry = "
 			SELECT akte_id, dokument_kurzbz, titel, akte.bezeichnung as akte_bezeichnung, akte.erstelltam,
@@ -56,10 +60,10 @@ class BPKManagementLib
 			JOIN public.tbl_dokument dok USING (dokument_kurzbz)
 			LEFT JOIN bis.tbl_nation nat ON ausstellungsnation = nation_code
 			WHERE akte.person_id = ?
-			AND dokument_kurzbz IN ('identity', 'Meldezet', 'pass', 'Geburtsu');
+			AND dokument_kurzbz IN ?;
 		";
 
-		$documentsRes = $this->_dbModel->execReadOnlyQuery($qry, array($person_id));
+		$documentsRes = $this->_dbModel->execReadOnlyQuery($qry, array($person_id, $dokument_kurzbz));
 
 		if (isError($documentsRes))
 		{
@@ -317,7 +321,7 @@ class BPKManagementLib
 
 			if (!$found)
 			{
-				$placeholder .= $wordPart;
+				$placeholder .= html_entity_decode($wordPart, ENT_NOQUOTES | ENT_HTML5, $enc);
 			}
 		}
 
@@ -332,7 +336,7 @@ class BPKManagementLib
 			$sprintfParams = array($placeholder);
 			foreach ($replaceParts as $index => $replacePart)
 			{
-				$sprintfParams[] = $mask[$index] == 1 ? $replacePart['replacement'] : $replacePart['word'];
+				$sprintfParams[] = $mask[$index] == 1 ? $replacePart['replacement'] : html_entity_decode($replacePart['word'], ENT_NOQUOTES | ENT_HTML5, $enc);
 			}
 			// fill current combination into placeholder and collect it in array
 			$combinations[] = call_user_func_array('sprintf', $sprintfParams);
@@ -428,10 +432,10 @@ class BPKManagementLib
 			'y' => '&yacute;|&yuml;',
 			'Z' => '&Zcaron;',
 			'z' => '&zcaron;',
-			'ss' => '&szlig;',
-			'ä' => 'ae',
-			'ö' => 'oe',
-			'ü' => 'ue'
+			'ss' => '&szlig;'/*,*/
+/*			'ä' => 'ae',
+			'ö' => 'oe', //Umlauts should be handled by DVUH...
+			'ü' => 'ue'*/
 		);
 
 		$nameVariationsArr = array();

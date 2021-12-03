@@ -62,7 +62,7 @@ $this->load->view(
 							</div>
 							<div class="panel-body">
 								<div class="row">
-									<div class="col-lg-6 table-responsive">
+									<div class="col-lg-5 table-responsive">
 										<table class="table">
 											<?php if (!empty($stammdaten->titelpre)): ?>
 												<tr>
@@ -135,7 +135,7 @@ $this->load->view(
 											</tr>
 										</table>
 									</div>
-									<div class="col-lg-6 table-responsive">
+									<div class="col-lg-7 table-responsive">
 										<table class="table table-condensed table-bordered">
 											<thead>
 											<tr>
@@ -178,8 +178,8 @@ $this->load->view(
 											<tr>
 												<th>Name</th>
 												<th>Typ</th>
-												<th>Ausstellungsland</th>
 												<th>Uploaddatum</th>
+												<th>Ausstellungsland</th>
 												<th>Anmerkung</th>
 											</tr>
 											</thead>
@@ -201,8 +201,8 @@ $this->load->view(
 												<tr>
 													<td><a href="outputAkteContent/<?php echo $dokument->akte_id ?>"><?php echo isEmptyString($dokument->titel) ? $dokument->akte_bezeichnung : $dokument->titel ?></a></td>
 													<td><?php echo $dokument->dokument_bezeichnung_mehrsprachig[0] ?></td>
-													<td><?php echo $dokument->nation ?></td>
 													<td><?php echo date_format(date_create($dokument->erstelltam), 'd.m.Y') ?></td>
+													<td><?php echo $dokument->nation ?></td>
 													<td><?php echo $dokument->akte_anmerkung ?></td>
 												</tr>
 													<?php endforeach; ?>
