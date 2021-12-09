@@ -132,7 +132,7 @@ class Stammdaten_model extends DVUHClientModel
 					$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
 					$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
 
-					// betragstatus 'O' if no oehbeitrag, otherwese Z error
+					// betragstatus 'O' if no oehbeitrag, otherwise Z error from DVUH
 					if ($oehbeitrag == '0' && $sonderbeitrag == '0')
 						$params["studentinfo"]["beitragstatus"] = 'O';
 

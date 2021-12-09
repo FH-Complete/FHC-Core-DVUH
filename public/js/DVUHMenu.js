@@ -21,11 +21,25 @@ $(document).ready(function()
 		);
 
 		DVUHMenu._setScrollToTop();
+
+		var hash = window.location.hash.substr(1);
+
+		// get hash params from url and show appropriate form (if coming from external site)
+		var result = hash.split('&').reduce(function (res, item) {
+			var parts = item.split('=');
+			res[parts[0]] = parts[1];
+			return res;
+		}, {});
+
+		if (result.page.length > 0)
+		{
+			DVUHMenu.printForm(result.page, result);
+		}
 	}
 );
 
 var DVUHMenu = {
-	printForm: function(action)
+	printForm: function(action, params)
 	{
 		var html = '';
 		var method = '';
@@ -43,6 +57,8 @@ var DVUHMenu = {
 				+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
 				+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10);
 				method = 'get';
+				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
+					DVUHMenu.getPersonPrefillData(params.person_id, 'matrnrDatenVorausfuellen');
 				break;
 			case 'getMatrikelnummerReservierungen':
 				html = '<h4>Matrikelnummerreservierungen anzeigen</h4>';
@@ -78,7 +94,7 @@ var DVUHMenu = {
 				method = 'get';
 				break;
 			case 'getBpk':
-				html = '<h4>BPK ermitteln (manuell)</h4>';
+				html = '<h4>bPK ermitteln (manuell)</h4>';
 				html += DVUHMenu._getPreviewInputfieldHtml('bpkDatenVorausfuellen', 'bpkDatenVorausfuellenVoll');
 				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
@@ -91,9 +107,11 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('akadnach', 'Akademischer Grad Post', 'nach dem Namen, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('alternativname', 'Alternativname', 'optional, Nachname vor Namenswechsel', 255)
 				method = 'get';
+				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
+					DVUHMenu.getPersonPrefillData(params.person_id, 'bpkDatenVorausfuellen');
 				break;
 			case 'getBpkByPersonId':
-				html = '<h4>BPK ermitteln</h4>';
+				html = '<h4>bPK ermitteln</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
 				method = 'get';
 				break;
@@ -140,8 +158,8 @@ var DVUHMenu = {
 			case 'postErnpmeldung':
 				html = '<h4>ERnP-Meldung durchführen</h4>';
 				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
-					'wenn für die Person keine BPK ermittelt werden kann.<br />Beim Punkt "BPK ermitteln" sollte dementsprechend keine BPK zurückgegeben werden. ' +
-					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein BPK vorhanden.</b><br /><br />';
+					'wenn für die Person keine bPK ermittelt werden kann.<br />Beim Punkt "bPK ermitteln" sollte dementsprechend keine bPK zurückgegeben werden. ' +
+					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein bPK vorhanden.</b><br /><br />';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
@@ -230,6 +248,8 @@ var DVUHMenu = {
 					if (FHC_AjaxClient.hasData(data))
 					{
 						var prefillData = FHC_AjaxClient.getData(data);
+
+						$("#person_id").val(person_id);
 
 						$("#vorname").val(prefillData.vorname);
 						$("#nachname").val(prefillData.nachname);

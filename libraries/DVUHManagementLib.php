@@ -32,6 +32,7 @@ class DVUHManagementLib
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
@@ -51,11 +52,11 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ekzanfordern_model', 'EkzanfordernModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHZahlungen_model', 'DVUHZahlungenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStammdaten_model', 'DVUHStammdatenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHPruefungsaktivitaeten_model', 'DVUHPruefungsaktivitaetenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/DVUHMatrikelnummerreservierung_model', 'DVUHMatrikelnummerreservierungModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHZahlungen_model', 'DVUHZahlungenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHStammdaten_model', 'DVUHStammdatenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHPruefungsaktivitaeten_model', 'DVUHPruefungsaktivitaetenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHMatrikelnummerreservierung_model', 'DVUHMatrikelnummerreservierungModel');
 
 		// load helpers
 		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
@@ -334,7 +335,7 @@ class DVUHManagementLib
 								WHERE person_id = ?
 								  AND studiensemester_kurzbz = ?
 								  AND buchungsnr_verweis IS NULL
-								  AND betrag < 0
+								  AND betrag <= 0
 								  /*AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto /* no Gegenbuchung yet */
 								  					WHERE kto.person_id = tbl_konto.person_id
 								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
@@ -387,9 +388,14 @@ class DVUHManagementLib
 					{
 						$oehbeitragAmounts = getData($oehbeitragAmountsRes)[0];
 						$studierendenBeitragAmount = $oehbeitragAmounts->studierendenbeitrag;
-						$versicherungBeitragAmount = $oehbeitragAmounts->versicherung;
-						// plus because buchungsbetrag is negative
-						$beitragAmount += $versicherungBeitragAmount;
+
+						if ($beitragAmount < 0) // no insurance if oehbeitrag is 0
+						{
+							$versicherungBeitragAmount = $oehbeitragAmounts->versicherung;
+
+							// plus because buchungsbetrag is negative
+							$beitragAmount += $versicherungBeitragAmount;
+						}
 					}
 					else
 					{
@@ -440,12 +446,12 @@ class DVUHManagementLib
 		}
 
 		// convert Vorschreibungdata
-		$oehbeitrag = isset($vorschreibung['oehbeitrag']) ? $vorschreibung['oehbeitrag'] * -100 : null;
+		$oehbeitrag = isset($vorschreibung['oehbeitrag']) ? abs($vorschreibung['oehbeitrag']) * 100 : null;
 		$sonderbeitrag = isset($vorschreibung['sonderbeitrag']) ? $vorschreibung['sonderbeitrag'] * 100 : null;
-		$studiengebuehr = isset($vorschreibung['studiengebuehr']) ? $vorschreibung['studiengebuehr'] * -100 : null;
+		$studiengebuehr = isset($vorschreibung['studiengebuehr']) ? abs($vorschreibung['studiengebuehr']) * 100 : null;
 		$valutadatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
 		$valutadatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
-		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist']  * -100 : null;
+		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? abs($vorschreibung['studiengebuehrnachfrist'])  * 100 : null;
 
 		if ($preview)
 		{
@@ -489,7 +495,7 @@ class DVUHManagementLib
 					$result = error("Stammdaten erfolgreich in DVUH gespeichert, Fehler beim Speichern der Stammdaten in FHC");
 
 				if (isset($vorschreibung['oehbeitrag']) && isset($vorschreibung['origoehbuchung'])
-					&& $vorschreibung['oehbeitrag'] < 0)
+					&& $vorschreibung['oehbeitrag'] <= 0)
 				{
 					foreach ($vorschreibung['origoehbuchung'] as $bchng)
 					{
@@ -508,7 +514,7 @@ class DVUHManagementLib
 				}
 
 				if (isset($vorschreibung['studiengebuehr']) && isset($vorschreibung['origstudiengebuehrbuchung'])
-					&& $vorschreibung['studiengebuehr'] < 0)
+					&& $vorschreibung['studiengebuehr'] <= 0)
 				{
 					foreach ($vorschreibung['origstudiengebuehrbuchung'] as $bchng)
 					{
@@ -930,11 +936,13 @@ class DVUHManagementLib
 			if (!isEmptyString($person->geschlecht))
 				$geschlecht = $this->_ci->dvuhsynclib->convertGeschlechtToDVUH($person->geschlecht);
 
-			$pruefeBpkResult = $this->_ci->PruefebpkModel->get(
-				$person->vorname,
-				$person->nachname,
-				$person->gebdatum,
-				$geschlecht
+			$pruefeBpkResult = $this->_ci->bpkmanagementlib->executeBpkRequest(
+				array(
+					'vorname' => $person->vorname,
+					'nachname' => $person->nachname,
+					'geburtsdatum' => $person->gebdatum,
+					'geschlecht' => $geschlecht
+				)
 			);
 
 			if (isError($pruefeBpkResult))
@@ -944,99 +952,82 @@ class DVUHManagementLib
 
 			if (hasData($pruefeBpkResult))
 			{
-				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkResult), array('bpk', 'person'));
+				$pruefeBpkResultData = getData($pruefeBpkResult);
 
-				if (isError($parsedObj))
-					return $parsedObj;
-
-				if (hasData($parsedObj))
+				// no bpk found
+				if (isEmptyString($pruefeBpkResultData['bpk']))
 				{
-					$parsedObj = getData($parsedObj);
-
-					// no bpk found
-					if (isEmptyArray($parsedObj->bpk))
+					// if multiple bpks, at least 2 person tags are present
+					if ($pruefeBpkResultData['numberPersonsFound'] > 1)
 					{
-						// if multiple bpks, at least 2 person tags are present
-						if (!isEmptyArray($parsedObj->person) && count($parsedObj->person) > 1)
+						$warnings[] = error("Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.");
+
+						$strasse = getStreetFromAddress($person->strasse);
+
+						// retry getting single bpk with adress
+						$pruefeBpkWithAddrResult = $this->_ci->bpkmanagementlib->executeBpkRequest(
+							array(
+								'vorname' => $person->vorname,
+								'nachname' => $person->nachname,
+								'geburtsdatum' => $person->gebdatum,
+								'geschlecht' => $geschlecht,
+								'strasse' => $strasse,
+								'plz' => $person->plz
+							)
+						);
+
+						if (isError($pruefeBpkWithAddrResult))
 						{
-							$warnings[] = error("Mehrere Bpks in DVUH gefunden. Erneuter Versuch mit Adresse.");
+							return $pruefeBpkWithAddrResult;
+						}
 
-							$strasse = getStreetFromAddress($person->strasse);
+						if (hasData($pruefeBpkWithAddrResult))
+						{
+							$parsedObjAddr = getData($pruefeBpkWithAddrResult);
 
-							// retry getting single bpk with adress
-							$pruefeBpkWithAddrResult = $this->_ci->PruefebpkModel->get(
-								$person->vorname,
-								$person->nachname,
-								$person->gebdatum,
-								$geschlecht,
-								$strasse,
-								$person->plz
-							);
-
-							if (isError($pruefeBpkWithAddrResult))
+							if (isEmptyArray($parsedObjAddr['bpk']))
 							{
-								return $pruefeBpkWithAddrResult;
-							}
-
-							if (hasData($pruefeBpkWithAddrResult))
-							{
-								$parsedObjAddr = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkWithAddrResult), array('bpk', 'person'));
-
-								if (hasData($parsedObjAddr))
-								{
-									$parsedObjAddr = getData($parsedObjAddr);
-
-									if (isEmptyArray($parsedObjAddr->bpk))
-									{
-										if (!isEmptyArray($parsedObjAddr->person) && count($parsedObjAddr->person) > 1)
-											$warnings[] = error("Mehrere Bpks in DVUH gefunden, auch nach erneuter Anfrage mit Adresse.");
-										else
-											$warnings[] = error("Keine Bpk in DVUH bei Neuanfrage mit Adresse gefunden.");
-									}
-									else // single bpk found using adress
-									{
-										$infos[] = "Bpk nach Neuanfrage mit Adresse erfolgreich ermittelt!";
-										$bpk = $parsedObjAddr->bpk[0];
-									}
-								}
+								if ($parsedObjAddr['numberPersonsFound'] > 1)
+									$warnings[] = error("Mehrere bPK in DVUH gefunden, auch nach erneuter Anfrage mit Adresse.");
 								else
-									return error("Fehler beim Auslesen der BPK Antwort (Anfrage mit Adresse)");
+									$warnings[] = error("Keine bPK in DVUH bei Neuanfrage mit Adresse gefunden.");
 							}
-							else
-								return error("Fehler bei Bpk-Neuanfrage mit Adresse");
+							else // single bpk found using adress
+							{
+								$infos[] = "bPK nach Neuanfrage mit Adresse erfolgreich ermittelt!";
+								$bpk = $parsedObjAddr['bpk'];
+							}
 						}
 						else
-							$warnings[] = error("Keine Bpk in DVUH gefunden");
+							return error("Fehler bei bPK-Neuanfrage mit Adresse");
 					}
-					else // bpk found on first try
-					{
-						$infos[] = "Bpk erfolgreich ermittelt!";
-						$bpk = $parsedObj->bpk[0];
-					}
-
-					// if bpk found, save it in FHC db
-					if (isset($bpk))
-					{
-						$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
-
-						if (!hasData($bpkSaveResult))
-							return error("Fehler beim Speichern der Bpk in FHC");
-
-						$infos[] = "Bpk erfolgreich in FHC gespeichert!";
-					}
-
-					return $this->_getResponseArr($bpk, $infos, $warnings);
+					else
+						$warnings[] = error("Keine bPK in DVUH gefunden");
 				}
-				else
-					return error("Fehler beim Auslesen der Bpk");
+				else // bpk found on first try
+				{
+					$infos[] = "Bpk erfolgreich ermittelt!";
+					$bpk = $pruefeBpkResultData['bpk'];
+				}
+
+				// if bpk found, save it in FHC db
+				if (isset($bpk))
+				{
+					$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
+
+					if (!hasData($bpkSaveResult))
+						return error("Fehler beim Speichern der Bpk in FHC");
+
+					$infos[] = "Bpk erfolgreich in FHC gespeichert!";
+				}
+
+				return $this->_getResponseArr($bpk, $infos, $warnings);
 			}
 			else
 				return error("Fehler beim Ermitteln der Bpk");
 		}
 		else
 			return error("Keine Person ohne Bpk gefunden");
-
-		return $result;
 	}
 
 	/**
@@ -1364,7 +1355,7 @@ class DVUHManagementLib
 						if (hasData($sentToSap))
 						{
 							$isSent = getData($sentToSap)[0];
-							if ($isSent == true)
+							if ($isSent === true)
 							{
 								$warnings[] = createError(
 									"Buchung $buchungsnr ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde",
@@ -1374,7 +1365,10 @@ class DVUHManagementLib
 							}
 						}
 
-						if ($buchung->bezahlt == '0' && $isSent === false)
+						// check for nullify flag
+						$nullifyFlag = $this->_ci->config->item('fhc_dvuh_sync_nullify_buchungen_paid_other_univ');
+
+						if ($buchung->bezahlt == '0' && $isSent === false && $nullifyFlag === true)
 						{
 							// set ÖH-Buchungen to 0 since they don't need to be paid anymore
 							$nullifyResult = $this->_ci->fhcmanagementlib->nullifyBuchung($buchung);

@@ -11,6 +11,64 @@ class XMLReaderLib
 	private $_error_categories = array('P', 'Y', 'Z');
 	private $_warning_categories = array('A', 'B', 'E');
 
+
+	// --------------------------------------------------------------------------------------------
+	// Public methods
+
+	/**
+	 * Parses DVUH XML, checks if XML contains DVUH-specific errors.
+	 * If no errors found, finds given parameters in xml by provided names and returns the values.
+	 * @param string $xmlstr
+	 * @param array $searchparams one parameter as string or multiple parameters as array of strings
+	 * @return object success with results or error
+	 */
+	public function parseXmlDvuh($xmlstr, $searchparams)
+	{
+		$result = null;
+		$errors = $this->parseXmlDvuhBlockingErrors($xmlstr);
+
+		if (isError($errors))
+			$result = $errors;
+		elseif (hasData($errors))
+		{
+			$errortext = '';
+			$errorsArr = getData($errors);
+
+			foreach ($errorsArr as $error)
+			{
+				if (!isEmptyString($errortext))
+					$errortext .= ', ';
+				$errortext .= $error->fehlertextKomplett;
+			}
+
+			$result = error('Error(s) occured: ' . $errortext, $errorsArr);
+		}
+		else
+			$result = $this->parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE);
+
+		return $result;
+	}
+
+	/**
+	 * Parses XML for blocking errors (as defined by DVUH).
+	 * @param string $xmlstr
+	 * @return object array with errors on success, error otherwise
+	 */
+	public function parseXmlDvuhBlockingErrors($xmlstr)
+	{
+		return $this->_parseXmlDvuhError($xmlstr, $this->_error_categories);
+	}
+
+	/**
+	 * Parses XML for non-blocking warnings (as defined by DVUH).
+	 * @param string $xmlstr
+	 * @return object array with warnings on success, error otherwise
+	 */
+	public function parseXmlDvuhWarnings($xmlstr)
+	{
+		return $this->_parseXmlDvuhError($xmlstr, $this->_warning_categories);
+	}
+
 	/**
 	 * Parses xml, finds given parameters in xml by provided names and returns the values.
 	 * @param string $xmlstr
@@ -46,7 +104,15 @@ class XMLReaderLib
 
 				foreach ($elements as $element)
 				{
-					$reselements[] = $element->nodeValue;
+					// if node with children, save as php object
+					if (isset($element->childNodes) && count($element->childNodes) > 0)
+					{
+						$obj = new stdClass();
+						$this->_convertDomElementToPhpObj($element, $obj);
+						$reselements[] = $obj;
+					}
+					else // otherwise text node -> save value
+						$reselements[] = $element->nodeValue;
 				}
 
 				$resultObj->{$searchparam} = $reselements;
@@ -56,31 +122,14 @@ class XMLReaderLib
 		}
 		else
 		{
-			$result = error('error when parsing feed string');
+			$result = error('error when parsing xml string');
 		}
 
 		return $result;
 	}
 
-	/**
-	 * Parses XML for blocking errors (as defined by DVUH).
-	 * @param string $xmlstr
-	 * @return object array with errors on success, error otherwise
-	 */
-	public function parseXmlDvuhBlockingErrors($xmlstr)
-	{
-		return $this->_parseXmlDvuhError($xmlstr, $this->_error_categories);
-	}
-
-	/**
-	 * Parses XML for non-blocking warnings (as defined by DVUH).
-	 * @param string $xmlstr
-	 * @return object array with warnings on success, error otherwise
-	 */
-	public function parseXmlDvuhWarnings($xmlstr)
-	{
-		return $this->_parseXmlDvuhError($xmlstr, $this->_warning_categories);
-	}
+	// --------------------------------------------------------------------------------------------
+	// Private methods
 
 	/**
 	 * Parses XML for errors (as defined by DVUH).
@@ -127,43 +176,35 @@ class XMLReaderLib
 		}
 		else
 		{
-			$result = error('error when parsing feed string');
+			$result = error('error when parsing xml string');
 		}
 
 		return $result;
 	}
 
 	/**
-	 * Parses DVUH XML, checks if XML contains DVUH-specific errors.
-	 * If no errors found, finds given parameters in xml by provided names and returns the values.
-	 * @param string $xmlstr
-	 * @param array $searchparams one parameter as string or multiple parameters as array of strings
-	 * @return object success with results or error
+	 * Converts dom element to php stdClass object.
+	 * @param object $domElement
+	 * @param object $phpObject
 	 */
-	public function parseXmlDvuh($xmlstr, $searchparams)
+	private function _convertDomElementToPhpObj($domElement, &$phpObject)
 	{
-		$result = null;
-		$errors = $this->parseXmlDvuhBlockingErrors($xmlstr);
-
-		if (isError($errors))
-			$result = $errors;
-		elseif (hasData($errors))
+		foreach ($domElement->childNodes as $child)
 		{
-			$errortext = '';
-			$errorsArr = getData($errors);
-
-			foreach ($errorsArr as $error)
+			if (isset($child->childNodes))
 			{
-				if (!isEmptyString($errortext))
-					$errortext .= ', ';
-				$errortext .= $error->fehlertextKomplett;
+				if ($child->childNodes->length > 0)
+				{
+					$phpObject->{$child->tagName} = new stdClass();
+					$this->_convertDomElementToPhpObj($child, $phpObject->{$child->tagName});
+				}
+				else
+					$phpObject->{$child->tagName} = '';
 			}
-
-			$result = error('Error(s) occured: ' . $errortext, $errorsArr);
+			else
+			{
+				$phpObject = $child->nodeValue;
+			}
 		}
-		else
-			$result = $this->parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE);
-
-		return $result;
 	}
 }

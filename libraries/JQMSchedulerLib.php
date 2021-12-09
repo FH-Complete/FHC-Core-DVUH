@@ -230,7 +230,7 @@ class JQMSchedulerLib
 							LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 							LEFT JOIN public.tbl_konto kto ON pers.person_id = kto.person_id AND kto.buchungstyp_kurzbz IN ?
 															AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz AND kto.buchungsnr_verweis IS NULL
-															AND kto.betrag < 0
+															AND kto.betrag <= 0
 							LEFT JOIN sync.tbl_dvuh_stammdaten stammd ON pss.studiensemester_kurzbz = stammd.studiensemester_kurzbz AND pers.person_id = stammd.person_id
 							LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
 							WHERE ps.bismelden = TRUE

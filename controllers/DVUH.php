@@ -88,49 +88,7 @@ class DVUH extends Auth_Controller
 	{
 		$person_id = $this->input->get('person_id');
 
-		$this->load->model('person/Person_model', 'PersonModel');
-
-		$stammdatenRes = $this->PersonModel->getPersonStammdaten($person_id, true);
-
-		if (hasData($stammdatenRes))
-		{
-			$stammdaten = getData($stammdatenRes);
-
-			$personPrefillData = array(
-				'vorname' => $stammdaten->vorname,
-				'nachname' => $stammdaten->nachname,
-				'gebdatum' => date_format(date_create($stammdaten->gebdatum), 'd.m.Y'),
-				'bpk' => $stammdaten->bpk,
-				'svnr' => $stammdaten->svnr,
-				'ersatzkennzeichen' => $stammdaten->ersatzkennzeichen,
-				'geschlecht' => $this->dvuhsynclib->convertGeschlechtToDVUH($stammdaten->geschlecht),
-				'geburtsland' => $stammdaten->geburtsnation_code,
-				'akadgrad' => $stammdaten->titelpre,
-				'akadnach' => $stammdaten->titelpost
-			);
-
-			$latestInsertamum = '';
-			$latestAdresse = null;
-
-			// get latest Zustelladresse
-			foreach ($stammdaten->adressen as $adresse)
-			{
-				if (isEmptyString($latestInsertamum) || $adresse->insertamum > $latestInsertamum)
-					$latestAdresse = $adresse;
-			}
-
-			if (isset($latestAdresse->strasse))
-				$personPrefillData['strasse'] = getStreetFromAddress($latestAdresse->strasse);
-
-			if (isset($latestAdresse->plz))
-				$personPrefillData['plz'] = $latestAdresse->plz;
-
-			$this->outputJsonSuccess($personPrefillData);
-		}
-		else
-		{
-			$this->outputJsonError("Fehler beim Holen der Person");
-		}
+		$this->outputJson($this->bpkmanagementlib->getPersonDataForBpkCheck($person_id));
 	}
 
 	public function getMatrikelnummerReservierungen()

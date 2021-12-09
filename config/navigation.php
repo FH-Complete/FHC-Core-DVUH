@@ -15,6 +15,11 @@ $config['navigation_menu']['extensions/FHC-Core-DVUH/*'] = array(
 		'description' => 'Datenverbund',
 		'icon' => 'vcard'
 	),
+	'bpk' => array(
+		'link' => site_url('extensions/FHC-Core-DVUH/BPKManagement'),
+		'description' => 'bPK Wartung',
+		'icon' => 'user'
+	),
 	'codex' => array(
 		'link' => site_url('extensions/FHC-Core-DVUH/Codex/index'),
 		'description' => 'Codex',

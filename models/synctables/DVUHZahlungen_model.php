@@ -12,4 +12,3 @@ class DVUHZahlungen_model extends DB_Model
 		$this->pk = 'zahlung_id';
 	}
 }
-

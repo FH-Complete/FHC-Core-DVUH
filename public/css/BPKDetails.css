@@ -1,0 +1,22 @@
+#showAllCombinations {
+    cursor: pointer;
+}
+
+#editBpk {
+    cursor: pointer;
+    font-size: 1.2em;
+}
+
+#bpkInputField {
+    width: 90%;
+}
+
+.inline-inputfield {
+    width: auto;
+    display: inline;
+}
+
+#confirmBpkEdit {
+    cursor: pointer;
+    font-size: 1.4em;
+}
