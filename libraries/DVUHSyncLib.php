@@ -532,6 +532,7 @@ class DVUHSyncLib
 
 							if (isError($orgform_code))
 								return $orgform_code;
+
 							if (hasData($orgform_code))
 							{
 								$orgformcode = getData($orgform_code);

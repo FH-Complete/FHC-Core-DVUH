@@ -170,7 +170,7 @@ class DVUHManagementLib
 							$reservedMatrnrStr = null;
 
 							// check if there is a free Matrikelnummer in FHC reserved
-							$this->_ci->DVUHMatrikelnummerreservierungModel->addOrder('insertamum');
+							$this->_ci->DVUHMatrikelnummerreservierungModel->addOrder('insertamum, matrikelnummer');
 							$this->_ci->DVUHMatrikelnummerreservierungModel->addLimit(1);
 							$fhcMatrikelnummerreservierung = $this->_ci->DVUHMatrikelnummerreservierungModel->load(array('jahr' => $sj));
 
