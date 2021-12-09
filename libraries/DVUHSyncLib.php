@@ -181,18 +181,29 @@ class DVUHSyncLib
 
 			if (isset($stammdaten->ersatzkennzeichen) && isEmptyString($stammdaten->svnr))
 			{
-				if (preg_match('/^[A-Z]{4}\d{6}$/', $stammdaten->ersatzkennzeichen) === 0)
+				if (!$this->checkEkz($stammdaten->ersatzkennzeichen))
 				{
 					return createError(
 						'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
 						'ersatzkennzeichenUngueltig'
 					);
 				}
+
 				$studentinfo['ekz'] = $stammdaten->ersatzkennzeichen;
 			}
 
 			if (isset($stammdaten->bpk))
+			{
+				if (!$this->checkBpk($stammdaten->bpk))
+				{
+					return createError(
+						'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
+						'bpkUngueltig'
+					);
+				}
+
 				$studentinfo['bpk'] = $stammdaten->bpk;
+			}
 
 			$textValues = array('vorname', 'nachname', 'akadgrad', 'akadgradnach', 'bpk', 'titelpre', 'titelpost', 'ersatzkennzeichen');
 
@@ -232,7 +243,10 @@ class DVUHSyncLib
 		{
 			$person = getData($personresult)[0];
 
-			if (isEmptyString($person->matr_nr) || !preg_match("/^\d{8}$/", $person->matr_nr))
+			if (isEmptyString($person->matr_nr))
+				return createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+
+			if (!$this->checkMatrikelnummer($person->matr_nr))
 				return createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($person->matr_nr));
 
 			$resultObj->matrikelnummer = $person->matr_nr;
@@ -322,10 +336,13 @@ class DVUHSyncLib
 						$studstatuscode = getData($studstatuscodeResult);
 					}
 
-					// booleans isIncoming and isAusserordentlich
+					// booleans isIncoming, isAusserordentlich, isLehrgang
 					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
 					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
+					// lehrgang - either typ l or studiengang_kz < 0, but not ausserordentlich
+					$isLehrgang = !$isAusserordentlich && ($prestudentstatus->studiengang_typ == 'l' || $studiengang_kz < 0);
+
 
 					// studiengang kz
 					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
@@ -333,7 +350,7 @@ class DVUHSyncLib
 					// if ausserordentlich, students are sent with special studiengang_kz
 					$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
 					if ($isAusserordentlich && isset($ausserordentlich_prefix) && is_numeric($ausserordentlich_prefix))
-						$studiengang_kz = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix').$erhalter_kz;
+						$studiengang_kz = $ausserordentlich_prefix.$erhalter_kz;
 
 					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
 
@@ -416,7 +433,7 @@ class DVUHSyncLib
 					}
 
 					// lehrgang
-					if ($prestudentstatus->studiengang_typ == 'l' && !$isAusserordentlich)
+					if ($isLehrgang)
 					{
 						$lehrgang = array(
 							'lehrgangsnr' => $dvuh_stgkz,
@@ -515,6 +532,7 @@ class DVUHSyncLib
 
 							if (isError($orgform_code))
 								return $orgform_code;
+
 							if (hasData($orgform_code))
 							{
 								$orgformcode = getData($orgform_code);
@@ -780,6 +798,36 @@ class DVUHSyncLib
 	}
 
 	/**
+	 * Checks Matrikelnummer for validity.
+	 * @param string $svnr
+	 * @return bool valid or not
+	 */
+	public function checkMatrikelnummer($svnr)
+	{
+		return preg_match("/^\d{8}$/", $svnr) === 1;
+	}
+
+	/**
+	 * Checks Ersatzkennzeichen for validity.
+	 * @param string $ekz
+	 * @return bool valid or not
+	 */
+	public function checkEkz($ekz)
+	{
+		return preg_match('/^[A-Z]{4}[0-9]{6}$/', $ekz) === 1;
+	}
+
+	/**
+	 * Checks Bpk for validity.
+	 * @param string $bpk
+	 * @return bool valid or not
+	 */
+	public function checkBpk($bpk)
+	{
+		return preg_match("/^([A-Za-z0-9+\/]{27})=$/", $bpk) === 1;
+	}
+
+	/**
 	 * Gets occured warnings and resets them.
 	 * @return array
 	 */
@@ -943,7 +991,7 @@ class DVUHSyncLib
 				$avon = $ioitem->von;
 				$abis = $ioitem->bis;
 				$adauer = (is_null($avon) || is_null($abis)) ? null : dateDiff($avon, $abis);
-				if (strtotime($abis) < strtotime(date('Y-m-d')))
+				if (strtotime($abis) <= strtotime(date('Y-m-d')))
 					$aufenthalt_finished = true;
 				else
 					$aufenthalt_finished = false;
@@ -955,7 +1003,6 @@ class DVUHSyncLib
 
 				if (hasData($bisio_zweck_result))
 				{
-
 					$bisio_zweck = getData($bisio_zweck_result);
 
 					$zweck_code_arr = array();

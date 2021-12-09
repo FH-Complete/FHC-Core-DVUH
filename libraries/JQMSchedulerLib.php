@@ -30,6 +30,8 @@ class JQMSchedulerLib
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync'); // load sync config
 
+		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper'); // load helper
+
 		// set config items
 		$this->_status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
@@ -43,7 +45,7 @@ class JQMSchedulerLib
 
 		foreach ($studiensemesterMeldezeitraum as $studiensemester_kurzbz => $meldezeitraum)
 		{
-			if ($this->_validateDate($meldezeitraum['von']) && $this->_validateDate($meldezeitraum['bis'])
+			if (validateDate($meldezeitraum['von']) && validateDate($meldezeitraum['bis'])
 				&& $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
 			{
 				$this->_studiensemester[] = $studiensemester_kurzbz;
@@ -228,7 +230,7 @@ class JQMSchedulerLib
 							LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 							LEFT JOIN public.tbl_konto kto ON pers.person_id = kto.person_id AND kto.buchungstyp_kurzbz IN ?
 															AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz AND kto.buchungsnr_verweis IS NULL
-															AND kto.betrag < 0
+															AND kto.betrag <= 0
 							LEFT JOIN sync.tbl_dvuh_stammdaten stammd ON pss.studiensemester_kurzbz = stammd.studiensemester_kurzbz AND pers.person_id = stammd.person_id
 							LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
 							WHERE ps.bismelden = TRUE
@@ -383,17 +385,25 @@ class JQMSchedulerLib
 
 		$params = array($studiensemester_kurzbz_arr);
 
-		// get students with vorschreibung which have no Studiumsmeldung or have a data change
+		// get students with Vorschreibung which have no Studiumsmeldung or have a data change
 		// data change: prestudent, prestudentstatus, bisio, mobilitaet
 		$qry = "SELECT prestudent_id, studiensemester_kurzbz FROM (
-					SELECT DISTINCT prestudents.prestudent_id, prestudents.studiensemester_kurzbz, sem.start
+					SELECT DISTINCT prestudents.prestudent_id, prestudents.studiensemester_kurzbz, sem.start, ist_abbrecher
 					FROM (
 							SELECT ps.prestudent_id, pss.studiensemester_kurzbz,
 									ps.insertamum AS ps_insertamum, pss.insertamum AS pss_insertamum, mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum, 
 									ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum, mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
-									max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum, bisio.bis AS bisio_endedatum
+									max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum, bisio.bis AS bisio_endedatum,
+									CASE
+										WHEN EXISTS (SELECT 1
+											FROM public.tbl_prestudentstatus
+											WHERE prestudent_id = ps.prestudent_id
+											AND status_kurzbz = 'Abbrecher') /* Abbrecher have lower priority, active prestudents should be sent first to avoid Matrikelnr lock */
+										THEN 1
+										ELSE 0
+									END AS ist_abbrecher
 							FROM public.tbl_prestudent ps
-							JOIN public.tbl_student using (prestudent_id)
+							JOIN public.tbl_student USING (prestudent_id)
 							JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id
 							LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 							LEFT JOIN bis.tbl_bisio bisio ON tbl_student.student_uid = bisio.student_uid
@@ -401,7 +411,6 @@ class JQMSchedulerLib
 							LEFT JOIN sync.tbl_dvuh_studiumdaten studd
 												ON pss.studiensemester_kurzbz = studd.studiensemester_kurzbz AND
 												   ps.prestudent_id = studd.prestudent_id
-										
 							WHERE ps.bismelden = TRUE
 							AND stg.melderelevant = TRUE
 							AND pss.studiensemester_kurzbz IN ?
@@ -411,8 +420,8 @@ class JQMSchedulerLib
 											AND kto.studiensemester_kurzbz = pss.studiensemester_kurzbz
 											AND zlg.betrag <= 0
 											LIMIT 1)
-										/*exception: Abbrecher, Unterbrecher might not need to pay*/
-									OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Absolvent')
+										/*exception: Abbrecher, Unterbrecher etc. might not need to pay*/
+									OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Diplomand', 'Absolvent')
 							   )";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_STUDY_DATA]))
@@ -431,15 +440,15 @@ class JQMSchedulerLib
 							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum, bisio.bis, pss.datum
 					) prestudents
 					JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
-					WHERE max_studiumdaten_meldedatum IS NULL /* either not sent to DVUH or data modified since last send*/
+					WHERE max_studiumdaten_meldedatum IS NULL /* either not sent to DVUH or data modified since last send */
 					OR prestudent_status_datum = NOW() /* if prestudent status gets active today */
-					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, mobilitaeten in future are sent with no endedatum */
+					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
 					OR pss_insertamum >= max_studiumdaten_meldedatum OR ps_insertamum >= max_studiumdaten_meldedatum
 					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
 					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
 					OR mob_updateamum >= max_studiumdaten_meldedatum OR bisio_updateamum >= max_studiumdaten_meldedatum
 				) prestudentssem
-				ORDER BY start, prestudent_id";
+				ORDER BY start, ist_abbrecher, prestudent_id";
 
 		$dbModel = new DB_Model();
 
@@ -569,19 +578,6 @@ class JQMSchedulerLib
 
 	// --------------------------------------------------------------------------------------------
 	// Private methods
-
-	/**
-	 * Checks if date exists and is in valid format.
-	 * @param string $date
-	 * @param string $format
-	 * @return bool
-	 */
-	private function _validateDate($date, $format = 'Y-m-d')
-	{
-		$d = DateTime::createFromFormat($format, $date);
-		// The Y ( 4 digits year ) returns TRUE for any integer with any number of digits so changing the comparison from == to === fixes the issue.
-		return $d && $d->format($format) === $date;
-	}
 
 	/**
 	 * Gets Studiensemester in an array, uses given parameter if valid or from config array field.

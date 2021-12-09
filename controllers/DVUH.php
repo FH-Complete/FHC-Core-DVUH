@@ -16,6 +16,7 @@ class DVUH extends Auth_Controller
 			array(
 				'index'=>'admin:r',
 				'getMatrikelnummer'=>'admin:r',
+				'getPersonPrefillData'=>'admin:r',
 				'getMatrikelnummerReservierungen'=>'admin:r',
 				'getStammdaten'=>'admin:r',
 				'getKontostaende'=>'admin:r',
@@ -24,16 +25,16 @@ class DVUH extends Auth_Controller
 				'getBpk' =>'admin:r',
 				'getBpkByPersonId' =>'admin:r',
 				'getPruefungsaktivitaeten' =>'admin:r',
-				'reserveMatrikelnummer'=>'admin:r',
-				'postMasterData'=>'admin:r',
-				'postCharge'=>'admin:r',
-				'postStudium'=>'admin:r',
-				'postPayment'=>'admin:r',
-				'postMatrikelkorrektur'=>'admin:r',
-				'postErnpmeldung'=>'admin:r',
-				'postPruefungsaktivitaeten'=>'admin:r',
-				'postEkzanfordern'=>'admin:r',
-				'deletePruefungsaktivitaeten'=>'admin:r',
+				'reserveMatrikelnummer'=>'admin:rw',
+				'postMasterData'=>'admin:rw',
+				'postCharge'=>'admin:rw',
+				'postStudium'=>'admin:rw',
+				'postPayment'=>'admin:rw',
+				'postMatrikelkorrektur'=>'admin:rw',
+				'postErnpmeldung'=>'admin:rw',
+				'postPruefungsaktivitaeten'=>'admin:rw',
+				'postEkzanfordern'=>'admin:rw',
+				'deletePruefungsaktivitaeten'=>'admin:r'
 			)
 		);
 
@@ -51,8 +52,9 @@ class DVUH extends Auth_Controller
 
 		// display system path (e.g. rws or sandbox)
 		$environment = $this->config->item(DVUHClientLib::URL_PATH);
+		$apiVersion = $this->config->item(DVUHClientLib::API_VERSION);
 
-		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array('environment' => $environment));
+		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array('environment' => $environment, 'apiVersion' => $apiVersion));
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -64,7 +66,7 @@ class DVUH extends Auth_Controller
 
 		$bpk = isset($data['bpk']) ? $data['bpk'] : null;
 		$ekz = isset($data['ekz']) ? $data['ekz'] : null;
-		$geburtsdatum = isset($data['geburtsdatum']) ? $data['geburtsdatum'] : null;
+		$geburtsdatum = isset($data['geburtsdatum']) ? convertDateToIso($data['geburtsdatum']) : null;
 		$matrikelnummer = null;
 		$nachname = isset($data['nachname']) ? $data['nachname'] : null;
 		$vorname = isset($data['vorname']) ? $data['vorname'] : null;
@@ -80,11 +82,21 @@ class DVUH extends Auth_Controller
 		$this->outputJson($queryResult);
 	}
 
+	/**
+	 * Gets person data for input field prefills.
+	 */
+	public function getPersonPrefillData()
+	{
+		$person_id = $this->input->get('person_id');
+
+		$this->outputJson($this->bpkmanagementlib->getPersonDataForBpkCheck($person_id));
+	}
+
 	public function getMatrikelnummerReservierungen()
 	{
 		$data = $this->input->get('data');
 
-		$studienjahr = isset($data['studienjahr']) ? $data['studienjahr'] : null; // TODO studienjahr abfangen?
+		$studienjahr = isset($data['studienjahr']) ? $data['studienjahr'] : null;
 		$be = $this->config->item('fhc_dvuh_be_code');
 
 		$this->load->model('extensions/FHC-Core-DVUH/Matrikelreservierung_model', 'MatrikelreservierungModel');
@@ -120,7 +132,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->get('data');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$seit = isset($data['seit']) ? $data['seit'] : null;
+		$seit = isset($data['seit']) ? convertDateToIso($data['seit']) : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 
@@ -178,7 +190,7 @@ class DVUH extends Auth_Controller
 
 		$vorname = isset($data['vorname']) ? $data['vorname'] : null;
 		$nachname = isset($data['nachname']) ? $data['nachname'] : null;
-		$geburtsdatum = isset($data['geburtsdatum']) ? $data['geburtsdatum'] : null;
+		$geburtsdatum = isset($data['geburtsdatum']) ? convertDateToIso($data['geburtsdatum']) : null;
 		$geschlecht = isset($data['geschlecht']) ? $data['geschlecht'] : null;
 		$strasse = isset($data['strasse']) ? $data['strasse'] : null;
 		$plz = isset($data['plz']) ? $data['plz'] : null;
@@ -306,7 +318,7 @@ class DVUH extends Auth_Controller
 
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$writeonerror = isset($data['writeonerror']) ? $data['writeonerror'] : null;
-		$ausgabedatum = isset($data['ausgabedatum']) ? $data['ausgabedatum'] : null;
+		$ausgabedatum = isset($data['ausgabedatum']) ? convertDateToIso($data['ausgabedatum']) : null;
 		$ausstellBehoerde = isset($data['ausstellBehoerde']) ? $data['ausstellBehoerde'] : null;
 		$ausstellland = isset($data['ausstellland']) ? $data['ausstellland'] : null;
 		$dokumentnr = isset($data['dokumentnr']) ? $data['dokumentnr'] : null;

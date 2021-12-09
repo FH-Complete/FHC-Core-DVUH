@@ -78,7 +78,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 			$studiensemester_kurzbz = $this->dvuhsynclib->convertSemesterToFHC($semester);
 			$pruefungsaktivitaetenDataResult = $this->dvuhsynclib->getPrestudentsOfPerson($person_id, $studiensemester_kurzbz);
 
-			var_dump($pruefungsaktivitaetenDataResult);
+			//var_dump($pruefungsaktivitaetenDataResult);
 
 			if (isError($pruefungsaktivitaetenDataResult))
 				return $pruefungsaktivitaetenDataResult;
@@ -96,16 +96,17 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 					// studiengang kz
 					$erhalter_kz = str_pad($pruefungsaktivitaeten->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 4, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 3, '0', STR_PAD_LEFT);
 
 					$params['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
 					$params['semester'] = $dvuh_studiensemester;
-					$params['studiengang'] = $dvuh_stgkz;
-					//$params['studienkennung'] = $dvuh_stgkz;
+					//$params['studiengang'] = $dvuh_stgkz;
+					$params['studienkennung'] = $dvuh_stgkz;
 
 					//$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/pruefungsaktivitaeten_loeschen', $params, true);
 
-					//var_dump($params);
+/*					var_dump($params);
+					die();*/
 
 
 					$this->_url = 'pruefungsaktivitaeten_loeschen.xml';

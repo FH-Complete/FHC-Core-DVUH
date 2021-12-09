@@ -68,7 +68,7 @@ class Feed extends JOB_Controller
 	public function getAndSave($erstelltSeit = null)
 	{
 		$this->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
-		$this->load->model('extensions/FHC-Core-DVUH/DVUHFeedeintrag_model', 'DVUHFeedeintragModel');
+		$this->load->model('extensions/FHC-Core-DVUH/synctables/DVUHFeedeintrag_model', 'DVUHFeedeintragModel');
 
 		$this->logInfo('Feed getAndSave job start');
 

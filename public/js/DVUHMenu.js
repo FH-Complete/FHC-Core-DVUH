@@ -21,11 +21,25 @@ $(document).ready(function()
 		);
 
 		DVUHMenu._setScrollToTop();
+
+		var hash = window.location.hash.substr(1);
+
+		// get hash params from url and show appropriate form (if coming from external site)
+		var result = hash.split('&').reduce(function (res, item) {
+			var parts = item.split('=');
+			res[parts[0]] = parts[1];
+			return res;
+		}, {});
+
+		if (result.page.length > 0)
+		{
+			DVUHMenu.printForm(result.page, result);
+		}
 	}
 );
 
 var DVUHMenu = {
-	printForm: function(action)
+	printForm: function(action, params)
 	{
 		var html = '';
 		var method = '';
@@ -35,13 +49,16 @@ var DVUHMenu = {
 		{
 			case 'getMatrikelnummer':
 				html = '<h4>Matrikelnummer pr&uuml;fen</h4>';
+				html += DVUHMenu._getPreviewInputfieldHtml('matrnrDatenVorausfuellen');
 				html += DVUHMenu._getTextfieldHtml('bpk', 'BPK', '', 30)
 				+ DVUHMenu._getTextfieldHtml('svnr', 'SVNR', '', 10)
 				+ DVUHMenu._getTextfieldHtml('ekz', 'Ersatzkennzeichen', '', 10)
 				+ DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 				+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
-				+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: YYYY-MM-DD', 10);
+				+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10);
 				method = 'get';
+				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
+					DVUHMenu.getPersonPrefillData(params.person_id, 'matrnrDatenVorausfuellen');
 				break;
 			case 'getMatrikelnummerReservierungen':
 				html = '<h4>Matrikelnummerreservierungen anzeigen</h4>';
@@ -58,7 +75,7 @@ var DVUHMenu = {
 				html = '<h4>Kontostand abfragen</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
 					+ DVUHMenu._getSemesterRow()
-					+ DVUHMenu._getTextfieldHtml('seit', 'Dateineingang seit', 'Format: YYYY-MM-DD, optional', 10)
+					+ DVUHMenu._getTextfieldHtml('seit', 'Dateineingang seit', 'Format: DD.MM.YYYY oder YYYY-MM-DD, optional', 10)
 				method = 'get';
 				break;
 			case 'getStudium':
@@ -73,14 +90,15 @@ var DVUHMenu = {
 			case 'getFullstudent':
 				html = '<h4>Detaillierte Studiendaten abfragen</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
-					+ DVUHMenu._getSemesterRow()
+					+ DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. 2016S für Sommer-, 2016W für Wintersemester 2016', 5)
 				method = 'get';
 				break;
 			case 'getBpk':
-				html = '<h4>BPK ermitteln (manuell)</h4>';
+				html = '<h4>bPK ermitteln (manuell)</h4>';
+				html += DVUHMenu._getPreviewInputfieldHtml('bpkDatenVorausfuellen', 'bpkDatenVorausfuellenVoll');
 				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
-					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: YYYY-MM-DD', 10)
+					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X, optional', 1)
 					+ DVUHMenu._getTextfieldHtml('strasse', 'Strasse', 'der Heimatadresse, ohne Hausnummer, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('plz', 'PLZ', 'optional', 15)
@@ -89,9 +107,11 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('akadnach', 'Akademischer Grad Post', 'nach dem Namen, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('alternativname', 'Alternativname', 'optional, Nachname vor Namenswechsel', 255)
 				method = 'get';
+				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
+					DVUHMenu.getPersonPrefillData(params.person_id, 'bpkDatenVorausfuellen');
 				break;
 			case 'getBpkByPersonId':
-				html = '<h4>BPK ermitteln</h4>';
+				html = '<h4>bPK ermitteln</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
 				method = 'get';
 				break;
@@ -138,10 +158,10 @@ var DVUHMenu = {
 			case 'postErnpmeldung':
 				html = '<h4>ERnP-Meldung durchführen</h4>';
 				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
-					'wenn für die Person keine BPK ermittelt werden kann.<br />Beim Punkt "BPK ermitteln" sollte dementsprechend keine BPK zurückgegeben werden. ' +
-					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein BPK vorhanden.</b><br /><br />';
+					'wenn für die Person keine bPK ermittelt werden kann.<br />Beim Punkt "bPK ermitteln" sollte dementsprechend keine bPK zurückgegeben werden. ' +
+					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein bPK vorhanden.</b><br /><br />';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
-					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: YYYY-MM-DD', 10)
+					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
 					+ DVUHMenu._getTextfieldHtml('ausstellland', 'Ausstellland', '1-3 Stellen Codex (zb D für Deutschland)', 3)
 					+ DVUHMenu._getTextfieldHtml('dokumentnr', 'Dokumentnr', '1 bis 255 Stellen', 255)
@@ -178,6 +198,25 @@ var DVUHMenu = {
 		// form
 		$("#dvuhForm").html(html);
 
+		// prefill from Person Id
+		var buttonIds = ['matrnrDatenVorausfuellen', 'bpkDatenVorausfuellen', 'bpkDatenVorausfuellenVoll'];
+
+		for (var i = 0; i < buttonIds.length; i++)
+		{
+			var buttonId = buttonIds[i];
+			if ($("#"+buttonId).length)
+			{
+				$("#"+buttonId).click(
+					function()
+					{
+						var person_id = $("#person_id").val();
+
+						DVUHMenu.getPersonPrefillData(person_id, $(this).attr("id"));
+					}
+				);
+			}
+		}
+
 		// data preview
 		if (writePreviewButton)
 		{
@@ -201,6 +240,57 @@ var DVUHMenu = {
 			{
 				DVUHMenu._writeSyncoutputBox();
 				DVUHMenu.sendForm(action, method);
+			}
+		);
+	},
+	getPersonPrefillData: function(person_id, buttonId)
+	{
+		FHC_AjaxClient.ajaxCallGet(
+			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/getPersonPrefillData',
+			{"person_id": person_id},
+			{
+				successCallback: function(data)
+				{
+					if (FHC_AjaxClient.hasData(data))
+					{
+						var prefillData = FHC_AjaxClient.getData(data);
+
+						$("#person_id").val(person_id);
+
+						$("#vorname").val(prefillData.vorname);
+						$("#nachname").val(prefillData.nachname);
+						$("#geburtsdatum").val(prefillData.gebdatum);
+
+						if (buttonId == 'matrnrDatenVorausfuellen')
+						{
+							$("#bpk").val(prefillData.bpk);
+							$("#svnr").val(prefillData.svnr);
+							$("#ekz").val(prefillData.ersatzkennzeichen);
+						}
+						else if (buttonId == 'bpkDatenVorausfuellen')
+						{
+							$("#geschlecht").val('');
+							$("#geburtsland").val('');
+							$("#strasse").val('');
+							$("#plz").val('');
+							$("#akadgrad").val('');
+							$("#akadnach").val('');
+						}
+						else if (buttonId == 'bpkDatenVorausfuellenVoll')
+						{
+							$("#geschlecht").val(prefillData.geschlecht);
+							$("#geburtsland").val(prefillData.geburtsland);
+							$("#strasse").val(prefillData.strasse);
+							$("#plz").val(prefillData.plz);
+							$("#akadgrad").val(prefillData.akadgrad);
+							$("#akadnach").val(prefillData.akadnach);
+						}
+					}
+				},
+				errorCallback: function(jqXHR, textStatus, errorThrown)
+				{
+					DVUHMenu._writeResult("Fehler beim Vorausfüllen", 'dvuhOutput', 'error');
+				}
 			}
 		);
 	},
@@ -308,6 +398,34 @@ var DVUHMenu = {
 			'</div>' +
 			'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
 			'</div>';
+
+		return html;
+	},
+	_getPreviewInputfieldHtml(buttonId, secondButtonId)
+	{
+		var html = '<div class="form-group">' +
+					'<label class="col-lg-2 control-label" for="person_id">PersonID</label>'+
+					'<div class="col-lg-5">'+
+						'<div class="form-group input-group prefill-input-group">' +
+							'<input type="text" class="form-control" id="person_id">' +
+							'<span class="input-group-btn">' +
+								'<button class="btn btn-default" type="button" id="'+buttonId+'">' +
+									'Vorausfüllen' +
+								'</button>' +
+							'</span>' +
+						'</div>' +
+					'</div>';
+
+		if (typeof secondButtonId !== 'undefined')
+		{
+			html += '<div class="col-lg-5">'+
+						'<button class="btn btn-default" type="button" id="'+secondButtonId+'">' +
+							'Vorausfüllen (inkl. optional)' +
+						'</button>' +
+					'</div>';
+		}
+
+		html += '</div>';
 
 		return html;
 	},
@@ -544,7 +662,7 @@ var DVUHMenu = {
 
 		$("#scrollToTop").click(function()
 			{
-				$('html,body').animate({scrollTop:0},250,'linear');
+				$('html,body').animate({scrollTop: 0}, 250, 'linear');
 			}
 		)
 	}
