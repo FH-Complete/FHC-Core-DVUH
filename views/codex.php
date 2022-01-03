@@ -21,18 +21,18 @@ $this->load->view('templates/FHC-Header', array(
 					<h3 class="page-header">Codex</h3>
 				</div>
 			</div>
-			Über diese Seite können die Codex Tabellen des Datenverbundes heruntergeladen werden.
+			<?php echo $this->p->t('codex', 'codexSeiteBeschreibung'); ?>
 			<br />
 			<br />
 			<ul>
 				<li>
-					<a href="<?php echo site_url(); ?>/extensions/FHC-Core-DVUH/Codex/exportbecodes">BE Codes</a>
+					<a href="<?php echo site_url(); ?>/extensions/FHC-Core-DVUH/Codex/exportbecodes"><?php echo $this->p->t('codex', 'beCodes'); ?></a>
 				</li>
 				<li>
-					<a href="<?php echo site_url(); ?>/extensions/FHC-Core-DVUH/Codex/exportlaendercodes">Länder Codes</a>
+					<a href="<?php echo site_url(); ?>/extensions/FHC-Core-DVUH/Codex/exportlaendercodes"><?php echo $this->p->t('codex', 'laenderCodes'); ?></a>
 				</li>
 				<li>
-					<a href="<?php echo site_url(); ?>/extensions/FHC-Core-DVUH/Codex/fehlerliste">Fehlerliste</a>
+					<a href="<?php echo site_url(); ?>/extensions/FHC-Core-DVUH/Codex/fehlerliste"><?php echo $this->p->t('codex', 'fehlerliste'); ?></a>
 				</li>
 			</div>
 		</div>

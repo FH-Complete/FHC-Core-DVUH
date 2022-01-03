@@ -48,107 +48,107 @@ var DVUHMenu = {
 		switch(action)
 		{
 			case 'getMatrikelnummer':
-				html = '<h4>Matrikelnummer pr&uuml;fen</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'matrikelnummerPruefen')+'</h4>';
 				html += DVUHMenu._getPreviewInputfieldHtml('matrnrDatenVorausfuellen');
 				html += DVUHMenu._getTextfieldHtml('bpk', 'BPK', '', 30)
 				+ DVUHMenu._getTextfieldHtml('svnr', 'SVNR', '', 10)
-				+ DVUHMenu._getTextfieldHtml('ekz', 'Ersatzkennzeichen', '', 10)
-				+ DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
-				+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
-				+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10);
+				+ DVUHMenu._getTextfieldHtml('ekz', FHC_PhrasesLib.t('dvuh', 'ersatzkennzeichen'), '', 10)
+				+ DVUHMenu._getTextfieldHtml('vorname', FHC_PhrasesLib.t('dvuh', 'vorname'), '', 64)
+				+ DVUHMenu._getTextfieldHtml('nachname', FHC_PhrasesLib.t('dvuh', 'nachname'), '', 255)
+				+ DVUHMenu._getTextfieldHtml('geburtsdatum', FHC_PhrasesLib.t('dvuh', 'geburtsdatum'), FHC_PhrasesLib.t('dvuh', 'datumFormatHinweis'), 10);
 				method = 'get';
 				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
 					DVUHMenu.getPersonPrefillData(params.person_id, 'matrnrDatenVorausfuellen');
 				break;
 			case 'getMatrikelnummerReservierungen':
-				html = '<h4>Matrikelnummerreservierungen anzeigen</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'reservierungenAnzeigen')+'</h4>';
 				html += DVUHMenu._getStudienjahrRow();
 				method = 'get';
 				break;
 			case 'getStammdaten':
-				html = '<h4>Stammdaten und Zahlungsvorschreibung abfragen</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'stammdatenAbfragen')+'</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
 				+ DVUHMenu._getSemesterRow()
 				method = 'get';
 				break;
 			case 'getKontostaende':
-				html = '<h4>Kontostand abfragen</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'kontostandAbfragen')+'</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
 					+ DVUHMenu._getSemesterRow()
-					+ DVUHMenu._getTextfieldHtml('seit', 'Dateineingang seit', 'Format: DD.MM.YYYY oder YYYY-MM-DD, optional', 10)
+					+ DVUHMenu._getTextfieldHtml('seit', FHC_PhrasesLib.t('dvuh', 'datenaenderungSeit'), FHC_PhrasesLib.t('dvuh', 'datumFormatHinweis')+', optional', 10)
 				method = 'get';
 				break;
 			case 'getStudium':
-				html = '<h4>Studiumsdaten abfragen</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'studiumsdatenAbfragen')+'</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
 					+ DVUHMenu._getSemesterRow()
-					+ DVUHMenu._getTextfieldHtml('studienkennung', 'Studienkennung', 'optional; Studiengesetz (1 Zeichen, typischerweise \'U\',\'H\' oder \'L\') ' +
+/*					+ DVUHMenu._getTextfieldHtml('studienkennung', 'Studienkennung', 'optional; Studiengesetz (1 Zeichen, typischerweise \'U\',\'H\' oder \'L\') ' +
 						'+ 2. BE-Kennung 1 (2 Zeichen) + SKZ 1 (Kopfcode oder Studienkennzahl, 3 Ziffern) + SKZ 2 (z.B. Lehramt Fach 1, 3 Ziffern; optional) ' +
-						'+ SKZ 3 (z.B. Lehramt Fach 2, 3 Ziffern; optional) + BE-Kennung 2 (2 Zeichen; optional).', 14)
+						'+ SKZ 3 (z.B. Lehramt Fach 2, 3 Ziffern; optional) + BE-Kennung 2 (2 Zeichen; optional).', 14)*/
 				method = 'get';
 				break;
 			case 'getFullstudent':
-				html = '<h4>Detaillierte Studiendaten abfragen</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'detaillierteStudiendatenAbfragen')+'</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
-					+ DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. 2016S für Sommer-, 2016W für Wintersemester 2016', 5)
+					+ DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, '+FHC_PhrasesLib.t('dvuh', 'semesterHinweis'), 5)
 				method = 'get';
 				break;
 			case 'getBpk':
-				html = '<h4>bPK ermitteln (manuell)</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'bpkManuellErmitteln')+'</h4>';
 				html += DVUHMenu._getPreviewInputfieldHtml('bpkDatenVorausfuellen', 'bpkDatenVorausfuellenVoll');
-				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
-					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
-					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X, optional', 1)
-					+ DVUHMenu._getTextfieldHtml('strasse', 'Strasse', 'der Heimatadresse, ohne Hausnummer, optional', 255)
-					+ DVUHMenu._getTextfieldHtml('plz', 'PLZ', 'optional', 15)
-					+ DVUHMenu._getTextfieldHtml('geburtsland', 'Geburtsland', 'optional', 15)
-					+ DVUHMenu._getTextfieldHtml('akadgrad', 'Akademischer Grad Pre', 'vor dem Namen, optional', 255)
-					+ DVUHMenu._getTextfieldHtml('akadnach', 'Akademischer Grad Post', 'nach dem Namen, optional', 255)
-					+ DVUHMenu._getTextfieldHtml('alternativname', 'Alternativname', 'optional, Nachname vor Namenswechsel', 255)
+				html += DVUHMenu._getTextfieldHtml('vorname', FHC_PhrasesLib.t('dvuh', 'vorname'), '', 64)
+					+ DVUHMenu._getTextfieldHtml('nachname', FHC_PhrasesLib.t('dvuh', 'nachname'), '', 255)
+					+ DVUHMenu._getTextfieldHtml('geburtsdatum', FHC_PhrasesLib.t('dvuh', 'geburtsdatum'), FHC_PhrasesLib.t('dvuh', 'datumFormatHinweis'), 10)
+					+ DVUHMenu._getTextfieldHtml('geschlecht', FHC_PhrasesLib.t('dvuh', 'geschlecht'), 'M/W/X, optional', 1)
+					+ DVUHMenu._getTextfieldHtml('strasse', FHC_PhrasesLib.t('dvuh', 'strasse'), FHC_PhrasesLib.t('dvuh', 'heimatadresseOhneHausnrHinweis')+', optional', 255)
+					+ DVUHMenu._getTextfieldHtml('plz', FHC_PhrasesLib.t('dvuh', 'plz'), 'optional', 15)
+					+ DVUHMenu._getTextfieldHtml('geburtsland', FHC_PhrasesLib.t('dvuh', 'geburtsland'), 'optional', 15)
+					+ DVUHMenu._getTextfieldHtml('akadgrad', FHC_PhrasesLib.t('dvuh', 'akadGradPre'), FHC_PhrasesLib.t('dvuh', 'vorNamen')+', optional', 255)
+					+ DVUHMenu._getTextfieldHtml('akadnach', FHC_PhrasesLib.t('dvuh', 'akadGradPost'), FHC_PhrasesLib.t('dvuh', 'nachNamen')+', optional', 255)
+					+ DVUHMenu._getTextfieldHtml('alternativname', FHC_PhrasesLib.t('dvuh', 'alternativname'), 'optional, '+FHC_PhrasesLib.t('dvuh', 'nachnameVorNamenswechsel'), 255)
 				method = 'get';
 				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
 					DVUHMenu.getPersonPrefillData(params.person_id, 'bpkDatenVorausfuellen');
 				break;
 			case 'getBpkByPersonId':
-				html = '<h4>bPK ermitteln</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'bpkErmitteln')+'</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
 				method = 'get';
 				break;
 			case 'getPruefungsaktivitaeten':
-				html = '<h4>Pr&uuml;fungsaktivit&auml;ten abfragen</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'pruefungsaktivitaetenAbfragen')+'</h4>';
 				html += DVUHMenu._getSemesterRow()
-					+ DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', 'optional', 8)
+					+ DVUHMenu._getTextfieldHtml('matrikelnummer', FHC_PhrasesLib.t('dvuh', 'matrikelnummer'), 'optional', 8)
 				method = 'get';
 				break;
 			case 'reserveMatrikelnummer':
-				html = '<h4>Matrikelnummer reservieren</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'matrikelnummerReservieren')+'</h4>';
 				html += DVUHMenu._getStudienjahrRow();
 				method = 'post';
 				break;
 			case 'postMatrikelkorrektur':
-				html = '<h4>Matrikelnummer korrigieren</h4>';
-				html += DVUHMenu._getTextfieldHtml('matrikelnummer', 'Neue Matrikelnummer', '', 8)
-					+ DVUHMenu._getTextfieldHtml('matrikelalt', 'Alte Matrikelnummer', '', 8)
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'matrikelnummerKorrigieren')+'</h4>';
+				html += DVUHMenu._getTextfieldHtml('matrikelnummer', FHC_PhrasesLib.t('dvuh', 'neueMatrikelnummer'), '', 8)
+					+ DVUHMenu._getTextfieldHtml('matrikelalt', FHC_PhrasesLib.t('dvuh', 'alteMatrikelnummer'), '', 8)
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				break;
 			case 'postMasterData':
-				html = '<h4>Stammdaten und Matrikelnummer melden</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'stammdatenMelden')+'</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				writePreviewButton = true;
 				break;
 			case 'postPayment':
-				html = '<h4>Zahlungseingang melden</h4>';
-				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')/*DVUHMenu._getMatrikelnummerRow()*/
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'zahlungseingangMelden')+'</h4>';
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				writePreviewButton = true;
 				break;
 			case 'postStudium':
-				html = '<h4>Studiumsdaten melden</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'studiumsdatenMelden')+'</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 					+ DVUHMenu._getTextfieldHtml('prestudent_id', 'PrestudentID', 'optional')
@@ -156,29 +156,26 @@ var DVUHMenu = {
 				writePreviewButton = true;
 				break;
 			case 'postErnpmeldung':
-				html = '<h4>ERnP-Meldung durchführen</h4>';
-				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
-					'wenn für die Person keine bPK ermittelt werden kann.<br />Beim Punkt "bPK ermitteln" sollte dementsprechend keine bPK zurückgegeben werden. ' +
-					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein bPK vorhanden.</b><br /><br />';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'ernpMeldungDurchführen')+'</h4>';
+				html += '<b>'+FHC_PhrasesLib.t('dvuh', 'ernpWarnungErsterTeil')+'<br />'+FHC_PhrasesLib.t('dvuh', 'ernpWarnungZweiterTeil')+'</b><br /><br />';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
-					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
-					+ DVUHMenu._getTextfieldHtml('ausstellland', 'Ausstellland', '1-3 Stellen Codex (zb D für Deutschland)', 3)
-					+ DVUHMenu._getTextfieldHtml('dokumentnr', 'Dokumentnr', '1 bis 255 Stellen', 255)
-					+ DVUHMenu._getDropdownHtml('dokumenttyp', 'Dokumenttyp', {'REISEP': 'Reisepass', 'PERSAUSW': 'Personalausweis'}, 'REISEP')
+					+ DVUHMenu._getTextfieldHtml('ausgabedatum', FHC_PhrasesLib.t('dvuh', 'ausgabedatum'), FHC_PhrasesLib.t('dvuh', 'datumFormatHinweis'), 10)
+					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', FHC_PhrasesLib.t('dvuh', 'ausstellbehoerde'), '', 40)
+					+ DVUHMenu._getTextfieldHtml('ausstellland', FHC_PhrasesLib.t('dvuh', 'ausstellland'), FHC_PhrasesLib.t('dvuh', 'ausstellandHinweis'), 3)
+					+ DVUHMenu._getTextfieldHtml('dokumentnr', FHC_PhrasesLib.t('dvuh', 'dokumentnr'), FHC_PhrasesLib.t('dvuh', 'anzahlStellen'), 255)
+					+ DVUHMenu._getDropdownHtml('dokumenttyp', FHC_PhrasesLib.t('dvuh', 'dokumenttyp'), {'REISEP': FHC_PhrasesLib.t('dvuh', 'reisepass'), 'PERSAUSW': FHC_PhrasesLib.t('dvuh', 'personalausweis')}, 'REISEP')
 				method = 'post';
 				writePreviewButton = true;
 				break;
 			case 'postEkzanfordern':
-				html = '<h4>Ekz anfordern</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'ekzAnfordern')+'</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
-					+ DVUHMenu._getTextfieldHtml('forcierungskey', 'Forcierungskey', 'Optional, zum Anfordern eines neuen EKZ, ' +
-						'wenn bei mehrerern zurückgelieferten Kandidaten keiner der Person entspricht, für die man das EKZ anfordern möchte', 255) // TODO which length?
+					+ DVUHMenu._getTextfieldHtml('forcierungskey', 'Forcierungskey', 'Optional, '+FHC_PhrasesLib.t('dvuh', 'forcierungskeyBeschreibung'), 255) // TODO which length?
 				method = 'post';
 				writePreviewButton = true;
 				break;
 			case 'postPruefungsaktivitaeten':
-				html = '<h4>Prüfungsaktivitäten-Meldung durchführen</h4>';
+				html = '<h4>'+FHC_PhrasesLib.t('dvuh', 'pruefungsaktivitaetenMelden')+'</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
@@ -214,7 +211,7 @@ var DVUHMenu = {
 		// data preview
 		if (writePreviewButton)
 		{
-			$("#dvuhDatenvorschauButton").html('<button class="btn btn-default" id="datenVorschau">Zu sendende Daten anzeigen</button>');
+			$("#dvuhDatenvorschauButton").html('<button class="btn btn-default" id="datenVorschau">'+FHC_PhrasesLib.t('dvuh', 'zuSendendeDatenAnzeigen')+'</button>');
 
 			$("#datenVorschau").click(
 				function()
@@ -227,7 +224,7 @@ var DVUHMenu = {
 		}
 
 		// actual data send
-		$("#dvuhAbsendenButton").html('<button class="btn btn-default" id="dvuhAbsenden">Absenden</button>');
+		$("#dvuhAbsendenButton").html('<button class="btn btn-default" id="dvuhAbsenden">'+FHC_PhrasesLib.t('dvuh', 'absenden')+'</button>');
 
 		$("#dvuhAbsenden").click(
 			function()
@@ -283,7 +280,7 @@ var DVUHMenu = {
 				},
 				errorCallback: function(jqXHR, textStatus, errorThrown)
 				{
-					DVUHMenu._writeResult("Fehler beim Vorausfüllen", 'dvuhOutput', 'error');
+					DVUHMenu._writeResult(FHC_PhrasesLib.t('dvuh', 'fehlerBeimAusfuellen'), 'dvuhOutput', 'error');
 				}
 			}
 		);
@@ -317,7 +314,7 @@ var DVUHMenu = {
 
 		var errorCallback = function(jqXHR, textStatus, errorThrown)
 		{
-			DVUHMenu._writeResult("Error when calling " + action, boxid, 'error');
+			DVUHMenu._writeResult(FHC_PhrasesLib.t('dvuh', 'fehlerBeimAufruf') + " " + action, boxid, 'error');
 		}
 
 		if (method == 'get')
@@ -345,15 +342,15 @@ var DVUHMenu = {
 	},
 	_getMatrikelnummerRow: function()
 	{
-		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', '', 8)
+		return DVUHMenu._getTextfieldHtml('matrikelnummer', FHC_PhrasesLib.t('dvuh', 'matrikelnummer'), '', 8)
 	},
 	_getStudienjahrRow: function()
 	{
-		return DVUHMenu._getTextfieldHtml('studienjahr', 'Studienjahr', 'zB 2016 (für WS2016 und SS2017)', 4);
+		return DVUHMenu._getTextfieldHtml('studienjahr', FHC_PhrasesLib.t('dvuh', 'studienjahr'), FHC_PhrasesLib.t('dvuh', 'studienjahrBeschreibung'), 4);
 	},
 	_getSemesterRow: function()
 	{
-		return DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'z.B. 2016S für Sommer-, 2016W für Wintersemester 2016', 5)
+		return DVUHMenu._getTextfieldHtml('semester', FHC_PhrasesLib.t('dvuh', 'studiensemester'), FHC_PhrasesLib.t('dvuh', 'studiensemesterBeschreibung'), 5)
 	},
 	_getTextfieldHtml: function(name, title, hint, maxlength)
 	{
@@ -404,7 +401,7 @@ var DVUHMenu = {
 							'<input type="text" class="form-control" id="person_id">' +
 							'<span class="input-group-btn">' +
 								'<button class="btn btn-default" type="button" id="'+buttonId+'">' +
-									'Vorausfüllen' +
+									FHC_PhrasesLib.t('dvuh', 'vorausfuellen') +
 								'</button>' +
 							'</span>' +
 						'</div>' +
@@ -414,7 +411,7 @@ var DVUHMenu = {
 		{
 			html += '<div class="col-lg-5">'+
 						'<button class="btn btn-default" type="button" id="'+secondButtonId+'">' +
-							'Vorausfüllen (inkl. optional)' +
+							FHC_PhrasesLib.t('dvuh', 'vorausfuellenInklOptional') +
 						'</button>' +
 					'</div>';
 		}
@@ -439,14 +436,14 @@ var DVUHMenu = {
 	_writeResult: function(text, boxid, type)
 	{
 		var colorClass = '';
-		var intro = 'Abfrage ausgeführt, Antwort:';
+		var intro = FHC_PhrasesLib.t('dvuh', 'abfrageAusgefuehrt')+':';
 		var textToWrite = "";
 		var isError = false;
 
 		if (type == 'error')
 		{
 			colorClass = ' class="text-danger"';
-			intro = 'Fehler aufgetreten, Antwort:';
+			intro = FHC_PhrasesLib.t('dvuh', 'fehlerAufgetreten')+':';
 			isError = true;
 			textToWrite = text;
 		}
@@ -490,7 +487,7 @@ var DVUHMenu = {
 			{
 				for (var i = 0; i < result.length; i++)
 				{
-					textToWrite += "<b>Anfrage " + (i + 1) + "</b>:<br />";
+					textToWrite += "<b>"+FHC_PhrasesLib.t('dvuh', 'anfrage')+" " + (i + 1) + "</b>:<br />";
 
 					if (FHC_AjaxClient.isError(result[i]))
 						textToWrite += FHC_AjaxClient.getError(result[i]);
@@ -548,7 +545,7 @@ var DVUHMenu = {
 			$("#dvuhOutputContainer").prepend(
 				'<div class="col-lg-6" id="dvuhPreviewContainer">'+
 					'<div class="well well-sm wellminheight">'+
-						'<div class="panel-title text-center">Datenvorschau</div>'+
+						'<div class="panel-title text-center">'+FHC_PhrasesLib.t('dvuh', 'anfrage')+'</div>'+
 						'<div id="dvuhPreviewOutput" class="panel panel-body">'+
 						'</div>'+
 					'</div>'+
@@ -563,13 +560,13 @@ var DVUHMenu = {
 		if (visible)
 		{
 			$("#menuContainer").hide();
-			$("#toggleMenuText").text("Menü aufklappen");
+			$("#toggleMenuText").text(FHC_PhrasesLib.t('dvuh', 'menueAufklappen'));
 			$("#toggleMenuCaret").removeClass().addClass("fa fa-caret-right")
 		}
 		else
 		{
 			$("#menuContainer").show();
-			$("#toggleMenuText").text("Menü zuklappen");
+			$("#toggleMenuText").text(FHC_PhrasesLib.t('dvuh', 'menueZuklappen'));
 			$("#toggleMenuCaret").removeClass().addClass("fa fa-caret-down")
 		}
 	},
@@ -583,7 +580,7 @@ var DVUHMenu = {
 		if (typeof xmlString !== 'string')
 			return '';
 
-		var parseErrorHtml = "<span class='text-danger'>error when parsing xml string</span>";
+		var parseErrorHtml = "<span class='text-danger'>"+FHC_PhrasesLib.t('dvuh', 'fehlerParseXmlString')+"</span>";
 
 		try
 		{

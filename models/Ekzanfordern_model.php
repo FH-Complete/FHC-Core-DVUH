@@ -46,7 +46,7 @@ class Ekzanfordern_model extends DVUHClientModel
 		$result = null;
 
 		if (isEmptyString($person_id))
-			$result = error('personID nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'personIdNichtGesetzt'));
 		else
 		{
 			$this->load->model('person/Person_model', 'PersonModel');
@@ -75,7 +75,7 @@ class Ekzanfordern_model extends DVUHClientModel
 					$addrCheck = $this->dvuhsynclib->checkAdresse($addr);
 
 					if (isError($addrCheck))
-						return error("Adresse ungültig: " . getError($addrCheck));
+						return error($this->p->t('dvuh', 'adresseUngueltig').": " . getError($addrCheck));
 
 					if ($adresse->heimatadresse)
 					{
@@ -88,7 +88,7 @@ class Ekzanfordern_model extends DVUHClientModel
 				}
 
 				if (isEmptyString($heimatAdresse))
-					return error("Keine Heimatadresse angegeben!");
+					return error($this->p->t('dvuh', 'heimatadresseFehlt'));
 
 				$geschlecht = $this->dvuhsynclib->convertGeschlechtToDVUH($stammdaten->geschlecht);
 
@@ -103,7 +103,7 @@ class Ekzanfordern_model extends DVUHClientModel
 				foreach ($ekzbasisdaten as $idx => $item)
 				{
 					if (!isset($item) || isEmptyString($item))
-						return error('Stammdaten fehlen: ' . $idx);
+						return error($this->p->t('dvuh', 'stammdatenFehlen').': ' . $idx);
 				}
 
 				if (isset($stammdaten->svnr))

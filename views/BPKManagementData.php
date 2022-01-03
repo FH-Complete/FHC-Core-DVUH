@@ -36,7 +36,7 @@ $filterWidgetArray = array(
 		ucfirst($this->p->t('person', 'matrikelnummer')),
 		ucfirst($this->p->t('person', 'staatsbuergerschaft')),
 		ucfirst($this->p->t('person', 'geburtsdatum')),
-		'Mitarbeiter'
+		ucfirst($this->p->t('bpkmanagement', 'mitarbeiter'))
 	),
 	'formatRow' => function($datasetRaw) {
 

@@ -23,14 +23,7 @@ $this->load->view(
 			'public/extensions/FHC-Core-DVUH/js/BPKDetails.js'
 		),
 		'phrases' => array(
-			'ui' => array(
-				'gespeichert',
-				'fehlerBeimSpeichern'
-			),
-			'global' => array(
-				'bis',
-				'zeilen'
-			)
+			'ui', 'global', 'bpkmanagement'
 		)
 	)
 );
@@ -137,13 +130,13 @@ $this->load->view(
 										<table class="table table-condensed table-bordered">
 											<thead>
 											<tr>
-												<th colspan="5" class="text-center">Adressen</th>
+												<th colspan="5" class="text-center"><?php echo $this->p->t('bpkmanagement','adressen') ?></th>
 											</tr>
 											<tr>
 												<th><?php echo ucfirst($this->p->t('person', 'strasse')); ?></th>
 												<th>PLZ</th>
 												<th><?php echo ucfirst($this->p->t('person', 'ort')); ?></th>
-												<th>Gemeinde</th>
+												<th><?php echo $this->p->t('bpkmanagement','gemeinde'); ?></th>
 												<th><?php echo ucfirst($this->p->t('person', 'nation')); ?></th>
 											</tr>
 											</thead>
@@ -151,7 +144,7 @@ $this->load->view(
 											<?php
 												$austrianAdressExists = false;
 												if (count($stammdaten->adressen) <= 0):
-													echo '<tr><td colspan="5" class="text-center">Keine Adressen vorhanden</td></tr>';
+													echo '<tr><td colspan="5" class="text-center">'.$this->p->t('bpkmanagement','keineAdressenVorhanden').'</td></tr>';
 												else:
 													foreach($stammdaten->adressen as $adresse):
 														if ($adresse->nation == 'A')
@@ -171,14 +164,14 @@ $this->load->view(
 										<table class="table table-condensed table-bordered">
 											<thead>
 											<tr>
-												<th colspan="5" class="text-center">Relevante Dokumente</th>
+												<th colspan="5" class="text-center"><?php echo $this->p->t('bpkmanagement','relevanteDokumente') ?></th>
 											</tr>
 											<tr>
-												<th>Name</th>
-												<th>Typ</th>
-												<th>Uploaddatum</th>
-												<th>Ausstellungsland</th>
-												<th>Anmerkung</th>
+												<th><?php echo $this->p->t('bpkmanagement','dokumentName') ?></th>
+												<th><?php echo $this->p->t('bpkmanagement','dokumenttyp') ?></th>
+												<th><?php echo $this->p->t('bpkmanagement','uploaddatum') ?></th>
+												<th><?php echo $this->p->t('bpkmanagement','ausstellungsland') ?></th>
+												<th><?php echo $this->p->t('bpkmanagement','anmerkung') ?></th>
 											</tr>
 											</thead>
 											<tbody>
@@ -186,7 +179,7 @@ $this->load->view(
 												$meldezettelExists = false;
 												$austrianMeldezettelExists = false;
 												if (count($dokumente) <= 0):
-													echo '<tr><td colspan="5" class="text-center">Keine Dokumente vorhanden</td></tr>';
+													echo '<tr><td colspan="5" class="text-center">'.$this->p->t('bpkmanagement','keineDokumenteVorhanden').'</td></tr>';
 												else:
 													foreach($dokumente as $dokument):
 														if ($dokument->dokument_kurzbz == 'Meldezet')
@@ -210,7 +203,7 @@ $this->load->view(
 										<?php if (isEmptyString($stammdaten->bpk)): ?>
 											<div class="text-right">
 												<a href="https://resources.portal.at/appcall_registration?portal=PAT&appid=STB" target="_blank">
-													<i class="fa fa-external-link"></i>&nbsp;Zum ERNP-Meldungsportal
+													<i class="fa fa-external-link"></i>&nbsp;<?php echo $this->p->t('bpkmanagement','ZumErnpMeldungsportal') ?>
 												</a>
 												<br />
 												<br />
@@ -223,25 +216,25 @@ $this->load->view(
 										<?php if (!isEmptyString($stammdaten->bpk)): ?>
 										<span class="text-success">
 											<i class="fa fa-check"></i>
-											bPK in FH-Complete bereits vorhanden.
+											<?php echo $this->p->t('bpkmanagement','bpkVorhanden') ?>
 										</span>
 										<?php else:?>
 											<?php if ($austrianAdressExists): ?>
 												<span class="text-warning">
 													<i class="fa fa-warning"></i>
-													Österreichische Adresse vorhanden, bPK sollte im Datenverbund existieren.
+													<?php echo $this->p->t('bpkmanagement','oesterrAdresseVorhanden') ?>
 												</span>
 											<?php endif; ?>
 											<?php if ($meldezettelExists) :?>
 												<?php if ($austrianMeldezettelExists) :?>
 													<span class="text-warning">
 														<i class="fa fa-warning"></i>
-														Österreichischer Meldezettel vorhanden, bPK sollte im Datenverbund existieren.
+														<?php echo $this->p->t('bpkmanagement','oesterrMeldezettelVorhanden') ?>
 													</span>
 												<?php else: ?>
 													<span class="text-warning">
 														<i class="fa fa-warning"></i>
-														Meldezettel existiert. Wenn dieser österreichisch ist, sollte bPK existieren.
+														<?php echo $this->p->t('bpkmanagement','meldezettelVorhanden') ?>
 													</span>
 												<?php endif; ?>
 											<?php endif; ?>
@@ -257,21 +250,21 @@ $this->load->view(
 					<div class="col-lg-12">
 						<div class="panel panel-primary">
 							<div class="panel-heading text-center">
-								<h4><?php echo "bPK-Prüfung" ?></h4>
+								<h4><?php echo $this->p->t('bpkmanagement','bpkPruefung') ?></h4>
 							</div>
 							<div class="panel-body">
 								<div class="row">
 									<div class="col-lg-5">
 										<a id="showAllCombinations" target="_self">
-											<i class="fa fa-info"></i>&nbsp;Alle abzufragenden Namenskombinationen anzeigen
+											<i class="fa fa-info"></i>&nbsp;<?php echo $this->p->t('bpkmanagement','alleNamenskombinationenAnzeigen') ?>
 										</a>
 									</div>
 									<div class="col-lg-2 text-center">
-										<button class="btn btn-default" id="startBpkCheck">bPK-Prüfung starten</button>
+										<button class="btn btn-default" id="startBpkCheck"><?php echo $this->p->t('bpkmanagement','bpkPruefungStarten') ?></button>
 									</div>
 									<div class="col-lg-5 text-right">
 										<a href="<?php echo site_url('extensions/FHC-Core-DVUH/DVUH#page=getBpk&person_id='.$stammdaten->person_id); ?>" target="_blank">
-											<i class="fa fa-external-link"></i>&nbsp;Zur manuellen bPK-Prüfung
+											<i class="fa fa-external-link"></i>&nbsp;<?php echo $this->p->t('bpkmanagement','zurManuellenBpkPruefung') ?>
 										</a>
 									</div>
 								</div>

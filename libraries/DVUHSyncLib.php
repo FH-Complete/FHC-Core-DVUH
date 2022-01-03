@@ -80,7 +80,7 @@ class DVUHSyncLib
 
 				if (isError($addrCheck))
 					return createError(
-						"Adresse ungültig: " . getError($addrCheck),
+						$this->_ci->p->t('dvuh', 'adresseUngueltig').": " . getError($addrCheck),
 						'adresseUngueltig',
 						array(getError($addrCheck))
 					);
@@ -107,10 +107,10 @@ class DVUHSyncLib
 			}
 
 			if (isEmptyString($zustellAdresse))
-				return createError('Zustelladresse fehlt', 'keineZustelladresse');
+				return createError($this->_ci->p->t('dvuh', 'zustelladresseFehlt'), 'keineZustelladresse');
 
 			if (isEmptyString($heimatAdresse))
-				return createError('Heimatadresse fehlt', 'keineHeimatadresse');
+				return createError($this->_ci->p->t('dvuh', 'heimatadresseFehlt'), 'keineHeimatadresse');
 
 			$adressen[] = $zustellAdresse;
 			$adressen[] = $heimatAdresse;
@@ -121,7 +121,7 @@ class DVUHSyncLib
 				if ($kontakt->kontakttyp == 'email')
 				{
 					if (!validateXmlTextValue($kontakt->kontakt))
-						return createError('Email enthält Sonderzeichen', 'emailEnthaeltSonderzeichen');
+						return createError($this->_ci->p->t('dvuh', 'emailEnthaeltSonderzeichen'), 'emailEnthaeltSonderzeichen');
 
 					$knt = array();
 					$knt['emailadresse'] = $kontakt->kontakt;
@@ -164,7 +164,7 @@ class DVUHSyncLib
 			foreach ($studentinfo as $idx => $item)
 			{
 				if (!isset($item) || isEmptyString($item))
-					return createError('Stammdaten fehlen: ' . $idx, 'stammdatenFehlen', array($idx));
+					return createError($this->_ci->p->t('dvuh', 'stammdatenFehlen').': ' . $idx, 'stammdatenFehlen', array($idx));
 			}
 
 			if (isset($stammdaten->matr_nr))
@@ -184,7 +184,7 @@ class DVUHSyncLib
 				if (!$this->checkEkz($stammdaten->ersatzkennzeichen))
 				{
 					return createError(
-						'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
+						$this->_ci->p->t('dvuh', 'ersatzkennzeichenUngueltig'),
 						'ersatzkennzeichenUngueltig'
 					);
 				}
@@ -197,7 +197,7 @@ class DVUHSyncLib
 				if (!$this->checkBpk($stammdaten->bpk))
 				{
 					return createError(
-						'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
+						$this->_ci->p->t('dvuh', 'bpkUngueltig'),
 						'bpkUngueltig'
 					);
 				}
@@ -211,7 +211,7 @@ class DVUHSyncLib
 			{
 				if (isset($studentinfo[$textValue]) && !validateXmlTextValue($studentinfo[$textValue]))
 				{
-					return createError("$textValue enthält ungültige Sonderzeichen", 'ungueltigeSonderzeichen', array($textValue));
+					return createError($this->_ci->p->t('dvuh', 'enthaeltUngueltigeSonderzeichen', array($textValue)), 'ungueltigeSonderzeichen', array($textValue));
 				}
 			}
 
@@ -223,7 +223,7 @@ class DVUHSyncLib
 			);
 		}
 		else
-			return error("keine Stammdaten gefunden");
+			return error($this->_ci->p->t('dvuh', 'keineStammdatenGefunden'));
 	}
 
 	/**
@@ -244,10 +244,10 @@ class DVUHSyncLib
 			$person = getData($personresult)[0];
 
 			if (isEmptyString($person->matr_nr))
-				return createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+				return createError($this->_ci->p->t('dvuh', 'matrikelnummerNichtGesetzt'), 'matrNrFehlt');
 
 			if (!$this->checkMatrikelnummer($person->matr_nr))
-				return createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($person->matr_nr));
+				return createError($this->_ci->p->t('dvuh', 'matrikelnummerUngueltig'), 'matrikelnrUngueltig', array($person->matr_nr));
 
 			$resultObj->matrikelnummer = $person->matr_nr;
 			$gebdatum = $person->gebdatum;
@@ -324,7 +324,7 @@ class DVUHSyncLib
 					$perskz = trim($prestudentstatus->personenkennzeichen);
 
 					if (isEmptyString($perskz) || !preg_match("/^\d{10}$/", $perskz))
-						return createError("Personenkennzeichen ungültig", 'personenkennzeichenUngueltig', array($perskz));
+						return createError($this->_ci->p->t('dvuh', 'personenkennzeichenUngueltig'), 'personenkennzeichenUngueltig', array($perskz));
 
 					// studstatuscode
 					$studstatuscodeResult = $this->_getStatuscode($status_kurzbz);
@@ -391,7 +391,7 @@ class DVUHSyncLib
 
 						if (isError($zugangsberechtigungResult))
 							return createError(
-								"Fehlerhafte ZGV Daten: ".getError($zugangsberechtigungResult),
+								$this->_ci->p->t('dvuh', 'fehlerhafteZgvDaten').": ".getError($zugangsberechtigungResult),
 								'fehlerhafteZgvDaten',
 								array(getError($zugangsberechtigungResult))
 							);
@@ -408,7 +408,7 @@ class DVUHSyncLib
 
 					if (isset($zugangsberechtigungMAResult) && isError($zugangsberechtigungMAResult))
 						return createError(
-							"Fehlerhafte ZGV Master Daten: ".getError($zugangsberechtigungMAResult),
+							$this->_ci->p->t('dvuh', 'fehlerhafteZgvMasterDaten').": ".getError($zugangsberechtigungMAResult),
 							'fehlerhafteZgvMasterDaten',
 							array(getError($zugangsberechtigungMAResult))
 						);
@@ -443,7 +443,7 @@ class DVUHSyncLib
 						foreach ($lehrgang as $idx => $item)
 						{
 							if (!isset($item) || isEmptyString($item))
-								return createError('Lehrgangdaten fehlen: ' . $idx, 'lehrgangdatenFehlen', array($idx));
+								return createError($this->_ci->p->t('dvuh', 'lehrgangdatenFehlen').': ' . $idx, 'lehrgangdatenFehlen', array($idx));
 						}
 
 						if (isset($zulassungsdatum) && !$isExtern)
@@ -542,7 +542,7 @@ class DVUHSyncLib
 							if ($orgformcode != '1')
 							{
 								if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
-									$this->_addWarning('Berufstätigkeitcode fehlt', 'berufstaetigkeitcodeFehlt');
+									$this->_addWarning($this->_ci->p->t('dvuh', 'berufstaetigkeitcodeFehlt'), 'berufstaetigkeitcodeFehlt');
 								else
 									$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
 							}
@@ -558,7 +558,7 @@ class DVUHSyncLib
 						foreach ($studiengang as $idx => $item)
 						{
 							if (!isset($item) || isEmptyString($item))
-								return createError('Studiumdaten fehlen', 'studiumdatenFehlen', array($idx));
+								return createError($this->_ci->p->t('dvuh', 'studiumdatenFehlen'), 'studiumdatenFehlen', array($idx));
 						}
 
 						if (isset($orgform_code))
@@ -603,7 +603,7 @@ class DVUHSyncLib
 			}
 			else
 			{
-				return error('Keine aktiven Studenten für das gegebene Semester');
+				return error($this->_ci->p->t('dvuh', 'keineAktivenStudentenFuerSemester'));
 			}
 		}
 
@@ -749,16 +749,16 @@ class DVUHSyncLib
 		$result = success(true);
 
 		if (!isset($addr['ort']) || isEmptyString($addr['ort']) || !validateXmlTextValue($addr['ort']))
-			$result = error('Ort (Feld Gemeinde) fehlt oder enthält Sonderzeichen');
+			$result = error($this->_ci->p->t('dvuh', 'ortFehlt'));
 
 		if (!isset($addr['plz']) || isEmptyString($addr['plz']) || !validateXmlTextValue($addr['plz']))
-			$result = error('Plz fehlt oder enthält Sonderzeichen');
+			$result = error($this->_ci->p->t('dvuh', 'plzFehlt'));
 
 		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']) || !validateXmlTextValue($addr['strasse']))
-			$result = error('Strasse fehlt oder enthält Sonderzeichen');
+			$result = error($this->_ci->p->t('dvuh', 'strasseFehlt'));
 
 		if (!isset($addr['staat']) || isEmptyString($addr['staat']))
-			$result = error('Nation fehlt');
+			$result = error($this->_ci->p->t('dvuh', 'nationFehlt'));
 
 		return $result;
 	}
@@ -831,7 +831,7 @@ class DVUHSyncLib
 		);
 
 		if (isError($diplomandResult))
-			return error("Fehler beim Holen der Diplomanden");
+			return error($this->_ci->p->t('dvuh', 'fehlerHolenDiplomanden'));
 		elseif (hasData($diplomandResult))
 		{
 			$diplomandcount = getData($diplomandResult)[0];
@@ -859,7 +859,7 @@ class DVUHSyncLib
 	private function _getGemeinsameStudien($prestudentstatus, $semester, $studtyp)
 	{
 		if (!isset($studtyp))
-			return error('Kein Studientyp für gemeinsame Studien gefunden');
+			return error($this->_ci->p->t('dvuh', 'keinStudientypGemeinsameStudien'));
 
 		$prestudent_id = $prestudentstatus->prestudent_id;
 
@@ -868,7 +868,7 @@ class DVUHSyncLib
 		if (hasData($prevSemesterResult))
 			$prevSemester = getData($prevSemesterResult)[0]->studiensemester_kurzbz;
 		else
-			return error('Kein vorheriges Studiensemester');
+			return error($this->_ci->p->t('dvuh', 'keinVorherigesStudiensemester'));
 
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 
@@ -894,7 +894,7 @@ class DVUHSyncLib
 		$gemeinsam = null;
 
 		if (isError($gemeinsamestudienResult))
-			return error("Fehler beim Holen gemeinsamer Studien");
+			return error($this->_ci->p->t('dvuh', 'fehlerHolenGemeinsameStudien'));
 		if (hasData($gemeinsamestudienResult))
 		{
 			$gemeinsamestudien = getData($gemeinsamestudienResult)[0];
@@ -902,7 +902,7 @@ class DVUHSyncLib
 			if (isset($kodex_studstatuscode_array[$gemeinsamestudien->status_kurzbz]))
 				$gs_studstatuscode = $kodex_studstatuscode_array[$gemeinsamestudien->status_kurzbz];
 			else
-				return error('Kein Status für gemeinsame Studien gefunden');
+				return error($this->_ci->p->t('dvuh', 'keinStatusGemeinsameStudien'));
 
 			$gemeinsamData = array(
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
@@ -934,7 +934,7 @@ class DVUHSyncLib
 			$semester = getData($semesterResult)[0];
 		}
 		else
-			return error("Kein korrektes Semester angegeben");
+			return error($this->_ci->p->t('dvuh', 'keinKorrektesSemester'));
 
 		$ioResult = $this->_dbModel->execReadOnlyQuery(
 					"SELECT *
@@ -944,6 +944,9 @@ class DVUHSyncLib
 		);
 
 		$mobilitaeten = array();
+
+		if (isError($ioResult))
+			return $ioResult;
 
 		if(hasData($ioResult))
 		{
@@ -980,7 +983,7 @@ class DVUHSyncLib
 						if (count($bisio_zweck) > 1)
 						{
 							return createError(
-								"Es sind" . count($bisio_zweck) . " Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)",
+								$this->_ci->p->t('dvuh', 'strasseFehlt', array(count($bisio_zweck))),
 								'zuVieleZweckeIncoming',
 								array(count($bisio_zweck))
 							);
@@ -990,7 +993,7 @@ class DVUHSyncLib
 						if (count($bisio_zweck) == 1 && !in_array($bisio_zweck[0]->zweck_code, array(1, 2, 3)))
 						{
 							return createError(
-								"Aufenthaltszweckcode ist " . $bisio_zweck[0]->zweck_code . " (f&uuml;r Incomings ist nur Zweck 1, 2, 3 erlaubt)",
+								$this->_ci->p->t('dvuh', 'unerlaubterAufenthaltszweckcode', array($bisio_zweck[0]->zweck_code)),
 								'falscherIncomingZweck',
 								array(count($bisio_zweck[0]->zweck_code))
 							);
@@ -1006,7 +1009,7 @@ class DVUHSyncLib
 							if (in_array(1, $zweck_code_arr) && in_array(2, $zweck_code_arr) && in_array(3, $zweck_code_arr))
 							{
 								return createError(
-									"Aufenthaltzweckcode 1, 2, 3 d&uuml;rfen nicht gemeinsam gemeldet werden",
+									$this->_ci->p->t('dvuh', 'aufenthaltszweckcodeGemeinsamGemeldet'),
 									'falscherIncomingZweckGemeinsam'
 								);
 							}
@@ -1030,7 +1033,7 @@ class DVUHSyncLib
 						if ((!hasData($bisio_foerderung_result)) && $adauer >= 29)
 						{
 							return createError(
-								"Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)",
+								$this->_ci->p->t('dvuh', 'keineAufenthaltsfoerderungAngegeben'),
 								'outgoingAufenthaltfoerderungfehlt'
 							);
 						}
@@ -1057,7 +1060,7 @@ class DVUHSyncLib
 						if (isEmptyString($ioitem->ects_erworben) && $adauer >= 29 && $aufenthalt_finished)
 						{
 							return createError(
-								"Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
+								$this->_ci->p->t('dvuh', 'erworbeneEctsFehlen'),
 								'outgoingErworbeneEctsFehlen'
 							);
 						}
@@ -1065,7 +1068,7 @@ class DVUHSyncLib
 						if (isEmptyString($ioitem->ects_angerechnet) && $adauer >= 29 && $aufenthalt_finished)
 						{
 							return createError(
-								"Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
+								$this->_ci->p->t('dvuh', 'angerechneteEctsFehlen'),
 								'outgoingAngerechneteEctsFehlen'
 							);
 						}
@@ -1075,7 +1078,7 @@ class DVUHSyncLib
 					}
 				}
 				else
-					return error('Bisio Zweck nicht gefunden');
+					return error($this->_ci->p->t('dvuh', 'bisioZweckNichtGefunden'));
 
 				$mobilitaet = array(
 					'programm' => $programm,
@@ -1129,12 +1132,12 @@ class DVUHSyncLib
 				$orgform_code_array['DDP'] = $orgform_code_array['VZ'];
 
 			if (!isset($orgform_code_array[$orgform_kurzbz]))
-				return error("Orgform ungültig");
+				return error($this->_ci->p->t('dvuh', 'orgformUngueltig'));
 
 			return success($orgform_code_array[$orgform_kurzbz]);
 		}
 		else
-			return error("Fehler beim Holen der Orgform");
+			return error($this->_ci->p->t('dvuh', 'fehlerHolenOrgform'));
 	}
 
 	/**
@@ -1187,7 +1190,7 @@ class DVUHSyncLib
 		}
 		else
 		{
-			return error("Kein Statuscode gefunden!");
+			return error($this->_ci->p->t('dvuh', 'keinStatuscodeGefunden'));
 		}
 
 		return success($studstatuscode);
@@ -1205,15 +1208,15 @@ class DVUHSyncLib
 		$zugangsberechtigung = null;
 
 		if (!isset($prestudentstatus->zgv_code))
-			$this->_addWarning('Zgv fehlt', 'zgvFehlt');
+			$this->_addWarning($this->_ci->p->t('dvuh', 'zgvFehlt'), 'zgvFehlt');
 		elseif (!isset($prestudentstatus->zgvdatum))
-			$this->_addWarning('ZGV Datum fehlt', 'zgvDatumFehlt');
+			$this->_addWarning($this->_ci->p->t('dvuh', 'zgvDatumFehlt'), 'zgvDatumFehlt');
 		else
 		{
 			if ($prestudentstatus->zgvdatum > date("Y-m-d"))
-				return error("ZGV Datum in Zukunft");
+				return error($this->_ci->p->t('dvuh', 'zgvDatumInZukunft'));
 			if ($prestudentstatus->zgvdatum < $gebdatum)
-				return error("ZGV Datum vor Geburtsdatum");
+				return error($this->_ci->p->t('dvuh', 'zgvDatumVorGeburtsdatum'));
 
 			// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
 			$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
@@ -1245,22 +1248,22 @@ class DVUHSyncLib
 		if ($prestudentstatus->studiengang_typ == 'm' || $prestudentstatus->lgart_biscode == '1')
 		{
 			if (!isset($prestudentstatus->zgvmas_code))
-				$this->_addWarning('Zgv Master fehlt', 'zgvMasterFehlt');
+				$this->_addWarning($this->_ci->p->t('dvuh', 'zgvMasterFehlt'), 'zgvMasterFehlt');
 			elseif (!isset($prestudentstatus->zgvmadatum))
-				$this->_addWarning('ZGV Masterdatum fehlt', 'zgvMasterDatumFehlt');
+				$this->_addWarning($this->_ci->p->t('dvuh', 'zgvMasterDatumFehlt'), 'zgvMasterDatumFehlt');
 			else
 			{
 				if ($prestudentstatus->zgvmadatum > date("Y-m-d"))
 				{
-					return error("ZGV Masterdatum in Zukunft");
+					return error($this->_ci->p->t('dvuh', 'zgvMasterdatumInZukunft'));
 				}
 				if ($prestudentstatus->zgvmadatum < $prestudentstatus->zgvdatum)
 				{
-					return error("ZGV Masterdatum vor Zgvdatum");
+					return error($this->_ci->p->t('dvuh', 'zgvMasterdatumVorZgvdatum'));
 				}
 				if ($prestudentstatus->zgvmadatum < $gebdatum)
 				{
-					return error("ZGV Masterdatum vor Geburtsdatum");
+					return error($this->_ci->p->t('dvuh', 'zgvMasterddatumVorGeburtsdatum'));
 				}
 
 				// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden

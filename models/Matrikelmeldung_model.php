@@ -60,7 +60,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 		$result = null;
 
 		if (isEmptyString($person_id))
-			$result = error('personID nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'personIdNichtGesetzt'));
 		else
 		{
 			$this->load->model('person/Person_model', 'PersonModel');

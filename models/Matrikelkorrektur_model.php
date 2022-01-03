@@ -27,11 +27,11 @@ class Matrikelkorrektur_model extends DVUHClientModel
 	public function post($be, $matrikelnummer, $semester, $matrikelalt)
 	{
 		if (isEmptyString($matrikelnummer))
-			$result = error('Matrikelnummer nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'matrikelnummerNichtGesetzt'));
 		elseif(isEmptyString($semester))
-			$result = error('Semester nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'semesterNichtGesetzt'));
 		elseif(isEmptyString($matrikelalt))
-			$result = error('Matrikelnr alt nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'matrikelnrAltNichtGesetzt'));
 		else
 		{
 			$params = array(

@@ -52,7 +52,7 @@ class FHCManagementLib
 		}
 		else
 		{
-			return error("Fehler beim Aktualisieren der Matrikelnummer in FHC");
+			return error($this->_ci->p->t('dvuh', 'fehlerAktualisierenMatrikelnr'));
 		}
 	}
 
@@ -123,6 +123,7 @@ class FHCManagementLib
 	 */
 	public function saveBpkInFhc($person_id, $bpk)
 	{
+		// TODO check if bpk valid
 		return $this->_ci->PersonModel->update(
 			array(
 				'person_id' => $person_id
@@ -142,7 +143,7 @@ class FHCManagementLib
 	 */
 	public function nullifyBuchung($buchung)
 	{
-		$andereBeBezahltTxt = 'An anderer Bildungseinrichtung bezahlt';
+		$andereBeBezahltTxt = $this->_ci->p->t('dvuh', 'andereBeBezahlt');
 		$buchungNullify = $this->_ci->KontoModel->update(
 			array('buchungsnr' => $buchung->buchungsnr),
 			array(
@@ -173,10 +174,10 @@ class FHCManagementLib
 			if (isError($gegenbuchungNullify))
 				return $gegenbuchungNullify;
 
-			return success("Buchung Erfolgreich nullifiziert");
+			return success($this->_ci->p->t('dvuh', 'buchungErfolgreichNullifiziert'));
 		}
 		else
-			return error("Fehler beim Nullifizieren der Buchung");
+			return error($this->_ci->p->t('dvuh', 'fehlerNullifizierenBuchung'));
 	}
 
 	/**

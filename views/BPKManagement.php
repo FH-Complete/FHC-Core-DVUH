@@ -36,10 +36,7 @@ $this->load->view(
 				</div>
 			</div>
 			<div>
-				Bei folgenden Personen mit Matrikelnummer konnte kein bPK ermittelt werden.
-				Es ist die Namensschreibweise zu prüfen und ggf zu korrigieren.
-				Falls die Person keine Meldeadresse hat, ist eine Eintragung der
-				Person in das "Ergänzungsregister für natürliche Personen" notwendig.
+				<?php echo $this->p->t('bpkmanagement', 'bpkUebersichtBeschreibung') ?>
 				<br /><br />
 				<?php $this->load->view('extensions/FHC-Core-DVUH/BPKManagementData.php'); ?>
 			</div>

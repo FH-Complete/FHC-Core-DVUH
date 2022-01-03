@@ -33,10 +33,9 @@ class BPKManagement extends Auth_Controller
 			array(
 				'global',
 				'person',
-				'lehre',
 				'ui',
-				'infocenter',
-				'filter'
+				'filter',
+				'bpkmanagement'
 			)
 		);
 
@@ -58,7 +57,6 @@ class BPKManagement extends Auth_Controller
 
 	/**
 	 * Show details page
-	 * @param $person_id
 	 */
 	public function showDetails()
 	{
@@ -66,7 +64,7 @@ class BPKManagement extends Auth_Controller
 		$person_id = $this->input->get('person_id');
 
 		if (!is_numeric($person_id))
-			show_error('person id is not numeric!');
+			show_error("Person Id ungültig!");
 
 		$personData = $this->bpkmanagementlib->loadPersonData($person_id);
 
@@ -76,11 +74,12 @@ class BPKManagement extends Auth_Controller
 		if (!hasData($personData))
 			show_error('Person nicht gefunden');
 
-		$data[self::FHC_CONTROLLER_ID] = $this->getControllerId();
-
 		$this->load->view('extensions/FHC-Core-DVUH/BPKDetails.php', getData($personData));
 	}
 
+	/**
+	 * Requests bPKs for all name combinations of a person.
+	 */
 	public function checkBpkCombinations()
 	{
 		$bpkCombRes = null;
@@ -94,6 +93,9 @@ class BPKManagement extends Auth_Controller
 		$this->outputJson($bpkCombRes);
 	}
 
+	/**
+	 * Gets all name combinations to check for a person.
+	 */
 	public function getAllNameCombinations()
 	{
 		$person_id = $this->input->get('person_id');

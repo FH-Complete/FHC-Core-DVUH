@@ -96,9 +96,9 @@ class Stammdaten_model extends DVUHClientModel
 		$result = null;
 
 		if (isEmptyString($person_id))
-			$result = error('personID nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'personIdNichtGesetzt'));
 		elseif (isEmptyString($semester))
-			$result = error('Semester nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'semesterNichtGesetzt'));
 		else
 		{
 			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id);
@@ -112,9 +112,9 @@ class Stammdaten_model extends DVUHClientModel
 				$matrikelnummer = isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'];
 
 				if (isEmptyString($matrikelnummer))
-					$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+					$result = createError($this->p->t('dvuh', 'matrikelnummerNichtGesetzt'), 'matrNrFehlt');
 				elseif (!$this->dvuhsynclib->checkMatrikelnummer($matrikelnummer))
-					$result = createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($matrikelnummer));
+					$result = createError($this->p->t('dvuh', 'matrikelnummerUngueltig'), 'matrikelnrUngueltig', array($matrikelnummer));
 				else
 				{
 					$params = array(
@@ -157,7 +157,7 @@ class Stammdaten_model extends DVUHClientModel
 				}
 			}
 			else
-				$result = error("Keine Stammdaten gefunden");
+				$result = error($this->p->t('dvuh', 'keineStammdatenGefunden'));
 		}
 
 		return $result;

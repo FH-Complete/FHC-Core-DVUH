@@ -28,7 +28,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	public function get($be, $semester, $matrikelnummer = null)
 	{
 		if (isEmptyString($semester))
-			$result = error('Matrikelnummer nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'matrikelnummerNichtGesetzt'));
 		else
 		{
 			$callParametersArray = array(
@@ -77,7 +77,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	public function retrievePostData($be, $person_id, $studiensemester, &$toPost = array())
 	{
 		if (isEmptyString($person_id))
-			$result = error('personID nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'personIdNichtGesetzt'));
 		else
 		{
 			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($studiensemester);

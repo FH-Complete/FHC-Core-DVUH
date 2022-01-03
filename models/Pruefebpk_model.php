@@ -37,11 +37,11 @@ class Pruefebpk_model extends DVUHClientModel
 						$alternativname = null)
 	{
 		if (isEmptyString($vorname))
-			$result = error('Vorname nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'vornameNichtGesetzt'));
 		elseif (isEmptyString($nachname))
-			$result = error('Nachname nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'nachnameNichtGesetzt'));
 		elseif (isEmptyString($geburtsdatum))
-			$result = error('Geburtsdatum nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'geburtsdatumNichtGesetzt'));
 		else
 		{
 			$callParametersArray = array(
@@ -80,7 +80,7 @@ class Pruefebpk_model extends DVUHClientModel
 	public function getByPersonId($person_id)
 	{
 		if (!isset($person_id))
-			return error("Person muss angegeben werden");
+			return error($this->p->t('dvuh', 'personIdNichtGesetzt'));
 
 		$stammdatenDataResult = $this->PersonModel->getPersonStammdaten($person_id);
 
@@ -94,6 +94,6 @@ class Pruefebpk_model extends DVUHClientModel
 				$stammdatenData->geschlecht, null, null, null, $stammdatenData->titelpre, $stammdatenData->titelpost);
 		}
 		else
-			return error("No data found for person.");
+			return error($this->p->t('dvuh', 'keineDatenFuerPerson'));
 	}
 }

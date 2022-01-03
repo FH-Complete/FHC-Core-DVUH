@@ -20,6 +20,12 @@ class Codex extends Auth_Controller
 				'fehlerliste'=>'admin:r'
 			)
 		);
+
+		$this->loadPhrases(
+			array(
+				'codex'
+			)
+		);
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

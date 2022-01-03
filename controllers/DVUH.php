@@ -40,6 +40,12 @@ class DVUH extends Auth_Controller
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
+
+		$this->loadPhrases(
+			array(
+				'dvuh'
+			)
+		);
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

@@ -46,14 +46,14 @@ class Matrikelpruefung_model extends DVUHClientModel
 		elseif (!isEmptyString($ekz) && !$this->dvuhsynclib->checkEkz($ekz))
 		{
 			$result = createError(
-				'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
+				$this->p->t('dvuh', 'ersatzkennzeichenUngueltig'),
 				'ersatzkennzeichenUngueltig'
 			);
 		}
 		elseif (!isEmptyString($bpk) && !$this->dvuhsynclib->checkBpk($bpk))
 		{
 			$result = createError(
-				'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
+				$this->p->t('dvuh', 'bpkUngueltig'),
 				'bpkUngueltig'
 			);
 		}

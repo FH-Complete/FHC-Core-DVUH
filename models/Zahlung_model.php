@@ -53,17 +53,17 @@ class Zahlung_model extends DVUHClientModel
 	public function retrievePostData($be, $matrikelnummer, $semester, $zahlungsart, $centbetrag, $buchungsdatum, $referenznummer)
 	{
 		if (isEmptyString($matrikelnummer))
-			$result = error('Matrikelnummer nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'matrikelnummerNichtGesetzt'));
 		elseif (isEmptyString($semester))
-			$result = error('Semester nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'semesterNichtGesetzt'));
 		elseif (isEmptyString($zahlungsart))
-			$result = error('Zahlungsart nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'zahlungsartNichtGesetzt'));
 		elseif (isEmptyString($centbetrag))
-			$result = error('Centbetrag nicht gesetzt');
-		elseif (isEmptyString($zahlungsart))
-			$result = error('Buchungsdatum nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'centbetragNichtGesetzt'));
+		elseif (isEmptyString($buchungsdatum))
+			$result = error($this->p->t('dvuh', 'buchungsdatumNichtGesetzt'));
 		elseif (isEmptyString($referenznummer))
-			$result = error('Referenznummer nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'referenznummberNichtGesetzt'));
 		else
 		{
 			$params = array(

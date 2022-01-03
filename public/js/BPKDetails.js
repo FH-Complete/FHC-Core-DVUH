@@ -55,7 +55,7 @@ var BpkDetails = {
 				{
 					if (FHC_AjaxClient.isError(data))
 					{
-						FHC_DialogLib.alertError("Fehler bei bPK Anfrage");
+						FHC_DialogLib.alertError(FHC_PhrasesLib.t('bpkmanagement', 'fehlerBpkAnfrage'));
 					}
 					else if (FHC_AjaxClient.hasData(data))
 					{
@@ -70,11 +70,11 @@ var BpkDetails = {
 						}
 					}
 					else
-						FHC_DialogLib.alertInfo("Keine bPK gefunden");
+						FHC_DialogLib.alertInfo(FHC_PhrasesLib.t('bpkmanagement', 'keineBpkGefunden'));
 				},
 				errorCallback: function(jqXHR, textStatus, errorThrown)
 				{
-					FHC_DialogLib.alertError("Fehler bei bPK Anfrage");
+					FHC_DialogLib.alertError(FHC_PhrasesLib.t('bpkmanagement', 'fehlerBpkAnfrage'));
 				}
 			}
 		);
@@ -89,7 +89,7 @@ var BpkDetails = {
 				{
 					if (FHC_AjaxClient.isError(data))
 					{
-						FHC_DialogLib.alertError("Fehler bei Anfrage");
+						FHC_DialogLib.alertError(FHC_PhrasesLib.t('bpkmanagement', 'fehlerBeiAnfrage'));
 					}
 					else if (FHC_AjaxClient.hasData(data))
 					{
@@ -128,11 +128,11 @@ var BpkDetails = {
 						$("#bpkBoxes").html(combinationsHtml);
 					}
 					else
-						FHC_DialogLib.alertInfo("Keine Kombinationen gefunden");
+						FHC_DialogLib.alertInfo(FHC_PhrasesLib.t('bpkmanagement', 'keineKombinationenGefunden'));
 				},
 				errorCallback: function(jqXHR, textStatus, errorThrown)
 				{
-					FHC_DialogLib.alertError("Fehler bei Anfrage");
+					FHC_DialogLib.alertError(FHC_PhrasesLib.t('bpkmanagement', 'fehlerBeiAnfrage'));
 				}
 			}
 		);
@@ -150,7 +150,7 @@ var BpkDetails = {
 				{
 					if (FHC_AjaxClient.isError(data))
 					{
-						FHC_DialogLib.alertError("Fehler beim bPK Speichern: " + FHC_AjaxClient.getError(data));
+						FHC_DialogLib.alertError(FHC_PhrasesLib.t('bpkmanagement', 'fehlerBpkSpeichern')+": " + FHC_AjaxClient.getError(data));
 					}
 
 					if (FHC_AjaxClient.hasData(data))
@@ -160,7 +160,7 @@ var BpkDetails = {
 				},
 				errorCallback: function(jqXHR, textStatus, errorThrown)
 				{
-					FHC_DialogLib.alertError("Fehler beim Speichern des bPK!");
+					FHC_DialogLib.alertError(FHC_PhrasesLib.t('bpkmanagement', 'fehlerBpkSpeichern'));
 				}
 			}
 		);
@@ -172,10 +172,10 @@ var BpkDetails = {
 		let responsePersonData = responseData.personData;
 
 		let numberPersonsFound = responsePersonData.length;
-		let heading = 'keine Bpk gefunden';
+		let heading = FHC_PhrasesLib.t('bpkmanagement', 'keineBpkGefunden');
 
 		if (numberPersonsFound > 1)
-			heading = 'Mehrere Personentreffer';
+			heading = FHC_PhrasesLib.t('bpkmanagement', 'mehrerePersonentreffer');
 		else if(numberPersonsFound === 1 && bpk != null)
 			heading = bpk;
 
@@ -201,7 +201,7 @@ var BpkDetails = {
 									'</colgroup>' +
 									'<thead>' +
 										'<tr>' +
-											'<th colspan="2" class="text-center">Gefunden:</th>' +
+											'<th colspan="2" class="text-center">'+FHC_PhrasesLib.t('bpkmanagement', 'gefunden')+':</th>' +
 										'</tr>' +
 									'</thead>' +
 									'<tbody>';
@@ -227,7 +227,7 @@ var BpkDetails = {
 							'<table class="table table-condensed table-bordered">' +
 								'<thead>' +
 									'<tr>' +
-										'<th class="text-center">Für folgende Anfragen:</th>' +
+										'<th class="text-center">'+FHC_PhrasesLib.t('bpkmanagement', 'fuerFolgendeAnfragen')+':</th>' +
 									'</tr>' +
 								'</thead>' +
 								'<tbody>';
@@ -257,7 +257,7 @@ var BpkDetails = {
 		{
 			boxhtml += '<div class="row">' +
 							'<div class="col-lg-12 text-center">' +
-								'<button class="btn btn-default" id="saveBpk_'+idx+'">bPK übernehmen</button>' +
+								'<button class="btn btn-default" id="saveBpk_'+idx+'">'+FHC_PhrasesLib.t('bpkmanagement', 'bpkUebernehmen')+'</button>' +
 							'</div>';
 						'</div>';
 		}

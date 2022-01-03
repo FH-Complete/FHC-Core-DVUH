@@ -37,7 +37,7 @@ class Studium_model extends DVUHClientModel
 		);
 
 		if (isEmptyString($matrikelnummer))
-			$result = error('Matrikelnummer nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'matrikelnummerNichtGesetzt'));
 		else
 		{
 			if (!is_null($semester))
@@ -129,7 +129,7 @@ class Studium_model extends DVUHClientModel
 			$result = success($postData);
 		}
 		else
-			$result = error("Keine Studiumdaten gefunden");
+			$result = error($this->p->t('dvuh', 'keineStudiumdatenGefunden'));
 
 		return $result;
 	}

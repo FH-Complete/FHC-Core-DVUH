@@ -30,9 +30,9 @@ class Kontostaende_model extends DVUHClientModel
 	public function get($be, $semester, $matrikelnummer, $seit = null)
 	{
 		if (isEmptyString($matrikelnummer))
-			$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+			$result = createError($this->p->t('dvuh', 'matrikelnummerNichtGesetzt'), 'matrNrFehlt');
 		elseif(isEmptyString($semester))
-			$result = error('Semester nicht gesetzt');
+			$result = error($this->p->t('dvuh', 'semesterNichtGesetzt'));
 		else
 		{
 			$callParametersArray = array(

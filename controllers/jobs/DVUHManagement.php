@@ -19,10 +19,17 @@ class DVUHManagement extends JQW_Controller
 		parent::__construct();
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHErrorLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 		$this->_logInfos = $this->config->item('fhc_dvuh_log_infos');
+
+		$this->loadPhrases(
+			array(
+				'dvuh'
+			)
+		);
+
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -55,7 +62,7 @@ class DVUHManagement extends JQW_Controller
 			foreach ($person_arr as $persobj)
 			{
 				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
-					$this->logError("Fehler bei Matrikelnummernabfrage, ungültige Parameter übergeben");
+					$this->logError($this->p->t('dvuh', 'matrikelnrabfrageUngueltigeParameter'));
 				else
 				{
 					$person_id = $persobj->person_id;
@@ -66,7 +73,7 @@ class DVUHManagement extends JQW_Controller
 					if (isError($requestMatrnrResult))
 					{
 						$this->_logDVUHError(
-							"Fehler bei Matrikelnummernvergabe, person Id $person_id, Studiensemester $studiensemester_kurzbz",
+							$this->p->t('dvuh', 'fehlerMatrikelnummernvergabe', array($person_id, $studiensemester_kurzbz)),
 							$requestMatrnrResult,
 							$person_id
 						);
@@ -120,7 +127,7 @@ class DVUHManagement extends JQW_Controller
 			foreach ($person_arr as $persobj)
 			{
 				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
-					$this->logError("Fehler beim Senden der Vorschreibung, ungültige Parameter übergeben");
+					$this->logError($this->p->t('dvuh', 'vorschreibungSendenUngueltigeParameter'));
 				else
 				{
 					$person_id = $persobj->person_id;
@@ -131,7 +138,7 @@ class DVUHManagement extends JQW_Controller
 					if (isError($sendChargeResult))
 					{
 						$this->_logDVUHError(
-							"Fehler beim Senden der Vorschreibung, Person Id $person_id, Studiensemester $studiensemester",
+							$this->p->t('dvuh', 'fehlerSendenVorschreibungParams', array($person_id, $studiensemester)),
 							$sendChargeResult,
 							$person_id
 						);
@@ -143,7 +150,7 @@ class DVUHManagement extends JQW_Controller
 						$this->_logDVUHInfosAndWarnings($sendCharge, array('person_id' => $person_id));
 
 						if (isset($sendCharge['result']))
-							$this->_logDVUHInfoIfEnabled("Stammdaten mit Vorschreibung Person Id $person_id, Studiensemester $studiensemester erfolgreich gesendet");
+							$this->_logDVUHInfoIfEnabled($this->p->t('dvuh', 'stammdatenVorschreibungErfolgreichGesendet', array($person_id, $studiensemester)));
 					}
 				}
 			}
@@ -191,7 +198,7 @@ class DVUHManagement extends JQW_Controller
 				$studiensemester = $persobj->studiensemester_kurzbz;
 
 				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
-					$this->logError("Fehler beim Senden der Zahlung, ungültige Parameter übergeben");
+					$this->logError($this->p->t('dvuh', 'zahlungSendenUngueltigeParameter'));
 				else
 				{
 					$sendPaymentResult = $this->dvuhmanagementlib->sendPayment($person_id, $studiensemester);
@@ -199,7 +206,7 @@ class DVUHManagement extends JQW_Controller
 					if (isError($sendPaymentResult))
 					{
 						$this->_logDVUHError(
-							"Fehler beim Senden der Zahlung, Person Id $person_id, Studiensemester $studiensemester",
+							$this->p->t('dvuh', 'fehlerSendenZahlungParams', array($person_id, $studiensemester)),
 							$sendPaymentResult,
 							$person_id
 						);
@@ -217,7 +224,7 @@ class DVUHManagement extends JQW_Controller
 								if (isError($paymentRes))
 								{
 									$this->_logDVUHError(
-										"Fehler beim Senden der Zahlung, Person Id $person_id, Studiensemester $studiensemester",
+										$this->p->t('dvuh', 'fehlerSendenZahlungParams', array($person_id, $studiensemester)),
 										$paymentRes,
 										$person_id
 									);
@@ -271,7 +278,7 @@ class DVUHManagement extends JQW_Controller
 				$studiensemester = $prsobj->studiensemester_kurzbz;
 
 				if (!isset($prsobj->prestudent_id) || !isset($prsobj->studiensemester_kurzbz))
-					$this->logError("Fehler beim Senden der Studiumdaten, ungültige Parameter übergeben");
+					$this->logError($this->p->t('dvuh', 'studiumdatenSendenUngueltigeParameter'));
 				else
 				{
 					$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
@@ -279,7 +286,7 @@ class DVUHManagement extends JQW_Controller
 					if (isError($sendStudyDataResult))
 					{
 						$this->_logDVUHError(
-							"Fehler beim Senden der Studiumdaten, Prestudent Id $prestudent_id, studiensemester $studiensemester",
+							$this->p->t('dvuh', 'fehlerSendenStudiumdatenParams', array($prestudent_id, $studiensemester)),
 							$sendStudyDataResult,
 							null,
 							$prestudent_id
@@ -293,7 +300,7 @@ class DVUHManagement extends JQW_Controller
 
 						if (isset($sendStudyData['result']))
 						{
-							$this->_logDVUHInfoIfEnabled("Studiumdaten für prestudent Id $prestudent_id, studiensemester $studiensemester erfolgreich gesendet");
+							$this->_logDVUHInfoIfEnabled($this->p->t('dvuh', 'StudiumdatenErfolgreichGesendet', array($person_id, $studiensemester)));
 						}
 					}
 				}
@@ -341,7 +348,7 @@ class DVUHManagement extends JQW_Controller
 			foreach ($person_arr as $persobj)
 			{
 				if (!isset($persobj->person_id))
-					$this->logError("Fehler bei Bpkanfrage, ungültige Parameter übergeben");
+					$this->logError($this->p->t('dvuh', 'bpkAnfrageUngueltigeParameter'));
 				else
 				{
 					$person_id = $persobj->person_id;
@@ -376,7 +383,7 @@ class DVUHManagement extends JQW_Controller
 							if (!$continueLoop || $resendBpkQueryCount > $maxResendBpkQueryCount)
 							{
 								$this->_logDVUHError(
-									"Fehler bei Bpkanfrage, person Id $person_id",
+									$this->p->t('dvuh', 'fehlerBpkanfrage', array($person_id)),
 									$requestBpkResult,
 									$person_id
 								);
@@ -432,7 +439,7 @@ class DVUHManagement extends JQW_Controller
 			foreach ($person_arr as $persobj)
 			{
 				if (!isset($persobj->person_id) || !isset($persobj->studiensemester_kurzbz))
-					$this->logError("Fehler beim Senden von Prüfungsaktivitäten, ungültige Parameter übergeben");
+					$this->logError($this->p->t('dvuh', 'pruefungsaktivitaetenSendenUngueltigeParameter'));
 				else
 				{
 					$person_id = $persobj->person_id;
@@ -443,7 +450,7 @@ class DVUHManagement extends JQW_Controller
 					if (isError($sendPruefungsaktivitaetenResult))
 					{
 						$this->_logDVUHError(
-							"Fehler beim Senden von Prüfungsaktivitäten, person Id $person_id",
+							$this->p->t('dvuh', 'fehlerSendenPruefungsaktivitaeten', array($person_id)),
 							$sendPruefungsaktivitaetenResult,
 							$person_id
 						);
@@ -555,7 +562,7 @@ class DVUHManagement extends JQW_Controller
 	}
 
 	/**
-	 * Logs DVUH error, writes webservice log and issue (if necessary).
+	 * Logs DVUH error, i.e. writes webservice log and issue (if necessary).
 	 * @param string $logging_prefix for log
 	 * @param object $errorObj containing log info
 	 * @param int $person_id for issue
@@ -579,7 +586,7 @@ class DVUHManagement extends JQW_Controller
 	 */
 	private function _addDVUHIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
-		$issueRes = $this->dvuherrorlib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined_for_external);
+		$issueRes = $this->dvuhissuelib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined_for_external);
 
 		if (isError($issueRes))
 		{

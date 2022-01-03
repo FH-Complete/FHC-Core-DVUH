@@ -47,7 +47,7 @@ class BPKManagementLib
 		}
 
 		if (!hasData($stammdatenRes))
-			return error("Person nicht gefunden");
+			return error($this->_ci->p->t('bpkmanagement', 'personNichtGefunden'));
 
 		$dokument_kurzbz = $this->_ci->config->item('fhc_dvuh_bpkcheck_relevant_documenttypes');
 
@@ -159,7 +159,7 @@ class BPKManagementLib
 			return success($allBpkResults);
 		}
 		else
-			return error("Person nicht gefunden");
+			return error($this->_ci->p->t('bpkmanagement', 'personNichtGefunden'));
 	}
 
 	/**
@@ -299,7 +299,7 @@ class BPKManagementLib
 		}
 		else
 		{
-			return error("Person nicht gefunden");
+			return error($this->_ci->p->t('bpkmanagement', 'personNichtGefunden'));
 		}
 	}
 

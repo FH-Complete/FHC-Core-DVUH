@@ -3,7 +3,7 @@
 /**
  * Functionality for parsing DVUH XML
  */
-class DVUHErrorLib
+class DVUHIssueLib
 {
 	public function __construct()
 	{
@@ -57,7 +57,7 @@ class DVUHErrorLib
 					$oe_kurzbz = $prestudent->oe_kurzbz;
 				}
 				else
-					return error("Kein Prestudent für Hinzufügen von Issue gefunden.");
+					return error($this->_ci->p->t('dvuh', 'keinPrestudentFuerIssue'));
 			}
 
 			if (isset($code->issue_fehler_kurzbz)) // custom, self-defined error
@@ -66,7 +66,7 @@ class DVUHErrorLib
 			}
 			elseif (!isEmptyArray($code)) // external error from DVUH is an array
 			{
-				$issuesResObj = success('Successfully added issue(s)');
+				$issuesResObj = success($this->_ci->p->t('dvuh', 'issuesErfolgreichHinzugefuegt'));
 				$issuesErrorArr = array();
 
 				foreach($code as $error)
@@ -90,12 +90,12 @@ class DVUHErrorLib
 				}
 
 				if (!isEmptyArray($issuesErrorArr))
-					$issuesResObj = error('Error when adding issue(s)', $issuesErrorArr);
+					$issuesResObj = error($this->_ci->p->t('dvuh', 'fehlerIssuesHinzufuegen'), $issuesErrorArr);
 
 				return $issuesResObj;
 			}
 		}
 
-		return success('No issues to add');
+		return success($this->_ci->p->t('dvuh', 'keineIssuesZumHinzufuegen'));
 	}
 }
