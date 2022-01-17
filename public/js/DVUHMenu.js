@@ -31,7 +31,7 @@ $(document).ready(function()
 			return res;
 		}, {});
 
-		if (result.page.length > 0)
+		if (result.page && result.page.length > 0)
 		{
 			DVUHMenu.printForm(result.page, result);
 		}
