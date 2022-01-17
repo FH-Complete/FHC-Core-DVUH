@@ -20,10 +20,42 @@ class FHCManagementLib
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+
+		// load libraries
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods
+
+	/**
+	 * Gets non-paid Buchungen of a person, i.e. no other Buchung has it as buchungsnr_verweis.
+	 * @param int $person_id
+	 * @param string $studiensemester_kurzbz
+	 * @param array $buchungstypen limit to only certain types
+	 * @return mixed
+	 */
+	public function getUnpaidBuchungen($person_id, $studiensemester_kurzbz, $buchungstypen)
+	{
+		return $this->_dbModel->execReadOnlyQuery("
+								SELECT buchungsnr
+								FROM public.tbl_konto
+								WHERE person_id = ?
+								  AND studiensemester_kurzbz = ?
+								  AND buchungsnr_verweis IS NULL
+								  AND betrag < 0
+								  AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
+								  					WHERE kto.person_id = tbl_konto.person_id
+								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
+								      				LIMIT 1)
+								  AND buchungstyp_kurzbz IN ?
+								  ORDER BY buchungsdatum, buchungsnr
+								  LIMIT 1",
+			array(
+				$person_id, $studiensemester_kurzbz, $buchungstypen
+			)
+		);
+	}
 
 	/**
 	 * Updates a Matrikelnummer in FHC database
@@ -123,6 +155,9 @@ class FHCManagementLib
 	 */
 	public function saveBpkInFhc($person_id, $bpk)
 	{
+		if (!$this->_ci->dvuhsynclib->checkBpk($bpk))
+			return error("Invalid bPK");
+
 		return $this->_ci->PersonModel->update(
 			array(
 				'person_id' => $person_id
