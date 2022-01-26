@@ -87,7 +87,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 				$resultArr = array();
 				$pruefungsaktivitaetenData = getData($pruefungsaktivitaetenDataResult);
 
-				foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
+				foreach ($pruefungsaktivitaetenData as $pruefungsaktivitaeten)
 				{
 					$params = array(
 						'uuid' => getUUID(),
@@ -95,32 +95,25 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 					);
 
 					// studiengang kz
-					$erhalter_kz = str_pad($pruefungsaktivitaeten->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 3, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 4, '0', STR_PAD_LEFT);
 
 					$params['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
 					$params['semester'] = $dvuh_studiensemester;
-					//$params['studiengang'] = $dvuh_stgkz;
 					$params['studienkennung'] = $dvuh_stgkz;
-
-					//$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/pruefungsaktivitaeten_loeschen', $params, true);
-
-/*					var_dump($params);
-					die();*/
 
 
 					$this->_url = 'pruefungsaktivitaeten_loeschen.xml';
-					$callRes = $this->_call('POST', $params, $params);
+					$callRes = $this->_call('POST', $params);
 
 					if (isSuccess($callRes))
 					{
-						$resultArr[] = $prestudent_id;
+						$resultArr[] = $pruefungsaktivitaeten->prestudent_id;
 					}
 					else
 						return $callRes;
 				}
 
-				return success($resultArr);
+				return success("Prüfungsaktivitäten erfolgreich gelöscht: ".implode(", ", $resultArr)); // TODO phrases
 			}
 			else
 				return error("Keine Prestudenten gefunden!");

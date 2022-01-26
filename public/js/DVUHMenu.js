@@ -296,7 +296,7 @@ var DVUHMenu = {
 	},
 	sendForm: function(action, method, preview)
 	{
-		var url = FHC_JS_DATA_STORAGE_OBJECT.called_path + '/'+action;
+		var url = FHC_JS_DATA_STORAGE_OBJECT.called_path + '/' + action;
 		var formData = DVUHMenu._getFormData();
 		var boxid = 'dvuhOutput';
 
@@ -458,7 +458,6 @@ var DVUHMenu = {
 		}
 		else
 		{
-
 			if (text.infos)
 			{
 				for (var i = 0; i < text.infos.length; i++)
@@ -510,7 +509,6 @@ var DVUHMenu = {
 			{
 				textToWrite += DVUHMenu._printXmlTree(result);
 			}
-
 		}
 
 		var spanid = boxid+"Span";
