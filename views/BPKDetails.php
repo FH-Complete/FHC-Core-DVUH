@@ -10,9 +10,7 @@ $this->load->view(
 		'dialoglib' => true,
 		'ajaxlib' => true,
 		'tablesorter' => true,
-		//'tinymce' => true,
 		'sbadmintemplate' => true,
-		//'addons' => true,
 		'navigationwidget' => true,
 		'customCSSs' => array(
 			'public/css/sbadmin2/admintemplate.css',
