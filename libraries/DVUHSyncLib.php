@@ -624,35 +624,8 @@ class DVUHSyncLib
 
 		$prestudentEcts = array();
 
-
-		/*$params = array(
-			$person_id,
-			$studiensemester
-		);
-
-		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, stg.studiengang_kz, stg.erhalter_kz, pers.matr_nr
-					FROM public.tbl_prestudent ps
-					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
-					JOIN public.tbl_person pers USING(person_id)
-					JOIN public.tbl_studiengang stg  USING(studiengang_kz)
-					WHERE person_id = ?
-					AND pss.studiensemester_kurzbz = ?
-					AND ps.bismelden = TRUE
-					AND stg.melderelevant = TRUE";
-
-		if (isset($status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]))
-		{
-			$prstQry .= " AND pss.status_kurzbz IN ?";
-			$params[] = $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN];
-		}
-
-		$prestudentsRes = $this->_dbModel->execReadOnlyQuery(
-			$prstQry,
-			$params
-		);*/
-
 		//get all valid prestudents of person
-		$prestudentsRes = $this->getPrestudentsOfPerson($person_id, $studiensemester);
+		$prestudentsRes = $this->getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
 
 		if (isError($prestudentsRes))
 			return $prestudentsRes;
@@ -699,10 +672,15 @@ class DVUHSyncLib
 		return success($prestudentEcts);
 	}
 
-	public function getPrestudentsOfPerson($person_id, $studiensemester)
+	/**
+	 * Gets all valid prestudents of a person.
+	 * @param int $person_id
+	 * @param string $studiensemester
+	 * @param array $status_kurzbz
+	 * @return object success or error
+	 */
+	public function getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz)
 	{
-		$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
-
 		$params = array(
 			$person_id,
 			$studiensemester
@@ -718,10 +696,10 @@ class DVUHSyncLib
 					AND ps.bismelden = TRUE
 					AND stg.melderelevant = TRUE";
 
-		if (isset($status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]))
+		if (isset($status_kurzbz) && !isEmptyArray($status_kurzbz))
 		{
 			$prstQry .= " AND pss.status_kurzbz IN ?";
-			$params[] = $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN];
+			$params[] = $status_kurzbz;
 		}
 
 		return $this->_dbModel->execReadOnlyQuery(
@@ -917,7 +895,7 @@ class DVUHSyncLib
 							WHERE
 								prestudent_id=?
 								AND (studiensemester_kurzbz=? OR (studiensemester_kurzbz=? AND status_kurzbz = 'Absolvent'))
-							ORDER BY tbl_mobilitaet.insertamum DESC limit 1;",
+							ORDER BY tbl_mobilitaet.insertamum DESC LIMIT 1;",
 			array(
 				$prestudent_id,
 				$semester,

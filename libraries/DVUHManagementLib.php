@@ -10,8 +10,8 @@ class DVUHManagementLib
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
 
-	private $_be;
-	private $_ci;
+	private $_ci; // code igniter instance
+	private $_be; // Bildungseinrichtung code
 
 	// Statuscodes returned when checking Matrikelnr, resulting actions are array keys
 	private $_matrnr_statuscodes = array(
@@ -48,6 +48,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_loeschen_model', 'PruefungsaktivitaetenLoeschenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ekzanfordern_model', 'EkzanfordernModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
@@ -681,7 +682,7 @@ class DVUHManagementLib
 								FROM sync.tbl_dvuh_zahlungen
 								WHERE buchungsnr = ?
 								AND betrag < 0
-								ORDER BY buchungsdatum DESC, insertamum DESC
+								ORDER BY buchungsdatum DESC, insertamum DESC NULLS LAST, zahlung_id DESC
 								LIMIT 1",
 					array(
 						$buchung->buchungsnr_verweis
@@ -1143,23 +1144,39 @@ class DVUHManagementLib
 			$result = $pruefungsaktivitaetenResult;
 		elseif (hasData($pruefungsaktivitaetenResult))
 		{
-			$xmlstr = getData($pruefungsaktivitaetenResult);
+			$xmlstr = null;
+			$pruefungsaktivitaetenResultData = getData($pruefungsaktivitaetenResult);
 
-			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+			// 0 result means no Pruefungsaktivitaeten were found in fhc,
+			if ($pruefungsaktivitaetenResultData === 0)
+			{
+				// then pruefungsaktivitaeten have to be deleted in dvuh, if they have been sent to DVUH
+				$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->checkIfPruefungsaktivitaetenSent($person_id, $studiensemester_kurzbz);
 
-			if (isError($parsedObj))
-				$result = $parsedObj;
+				if (hasData($checkPruefungsaktivitaetenRes))
+				{
+					// delete all Pruefungsaktivitaeten for the person
+					return $this->deletePruefungsaktivitaeten($person_id, $studiensemester_kurzbz);
+				}
+			}
 			else
 			{
+				$xmlstr = $pruefungsaktivitaetenResultData;
+
+				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+
+				if (isError($parsedObj))
+					return $parsedObj;
+
 				foreach ($prestudentsPosted as $prestudent_id => $ects)
 				{
 					$ects_angerechnet_posted = $ects['ects_angerechnet'] == 0
-												? null
-												: number_format($ects['ects_angerechnet'], 2, '.', '');
+						? null
+						: number_format($ects['ects_angerechnet'], 2, '.', '');
 
 					$ects_erworben_posted = $ects['ects_erworben'] == 0
-												? null
-												: number_format($ects['ects_erworben'], 2, '.', '');
+						? null
+						: number_format($ects['ects_erworben'], 2, '.', '');
 
 					$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
 						array(
@@ -1176,13 +1193,14 @@ class DVUHManagementLib
 				}
 
 				$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
-				$result = $this->_getResponseArr(
-					$xmlstr,
-					$infos,
-					$warnings,
-					true
-				);
 			}
+
+			$result = $this->_getResponseArr(
+				$xmlstr,
+				$infos,
+				$warnings,
+				true
+			);
 		}
 		else
 		{
@@ -1191,6 +1209,66 @@ class DVUHManagementLib
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Deletes all Pruefungsaktivitäten of a person in DVUH.
+	 * @param $person_id
+	 * @param $studiensemester
+	 * @return object
+	 */
+	public function deletePruefungsaktivitaeten($person_id, $studiensemester)
+	{
+		$infos = array();
+		$warnings = array();
+
+		$requiredFields = array('person_id', 'studiensemester');
+
+		foreach ($requiredFields as $requiredField)
+		{
+			if (!isset($$requiredField))
+				return error("Daten fehlen: ".ucfirst($requiredField));
+		}
+
+		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
+
+		$deleteRes = $this->_ci->PruefungsaktivitaetenLoeschenModel->delete($this->_be, $person_id, $studiensemester);
+
+		if (isError($deleteRes))
+			return $deleteRes;
+
+		if (hasData($deleteRes))
+		{
+			$prestudentIdsResult = getData($deleteRes);
+
+			// delete returns array of deleted prestudent ids
+			foreach ($prestudentIdsResult as $prestudent_id)
+			{
+				// add entry to sync table with NULL to identify when Prüfungsaktivitäten were deleted
+				$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
+					array(
+						'prestudent_id' => $prestudent_id,
+						'studiensemester_kurzbz' => $studiensemester_kurzbz,
+						'ects_angerechnet' => null,
+						'ects_erworben' => null,
+						'meldedatum' => date('Y-m-d')
+					)
+				);
+
+				if (isError($pruefungsaktivitaetenSaveResult))
+					$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');// TODO phrases
+			}
+
+			$infos[] = "Prüfungsaktivitäten deleted in Datenverbuned, prestudent Ids: " . implode(', ', $prestudentIdsResult); // TODO phrases
+		}
+		else
+			$infos[] = "No Prüfungsaktivitäten found for deletion"; // TODO phrases
+
+		return $this->_getResponseArr(
+			null,
+			$infos,
+			$warnings
+		);
 	}
 
 	/**

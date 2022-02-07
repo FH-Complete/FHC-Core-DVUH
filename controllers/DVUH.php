@@ -375,11 +375,7 @@ class DVUH extends Auth_Controller
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$this->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
-
-		$be = $this->config->item('fhc_dvuh_be_code');
-
-		$json = $this->PruefungsaktivitaetenModel->delete($be, $person_id, $semester);
+		$json = $this->dvuhmanagementlib->deletePruefungsaktivitaeten($person_id, $semester);
 
 		$this->outputJson($json);
 	}

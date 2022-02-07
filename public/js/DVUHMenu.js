@@ -31,7 +31,7 @@ $(document).ready(function()
 			return res;
 		}, {});
 
-		if (result.page.length > 0)
+		if (result.page && result.page.length > 0)
 		{
 			DVUHMenu.printForm(result.page, result);
 		}
@@ -442,7 +442,7 @@ var DVUHMenu = {
 
 		return result;
 	},
-	_writeResult: function(text, boxid, type)
+	_writeResult: function(resultToWrite, boxid, type)
 	{
 		var colorClass = '';
 		var intro = 'Abfrage ausgeführt, Antwort:';
@@ -454,41 +454,41 @@ var DVUHMenu = {
 			colorClass = ' class="text-danger"';
 			intro = 'Fehler aufgetreten, Antwort:';
 			isError = true;
-			textToWrite = text;
+			textToWrite = resultToWrite;
 		}
 		else
 		{
-			if (text.infos)
+			if (resultToWrite.infos)
 			{
-				for (var i = 0; i < text.infos.length; i++)
+				for (var i = 0; i < resultToWrite.infos.length; i++)
 				{
 					textToWrite += "<span class='text-success'>";
-					textToWrite += text.infos[i];
+					textToWrite += resultToWrite.infos[i];
 					textToWrite += "</span><br />";
 				}
 			}
 
-			if (text.warnings)
+			if (resultToWrite.warnings)
 			{
-				for (var i = 0; i < text.warnings.length; i++)
+				for (var i = 0; i < resultToWrite.warnings.length; i++)
 				{
-					if (!FHC_AjaxClient.isError(text.warnings[i]))
+					if (!FHC_AjaxClient.isError(resultToWrite.warnings[i]))
 						continue;
 
 					textToWrite += "<span class='text-warning'>";
-					textToWrite += FHC_AjaxClient.getError(text.warnings[i]);
+					textToWrite += FHC_AjaxClient.getError(resultToWrite.warnings[i]);
 					textToWrite += "</span><br />";
 				}
 			}
 
 			var result = null
-			if (text.result)
+			if (resultToWrite.result)
 			{
-				result = text.result;
+				result = resultToWrite.result;
 			}
-			else if (typeof text == 'string')
+			else if (typeof resultToWrite == 'string')
 			{
-				result = text;
+				result = resultToWrite;
 			}
 
 			if (jQuery.isArray(result))

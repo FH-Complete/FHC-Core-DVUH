@@ -58,66 +58,15 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	{
 		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $posted);
 
+		if (isError($postData))
+			return $postData;
+
 		if (hasData($postData))
 			$result = $this->_call('POST', null, getData($postData));
 		else
-			$result = $postData;
+			$result = success(0); // 0 means no Pruefungsaktivitaeten post data was found
 
 		return $result;
-	}
-
-	public function delete($be, $person_id, $semester)
-	{
-		if (isEmptyString($person_id))
-			return error('personID nicht gesetzt');
-		else
-		{
-			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($semester);
-
-			// data of Pruefungsaktivitaeten for the person
-			$studiensemester_kurzbz = $this->dvuhsynclib->convertSemesterToFHC($semester);
-			$pruefungsaktivitaetenDataResult = $this->dvuhsynclib->getPrestudentsOfPerson($person_id, $studiensemester_kurzbz);
-
-			//var_dump($pruefungsaktivitaetenDataResult);
-
-			if (isError($pruefungsaktivitaetenDataResult))
-				return $pruefungsaktivitaetenDataResult;
-			elseif (hasData($pruefungsaktivitaetenDataResult))
-			{
-				$resultArr = array();
-				$pruefungsaktivitaetenData = getData($pruefungsaktivitaetenDataResult);
-
-				foreach ($pruefungsaktivitaetenData as $pruefungsaktivitaeten)
-				{
-					$params = array(
-						'uuid' => getUUID(),
-						'be' => $be
-					);
-
-					// studiengang kz
-					$dvuh_stgkz = str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 4, '0', STR_PAD_LEFT);
-
-					$params['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
-					$params['semester'] = $dvuh_studiensemester;
-					$params['studienkennung'] = $dvuh_stgkz;
-
-
-					$this->_url = 'pruefungsaktivitaeten_loeschen.xml';
-					$callRes = $this->_call('POST', $params);
-
-					if (isSuccess($callRes))
-					{
-						$resultArr[] = $pruefungsaktivitaeten->prestudent_id;
-					}
-					else
-						return $callRes;
-				}
-
-				return success("Prüfungsaktivitäten erfolgreich gelöscht: ".implode(", ", $resultArr)); // TODO phrases
-			}
-			else
-				return error("Keine Prestudenten gefunden!");
-		}
 	}
 
 	/**
@@ -174,10 +123,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 				if (isEmptyArray($studiumpruefungen))
 				{
-					// TODO if no pruefungen found for person or only angerechnete ects, and there were erworbene ects sent last sync -
-					// delete pruefungsaktivitaeten
-
-					$result = success(array());
+					$result = success(array()); // empty array means no pruefungsaktivitaeten were found
 				}
 				else
 				{
@@ -193,7 +139,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 				}
 			}
 			else
-				$result = success(array());
+				$result = success(array());// empty array means no pruefungsaktivitaeten were found
 		}
 
 		return $result;
