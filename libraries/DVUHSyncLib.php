@@ -339,20 +339,19 @@ class DVUHSyncLib
 					// booleans isIncoming, isAusserordentlich, isLehrgang
 					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
-					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
+					$isAusserordentlich = $this->checkIfAusserordentlich($prestudentstatus->personenkennzeichen);
+
 					// lehrgang - either typ l or studiengang_kz < 0, but not ausserordentlich
 					$isLehrgang = !$isAusserordentlich && ($prestudentstatus->studiengang_typ == 'l' || $studiengang_kz < 0);
 
-
 					// studiengang kz
-					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
+					$erhalter_kz = $this->convertErhalterkennzahlToDVUH($prestudentstatus->erhalter_kz);
 
 					// if ausserordentlich, students are sent with special studiengang_kz
-					$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
-					if ($isAusserordentlich && isset($ausserordentlich_prefix) && is_numeric($ausserordentlich_prefix))
-						$studiengang_kz = $ausserordentlich_prefix.$erhalter_kz;
+					if ($isAusserordentlich)
+						$studiengang_kz = $this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $erhalter_kz);
 
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . $this->convertStudiengangskennzahlToDVUH($studiengang_kz);
 
 					// studtyp - if extern, certain data should not be sent to DVUH
 					$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
@@ -636,11 +635,21 @@ class DVUHSyncLib
 
 			foreach ($prestudents as $prestudent)
 			{
+				// convert erhalter kz and studiengangskennzahl to DVUH format
+				$isAusserordentlich = isset($prestudent->personenkennzeichen) && $this->checkIfAusserordentlich($prestudent->personenkennzeichen);
+				$studiengang_kz = $prestudent->studiengang_kz;
+				$dvuh_erhalter_kz = $this->convertErhalterkennzahlToDVUH($prestudent->erhalter_kz);
+
+				// if ausserordentlich, students are sent with special studiengang_kz
+				if ($isAusserordentlich)
+					$studiengang_kz = $this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $dvuh_erhalter_kz);
+
+				$dvuh_stgkz = $dvuh_erhalter_kz . $this->convertStudiengangskennzahlToDVUH($studiengang_kz);
+
 				$prestudentEctsObj = new stdClass();
 				$prestudentEctsObj->ects_erworben = 0.0;
 				$prestudentEctsObj->ects_angerechnet = 0.0;
-				$prestudentEctsObj->erhalter_kz = $prestudent->erhalter_kz;
-				$prestudentEctsObj->studiengang_kz = $prestudent->studiengang_kz;
+				$prestudentEctsObj->dvuh_stgkz = $dvuh_stgkz;
 				$prestudentEctsObj->matr_nr = $prestudent->matr_nr;
 				$prestudentEcts[$prestudent->prestudent_id] = $prestudentEctsObj;
 			}
@@ -686,11 +695,13 @@ class DVUHSyncLib
 			$studiensemester
 		);
 
-		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, stg.studiengang_kz, stg.erhalter_kz, pers.matr_nr
+		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, stg.studiengang_kz, stg.erhalter_kz,
+                                   pers.matr_nr, stud.matrikelnr AS personenkennzeichen
 					FROM public.tbl_prestudent ps
 					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
 					JOIN public.tbl_person pers USING(person_id)
-					JOIN public.tbl_studiengang stg  USING(studiengang_kz)
+					JOIN public.tbl_studiengang stg USING(studiengang_kz)
+					LEFT JOIN public.tbl_student stud USING (prestudent_id)
 					WHERE person_id = ?
 					AND pss.studiensemester_kurzbz = ?
 					AND ps.bismelden = TRUE
@@ -752,6 +763,41 @@ class DVUHSyncLib
 	}
 
 	/**
+	 * Converts Erhalter Kennzahl to DVUH format.
+	 * @param string $erhalter_kz
+	 * @return string
+	 */
+	public function convertErhalterkennzahlToDVUH($erhalter_kz)
+	{
+		return str_pad($erhalter_kz, 3, '0', STR_PAD_LEFT);
+	}
+
+	/**
+	 * Converts Studiengangskennzahl to DVUH format.
+	 * @param string $studiengang_kz
+	 * @return string
+	 */
+	public function convertStudiengangskennzahlToDVUH($studiengang_kz)
+	{
+		return str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
+	}
+
+	/**
+	 * Converts Studiengangskennzahl of a student who is ausserordentlich to DVUH format.
+	 * @param $studiengang_kz
+	 * @param $erhalter_kz
+	 * @return string
+	 */
+	public function convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $erhalter_kz)
+	{
+		$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
+		if (isset($ausserordentlich_prefix) && is_numeric($ausserordentlich_prefix))
+			$studiengang_kz = $ausserordentlich_prefix.$erhalter_kz;
+
+		return $studiengang_kz;
+	}
+
+	/**
 	 * Checks an adress for validity.
 	 * @param object $addr
 	 * @return error or success with true/false (valid or not)
@@ -803,6 +849,16 @@ class DVUHSyncLib
 	public function checkBpk($bpk)
 	{
 		return preg_match("/^([A-Za-z0-9+\/]{27})=$/", $bpk) === 1;
+	}
+
+	/**
+	 * Checks if a student is ausserordentlich.
+	 * @param string $personenkennzeichen
+	 * @return bool
+	 */
+	public function checkIfAusserordentlich($personenkennzeichen)
+	{
+		return mb_substr($personenkennzeichen,3,1) == '9';
 	}
 
 	/**
@@ -957,6 +1013,9 @@ class DVUHSyncLib
 
 		$mobilitaeten = array();
 
+		if (isError($ioResult))
+			return $ioResult;
+
 		if(hasData($ioResult))
 		{
 			$io = getData($ioResult);
@@ -1047,22 +1106,25 @@ class DVUHSyncLib
 							);
 						}
 
-						$bisio_foerderung = getData($bisio_foerderung_result);
-
-						foreach ($bisio_foerderung as $row_foerderung)
+						if (hasData($bisio_foerderung_result))
 						{
-							// ...wenn code = 5, nur ein Wert erlaubt (keine Mehrfachangaben)
-							if ($row_foerderung->aufenthaltfoerderung_code == 5)
-							{
-								unset($aufenthaltfoerderung_code_arr);
-								$aufenthaltfoerderung_code_arr[] = $row_foerderung->aufenthaltfoerderung_code;
-								break;
-							}
+							$bisio_foerderung = getData($bisio_foerderung_result);
 
-							// nur eindeutige Werte
-							if (!in_array($row_foerderung->aufenthaltfoerderung_code, $aufenthaltfoerderung_code_arr))
+							foreach ($bisio_foerderung as $row_foerderung)
 							{
-								$aufenthaltfoerderung_code_arr[] = $row_foerderung->aufenthaltfoerderung_code;
+								// ...wenn code = 5, nur ein Wert erlaubt (keine Mehrfachangaben)
+								if ($row_foerderung->aufenthaltfoerderung_code == 5)
+								{
+									unset($aufenthaltfoerderung_code_arr);
+									$aufenthaltfoerderung_code_arr[] = $row_foerderung->aufenthaltfoerderung_code;
+									break;
+								}
+
+								// nur eindeutige Werte
+								if (!in_array($row_foerderung->aufenthaltfoerderung_code, $aufenthaltfoerderung_code_arr))
+								{
+									$aufenthaltfoerderung_code_arr[] = $row_foerderung->aufenthaltfoerderung_code;
+								}
 							}
 						}
 

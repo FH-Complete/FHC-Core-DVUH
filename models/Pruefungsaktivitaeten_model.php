@@ -106,10 +106,6 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 					if ($pruefungsaktivitaeten->ects_angerechnet == 0 && $pruefungsaktivitaeten->ects_erworben == 0)
 						continue;
 
-					// studiengang kz
-					$erhalter_kz = str_pad($pruefungsaktivitaeten->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 4, '0', STR_PAD_LEFT);
-
 					// format ects
 					$ectsSums = new stdClass();
 					$ectsSums->ects_angerechnet = number_format($pruefungsaktivitaeten->ects_angerechnet, 1);
@@ -117,7 +113,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 					$studiumpruefungen[$prestudent_id]['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
 					$studiumpruefungen[$prestudent_id]['studiensemester'] = $dvuh_studiensemester;
-					$studiumpruefungen[$prestudent_id]['studiengang'] = $dvuh_stgkz;
+					$studiumpruefungen[$prestudent_id]['studiengang'] = $pruefungsaktivitaeten->dvuh_stgkz;
 					$studiumpruefungen[$prestudent_id]['ects'] = $ectsSums;
 				}
 

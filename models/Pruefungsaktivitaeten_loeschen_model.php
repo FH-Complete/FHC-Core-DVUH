@@ -37,16 +37,16 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 
 			// data of Pruefungsaktivitaeten for the person
 			$studiensemester_kurzbz = $this->dvuhsynclib->convertSemesterToFHC($semester);
-			$pruefungsaktivitaetenDataResult = $this->dvuhsynclib->getPrestudentsOfPerson($person_id, $studiensemester_kurzbz, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
+			$prestudentsDataResult = $this->dvuhsynclib->getPrestudentsOfPerson($person_id, $studiensemester_kurzbz, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
 
-			if (isError($pruefungsaktivitaetenDataResult))
-				return $pruefungsaktivitaetenDataResult;
-			elseif (hasData($pruefungsaktivitaetenDataResult))
+			if (isError($prestudentsDataResult))
+				return $prestudentsDataResult;
+			elseif (hasData($prestudentsDataResult))
 			{
 				$resultArr = array();
-				$pruefungsaktivitaetenData = getData($pruefungsaktivitaetenDataResult);
+				$prestudentsData = getData($prestudentsDataResult);
 
-				foreach ($pruefungsaktivitaetenData as $pruefungsaktivitaeten)
+				foreach ($prestudentsData as $prestudent)
 				{
 					$params = array(
 						'uuid' => getUUID(),
@@ -54,9 +54,14 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 					);
 
 					// studiengang kz
-					$dvuh_stgkz = str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 4, '0', STR_PAD_LEFT);
+					$dvuh_erhalter_kz = $this->dvuhsynclib->convertErhalterkennzahlToDVUH($prestudent->erhalter_kz);
+					$isAusserordentlich = isset($prestudent->personenkennzeichen) && $this->dvuhsynclib->checkIfAusserordentlich($prestudent->personenkennzeichen);
 
-					$params['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
+					$dvuh_stgkz = $isAusserordentlich
+						? $this->dvuhsynclib->convertStudiengangskennzahlToDVUHAusserordentlich($prestudent->studiengang_kz, $dvuh_erhalter_kz)
+						: $this->dvuhsynclib->convertStudiengangskennzahlToDVUH($prestudent->studiengang_kz);
+
+					$params['matrikelnummer'] = $prestudent->matr_nr;
 					$params['semester'] = $dvuh_studiensemester;
 					$params['studienkennung'] = $dvuh_stgkz;
 
@@ -64,7 +69,7 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 
 					if (isSuccess($callRes))
 					{
-						$resultArr[] = $pruefungsaktivitaeten->prestudent_id;
+						$resultArr[] = $prestudent->prestudent_id;
 					}
 					else
 						return $callRes;
