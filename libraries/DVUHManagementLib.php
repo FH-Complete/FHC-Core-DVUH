@@ -838,6 +838,9 @@ class DVUHManagementLib
 		else
 			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
 
+		// get and reset warnings produced by dvuhsynclib
+		$warnings = $this->_ci->dvuhsynclib->readWarnings();
+
 		if (isError($studiumResult))
 			$result = $studiumResult;
 		elseif (hasData($studiumResult))
@@ -850,8 +853,6 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$warnings = $this->_ci->dvuhsynclib->readWarnings();
-
 				$result = $this->_getResponseArr(
 					$xmlstr,
 					array('Studiumdaten erfolgreich in DVUH gespeichert'),
@@ -1259,7 +1260,7 @@ class DVUHManagementLib
 					$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');// TODO phrases
 			}
 
-			$infos[] = "Prüfungsaktivitäten deleted in Datenverbuned, prestudent Ids: " . implode(', ', $prestudentIdsResult); // TODO phrases
+			$infos[] = "Prüfungsaktivitäten in Datenverbund gelöscht, prestudent Ids: " . implode(', ', $prestudentIdsResult); // TODO phrases
 		}
 		else
 			$infos[] = "No Prüfungsaktivitäten found for deletion"; // TODO phrases
