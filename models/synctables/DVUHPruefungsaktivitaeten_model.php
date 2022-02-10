@@ -13,23 +13,22 @@ class DVUHPruefungsaktivitaeten_model extends DB_Model
 	}
 
 	/**
-	 * Checks if Prüfungsaktivitäten were sent for a person and semester.
-	 * Ects erworben or ects angerechnet are checked.
-	 * @param int $person_id
+	 * Get the latest Prüfungsaktivität sent to DVUH.
+	 * @param int $prestudent_id
 	 * @param string $studiensemester_kurzbz
-	 * @return object
+	 * @return success or error
 	 */
-	public function checkIfPruefungsaktivitaetenSent($person_id, $studiensemester_kurzbz)
+	public function getLastSentPruefungsaktivitaet($prestudent_id, $studiensemester_kurzbz)
 	{
 		return $this->execQuery("
-			SELECT 1
-			FROM sync.tbl_dvuh_pruefungsaktivitaeten
+			SELECT ects_angerechnet, ects_erworben
+			FROM sync.tbl_dvuh_pruefungsaktivitaeten pa
 			JOIN public.tbl_prestudent USING (prestudent_id)
-			JOIN public.tbl_person USING (person_id)
-			WHERE person_id = ?
+			WHERE prestudent_id = ?
 			AND studiensemester_kurzbz = ?
-			AND ((ects_erworben IS NOT NULL AND ects_erworben > 0) OR (ects_angerechnet IS NOT NULL AND ects_angerechnet > 0))",
-			array($person_id, $studiensemester_kurzbz)
+			ORDER BY pa.meldedatum DESC, pa.insertamum DESC NULLS LAST, pruefungsaktivitaeten_id DESC
+			LIMIT 1",
+			array($prestudent_id, $studiensemester_kurzbz)
 		);
 	}
 }

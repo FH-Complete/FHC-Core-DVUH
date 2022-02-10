@@ -217,6 +217,7 @@ var DVUHMenu = {
 				html = '<h4>Prüfungsaktivitäten löschen</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
+					+ DVUHMenu._getTextfieldHtml('prestudent_id', 'PrestudentID', 'optional')
 				method = 'post';
 				break;
 		}

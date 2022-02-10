@@ -1118,7 +1118,8 @@ class DVUHManagementLib
 				return error("Daten fehlen: ".ucfirst($requiredField));
 		}
 
-		$no_pruefungen_info = 'Keine Pruefungsaktivitäten vorhanden';
+		// TODO phrases
+		$no_pruefungen_info = 'Keine Pruefungsaktivitäten vorhanden, in DVUH gespeicherte Aktivitäten werden gelöscht, wenn vorhanden';
 
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 
@@ -1137,40 +1138,54 @@ class DVUHManagementLib
 			return $this->_getResponseArr($postData, $infos);
 		}
 
-		$prestudentsPosted = array();
+		$prestudentsToPost = array();
 
-		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz, $prestudentsPosted);
+		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz, $prestudentsToPost);
 
 		if (isError($pruefungsaktivitaetenResult))
 			$result = $pruefungsaktivitaetenResult;
-		elseif (hasData($pruefungsaktivitaetenResult))
+		else
 		{
-			$xmlstr = null;
-			$pruefungsaktivitaetenResultData = getData($pruefungsaktivitaetenResult);
-
-			// 0 result means no Pruefungsaktivitaeten were found in fhc,
-			if ($pruefungsaktivitaetenResultData === 0)
-			{
-				// then pruefungsaktivitaeten have to be deleted in dvuh, if they have been sent to DVUH
-				$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->checkIfPruefungsaktivitaetenSent($person_id, $studiensemester_kurzbz);
-
-				if (hasData($checkPruefungsaktivitaetenRes))
-				{
-					// delete all Pruefungsaktivitaeten for the person
-					return $this->deletePruefungsaktivitaeten($person_id, $studiensemester_kurzbz);
-				}
-			}
+			$pruefungsaktivitaetenResultData = null;
+			if (hasData($pruefungsaktivitaetenResult))
+				$pruefungsaktivitaetenResultData = getData($pruefungsaktivitaetenResult);
 			else
+				$infos[] = $no_pruefungen_info;
+
+			// check for each prestudent to post if deletion is needed
+			foreach ($prestudentsToPost as $prestudent_id => $ects)
 			{
-				$xmlstr = $pruefungsaktivitaetenResultData;
-
-				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
-
-				if (isError($parsedObj))
-					return $parsedObj;
-
-				foreach ($prestudentsPosted as $prestudent_id => $ects)
+				// if no ects were sent
+				if ($ects['ects_angerechnet'] == 0 && $ects['ects_erworben'] == 0)
 				{
+					// get last sent ects
+					$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->getLastSentPruefungsaktivitaet($prestudent_id, $studiensemester_kurzbz);
+
+					if (hasData($checkPruefungsaktivitaetenRes))
+					{
+						$checkPruefungsaktivitaeten = getData($checkPruefungsaktivitaetenRes)[0];
+
+						// if there were ects sent before, delete all Pruefungsaktivitaeten for the prestudent
+						if (isset($checkPruefungsaktivitaeten->ects_angerechnet) || isset($checkPruefungsaktivitaeten->ects_erworben))
+						{
+							$deletePruefunsaktivitaetenRes = $this->deletePruefungsaktivitaeten($person_id, $studiensemester_kurzbz, $prestudent_id);
+
+							if (isError($deletePruefunsaktivitaetenRes))
+								return $deletePruefunsaktivitaetenRes;
+
+							if (hasData($deletePruefunsaktivitaetenRes))
+							{
+								$deletePruefungsaktivitaeten = getData($deletePruefunsaktivitaetenRes);
+
+								$infos = array_merge($infos, $deletePruefungsaktivitaeten['infos']);
+								$warnings = array_merge($warnings, $deletePruefungsaktivitaeten['warnings']);
+							}
+						}
+					}
+				}
+				else
+				{
+					// if at least some ects were sent, write to sync table
 					$ects_angerechnet_posted = $ects['ects_angerechnet'] == 0
 						? null
 						: number_format($ects['ects_angerechnet'], 2, '.', '');
@@ -1192,21 +1207,16 @@ class DVUHManagementLib
 					if (isError($pruefungsaktivitaetenSaveResult))
 						$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');
 				}
-
-				$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
 			}
 
+			$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
+
 			$result = $this->_getResponseArr(
-				$xmlstr,
+				$pruefungsaktivitaetenResultData,
 				$infos,
 				$warnings,
 				true
 			);
-		}
-		else
-		{
-			$infos[] = $no_pruefungen_info;
-			$result = $this->_getResponseArr(null, $infos);
 		}
 
 		return $result;
@@ -1216,9 +1226,10 @@ class DVUHManagementLib
 	 * Deletes all Pruefungsaktivitäten of a person in DVUH.
 	 * @param $person_id
 	 * @param $studiensemester
+	 * @param $prestudent_id
 	 * @return object
 	 */
-	public function deletePruefungsaktivitaeten($person_id, $studiensemester)
+	public function deletePruefungsaktivitaeten($person_id, $studiensemester, $prestudent_id = null)
 	{
 		$infos = array();
 		$warnings = array();
@@ -1233,7 +1244,7 @@ class DVUHManagementLib
 
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 
-		$deleteRes = $this->_ci->PruefungsaktivitaetenLoeschenModel->delete($this->_be, $person_id, $studiensemester);
+		$deleteRes = $this->_ci->PruefungsaktivitaetenLoeschenModel->delete($this->_be, $person_id, $studiensemester, $prestudent_id);
 
 		if (isError($deleteRes))
 			return $deleteRes;
@@ -1260,7 +1271,7 @@ class DVUHManagementLib
 					$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');// TODO phrases
 			}
 
-			$infos[] = "Prüfungsaktivitäten in Datenverbund gelöscht, prestudent Ids: " . implode(', ', $prestudentIdsResult); // TODO phrases
+			$infos[] = "Prüfungsaktivitäten in Datenverbund gelöscht, prestudent Id(s): " . implode(', ', $prestudentIdsResult); // TODO phrases
 		}
 		else
 			$infos[] = "No Prüfungsaktivitäten found for deletion"; // TODO phrases

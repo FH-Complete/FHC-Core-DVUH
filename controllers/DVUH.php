@@ -399,9 +399,10 @@ class DVUH extends Auth_Controller
 		$data = $this->input->post('data');
 
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$json = $this->dvuhmanagementlib->deletePruefungsaktivitaeten($person_id, $semester);
+		$json = $this->dvuhmanagementlib->deletePruefungsaktivitaeten($person_id, $semester, $prestudent_id);
 
 		$this->outputJson($json);
 	}

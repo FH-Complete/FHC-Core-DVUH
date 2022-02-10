@@ -64,7 +64,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		if (hasData($postData))
 			$result = $this->_call('POST', null, getData($postData));
 		else
-			$result = success(0); // 0 means no Pruefungsaktivitaeten post data was found
+			$result = $postData; // return empty array
 
 		return $result;
 	}
