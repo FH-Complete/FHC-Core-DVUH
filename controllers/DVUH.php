@@ -35,7 +35,7 @@ class DVUH extends Auth_Controller
 				'postErnpmeldung'=>'admin:rw',
 				'postPruefungsaktivitaeten'=>'admin:rw',
 				'postEkzanfordern'=>'admin:rw',
-				'deletePruefungsaktivitaeten'=>'admin:r'
+				'deletePruefungsaktivitaeten'=>'admin:rw'
 			)
 		);
 
