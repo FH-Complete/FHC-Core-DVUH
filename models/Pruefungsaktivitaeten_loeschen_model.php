@@ -35,9 +35,9 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 
 			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($semester);
 
-			// data of Pruefungsaktivitaeten for the person
+			// data of Pruefungsaktivitaeten for prestudents of the person
 			$studiensemester_kurzbz = $this->dvuhsynclib->convertSemesterToFHC($semester);
-			$prestudentsDataResult = $this->dvuhsynclib->getPrestudentsOfPerson($person_id, $studiensemester_kurzbz, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
+			$prestudentsDataResult = $this->fhcmanagementlib->getPrestudentsOfPerson($person_id, $studiensemester_kurzbz, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
 
 			if (isError($prestudentsDataResult))
 				return $prestudentsDataResult;
@@ -57,6 +57,7 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 					$dvuh_erhalter_kz = $this->dvuhsynclib->convertErhalterkennzahlToDVUH($prestudent->erhalter_kz);
 					$isAusserordentlich = isset($prestudent->personenkennzeichen) && $this->dvuhsynclib->checkIfAusserordentlich($prestudent->personenkennzeichen);
 
+					// special stg kz if ausserordentlich
 					$dvuh_stgkz = $isAusserordentlich
 						? $this->dvuhsynclib->convertStudiengangskennzahlToDVUHAusserordentlich($prestudent->studiengang_kz, $dvuh_erhalter_kz)
 						: $this->dvuhsynclib->convertStudiengangskennzahlToDVUH($prestudent->studiengang_kz);

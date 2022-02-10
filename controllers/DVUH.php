@@ -25,6 +25,7 @@ class DVUH extends Auth_Controller
 				'getBpk' =>'admin:r',
 				'getBpkByPersonId' =>'admin:r',
 				'getPruefungsaktivitaeten' =>'admin:r',
+				'getDvuhMenuData' =>'admin:r',
 				'reserveMatrikelnummer'=>'admin:rw',
 				'postMasterData'=>'admin:rw',
 				'postCharge'=>'admin:rw',
@@ -242,6 +243,31 @@ class DVUH extends Auth_Controller
 		);
 
 		$this->outputJson($json);
+	}
+
+	public function getDvuhMenuData()
+	{
+		$menuData = array(
+			'nations' => array()
+		);
+
+		$nationTextFieldName = getUserLanguage() == 'German' ? 'langtext' : 'engltext';
+
+		$this->load->model('codex/Nation_model', 'NationModel');
+
+		$this->NationModel->addSelect("nation_code, $nationTextFieldName AS nation_text");
+		$this->NationModel->addOrder("nation_text");
+		$nationRes = $this->NationModel->load();
+
+		if (isError($nationRes))
+		{
+			$this->outputJsonError(getError($nationRes));
+			exit;
+		}
+
+		$menuData['nations'] = getData($nationRes);
+
+		$this->outputJsonSuccess($menuData);
 	}
 
 	//------------------------------------------------------------------------------------------------------------------

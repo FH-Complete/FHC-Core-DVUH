@@ -4,6 +4,7 @@
 
 $(document).ready(function()
 	{
+		// show / hide menu
 		$("#toggleMenu").click(
 			function()
 			{
@@ -12,19 +13,21 @@ $(document).ready(function()
 			}
 		);
 
+		// print form when clicking on menu entry
 		$(".dvuhMenu li").click(
 			function()
 			{
 				var id = $(this).prop('id');
-				DVUHMenu.printForm(id);
+				DVUHMenu.printFormWithFhcData(id);
 			}
 		);
 
+		// scroll to top button
 		DVUHMenu._setScrollToTop();
 
+		// get hash params from url and show appropriate form (if coming from external site)
 		var hash = window.location.hash.substr(1);
 
-		// get hash params from url and show appropriate form (if coming from external site)
 		var result = hash.split('&').reduce(function (res, item) {
 			var parts = item.split('=');
 			res[parts[0]] = parts[1];
@@ -33,12 +36,30 @@ $(document).ready(function()
 
 		if (result.page && result.page.length > 0)
 		{
-			DVUHMenu.printForm(result.page, result);
+			DVUHMenu.printFormWithFhcData(result.page, result);
 		}
 	}
 );
 
 var DVUHMenu = {
+	fhcData: null,
+	actionsRequireFhcData: ['postErnpmeldung'],
+	printFormWithFhcData: function(action, params)
+	{
+		if ($.inArray(action, DVUHMenu.actionsRequireFhcData) !== -1)
+		{
+			DVUHMenu.getDvuhMenuData(
+				function()
+				{
+					DVUHMenu.printForm(action, params);
+				}
+			);
+		}
+		else
+		{
+			DVUHMenu.printForm(action, params);
+		}
+	},
 	printForm: function(action, params)
 	{
 		var html = '';
@@ -156,6 +177,14 @@ var DVUHMenu = {
 				writePreviewButton = true;
 				break;
 			case 'postErnpmeldung':
+
+				var nationsDropdownValues = {};
+				for (var idx in DVUHMenu.fhcData.nations)
+				{
+					var nation = DVUHMenu.fhcData.nations[idx];
+					nationsDropdownValues[nation.nation_code] = nation.nation_text+" - "+nation.nation_code;
+				}
+
 				html = '<h4>ERnP-Meldung durchführen</h4>';
 				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
 					'wenn für die Person keine bPK ermittelt werden kann.<br />Beim Punkt "bPK ermitteln" sollte dementsprechend keine bPK zurückgegeben werden. ' +
@@ -163,7 +192,7 @@ var DVUHMenu = {
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
-					+ DVUHMenu._getTextfieldHtml('ausstellland', 'Ausstellland', '1-3 Stellen Codex (zb D für Deutschland)', 3)
+					+ DVUHMenu._getDropdownHtml('ausstellland', 'Ausstellland', nationsDropdownValues, "D", '1-3 Stellen Codex (zb D für Deutschland)')
 					+ DVUHMenu._getTextfieldHtml('dokumentnr', 'Dokumentnr', '1 bis 255 Stellen', 255)
 					+ DVUHMenu._getDropdownHtml('dokumenttyp', 'Dokumenttyp', {'REISEP': 'Reisepass', 'PERSAUSW': 'Personalausweis'}, 'REISEP')
 				method = 'post';
@@ -349,6 +378,34 @@ var DVUHMenu = {
 			);
 		}
 	},
+
+	/* ajax calls */
+	getDvuhMenuData: function(callback)
+	{
+		FHC_AjaxClient.ajaxCallGet(
+			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/getDvuhMenuData',
+			null,
+			{
+				successCallback: function(data)
+				{
+					// TODO phrases
+					if (FHC_AjaxClient.hasData(data))
+					{
+						DVUHMenu.fhcData = FHC_AjaxClient.getData(data);
+						callback();
+					}
+					else
+						FHC_DialogLib.alertError("Fehler bei Holen der fhcomplete Daten");
+				},
+				errorCallback: function(jqXHR, textStatus, errorThrown)
+				{
+					FHC_DialogLib.alertError("Fehler bei Holen der fhcomplete Daten");
+				}
+			}
+		);
+	},
+
+	/* additional "private" methods */
 	_getMatrikelnummerRow: function()
 	{
 		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', '', 8)
@@ -389,7 +446,7 @@ var DVUHMenu = {
 
 		$.each(values, function(idx, value)
 			{
-				var selected = selectedValue === value ? ' selected' : '';
+				var selected = selectedValue === idx ? ' selected' : '';
 				html += '<option value="'+idx+'"'+selected+'>'+value+'</option>';
 			}
 		)

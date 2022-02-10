@@ -624,7 +624,7 @@ class DVUHSyncLib
 		$prestudentEcts = array();
 
 		//get all valid prestudents of person
-		$prestudentsRes = $this->getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
+		$prestudentsRes = $this->_ci->fhcmanagementlib->getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
 
 		if (isError($prestudentsRes))
 			return $prestudentsRes;
@@ -679,44 +679,6 @@ class DVUHSyncLib
 		}
 
 		return success($prestudentEcts);
-	}
-
-	/**
-	 * Gets all valid prestudents of a person.
-	 * @param int $person_id
-	 * @param string $studiensemester
-	 * @param array $status_kurzbz
-	 * @return object success or error
-	 */
-	public function getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz)
-	{
-		$params = array(
-			$person_id,
-			$studiensemester
-		);
-
-		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, stg.studiengang_kz, stg.erhalter_kz,
-                                   pers.matr_nr, stud.matrikelnr AS personenkennzeichen
-					FROM public.tbl_prestudent ps
-					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
-					JOIN public.tbl_person pers USING(person_id)
-					JOIN public.tbl_studiengang stg USING(studiengang_kz)
-					LEFT JOIN public.tbl_student stud USING (prestudent_id)
-					WHERE person_id = ?
-					AND pss.studiensemester_kurzbz = ?
-					AND ps.bismelden = TRUE
-					AND stg.melderelevant = TRUE";
-
-		if (isset($status_kurzbz) && !isEmptyArray($status_kurzbz))
-		{
-			$prstQry .= " AND pss.status_kurzbz IN ?";
-			$params[] = $status_kurzbz;
-		}
-
-		return $this->_dbModel->execReadOnlyQuery(
-			$prstQry,
-			$params
-		);
 	}
 
 	/**
