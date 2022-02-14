@@ -9,6 +9,8 @@ class DVUHManagementLib
 	const STATUS_PAID_OTHER_UNIV = '8'; // payment status if paid on another university, for check
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
+	const STORNO_MELDESTATUS = 'O';
+	const STORNO_STATUSCODE = '4';
 
 	private $_ci; // code igniter instance
 	private $_be; // Bildungseinrichtung code
@@ -1354,6 +1356,153 @@ class DVUHManagementLib
 			$result = error("Fehler bei EKZ-Anfrage");
 
 		return $result;
+	}
+
+	/**
+	 * Cancels study data in DVUH.
+	 * @param string $matrikelnummer
+	 * @param string $semester
+	 * @param int $studiengang_kz if passed, only study data for this studiengang is cancelled
+	 * @param bool $preview
+	 * @return object error or success
+	 */
+	public function cancelStudyData($matrikelnummer, $semester, $studiengang_kz = null, $preview = false)
+	{
+		$result = null;
+		$infos = array();
+
+		if (!isset($matrikelnummer))
+		{
+			return error("Matrikelnummer muss angegeben werden"); // TODO phrase
+		}
+
+		if (!isset($semester))
+		{
+			return error("Semester muss angegeben werden"); // TODO phrase
+		}
+
+		// get xml of study data in DVUH
+		$studyData = $this->_ci->StudiumModel->get($this->_be, $matrikelnummer, $semester);
+
+		if (hasData($studyData))
+		{
+			$xmlstr = getData($studyData);
+
+			// parse the received data
+			$studienRes = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('studiengang', 'lehrgang'));
+
+			if (isError($studienRes))
+				return $studienRes;
+
+			if (hasData($studienRes))
+			{
+				$studiengaenge = array();
+				$lehrgaenge = array();
+
+				$studienData = getData($studienRes);
+
+				$studien = array_merge($studienData->studiengang, $studienData->lehrgang);
+
+				$params = array(
+					"uuid" => getUUID(),
+					"studierendenkey" => array(
+						"matrikelnummer" => $matrikelnummer,
+						"be" => $this->_be,
+						"semester" => $semester
+					)
+				);
+
+				// default send method post for all Studiengänge of person
+				$sendMethodName = 'postManually';
+				$studiengangIdName = 'stgkz';
+				$lehrgangIdName = 'lehrgangsnr';
+
+				foreach ($studien as $studium)
+				{
+					$studiumIdName = null;
+					if (isset($studium->{$studiengangIdName}))
+					{
+						$studiumIdName = $studiengangIdName;
+					}
+					elseif (isset($studium->{$lehrgangIdName}))
+					{
+						$studiumIdName = $lehrgangIdName;
+					}
+
+					if (!isset($studiumIdName))
+						return error("Studium Id fehlt"); //TODO phrases
+
+					// if studiengang passed, use put method to cancel only one Studiengang
+					if (isset($studiengang_kz))
+					{
+						// use put if update only one studium
+						$sendMethodName = 'putManually';
+
+						$dvuh_stgkz = $this->_ci->dvuhsynclib->convertStudiengangskennzahlToDVUH($studiengang_kz);
+
+						// only send one studiengang if studiengang_kz passed
+						if ($dvuh_stgkz !== substr($studium->{$studiumIdName}, -1 * strlen($dvuh_stgkz)))
+							continue;
+					}
+
+					// add storno data
+					$studium->meldestatus = self::STORNO_MELDESTATUS;
+					$studium->studstatuscode = self::STORNO_STATUSCODE;
+
+					// convert object data to assoc array
+					$stdArr = json_decode(json_encode($studium), true);
+
+					if (isset($studium->{$studiengangIdName}))
+					{
+						$studiengaenge[] = $stdArr;
+					}
+					elseif (isset($studium->{$lehrgangIdName}))
+					{
+						$lehrgaenge[] = $stdArr;
+					}
+				}
+
+				$params['studiengaenge'] = $studiengaenge;
+				$params['lehrgaenge'] = $lehrgaenge;
+
+				// abort if no studien found
+				if (isEmptyArray($studiengaenge) && isEmptyArray($lehrgaenge))
+				{
+					$infos[] = 'keine Studien in DVUH gefunden';// TODO phrases
+					return $this->_getResponseArr(null, $infos);
+				}
+
+				// show preview
+				if ($preview)
+				{
+					$postData = $this->_ci->StudiumModel->retrievePostDataString($params);
+					return $this->_getResponseArr($postData);
+				}
+
+				// send study data with modified storno data
+				$studiumPostRes = $this->_ci->StudiumModel->{$sendMethodName}($params);
+
+				if (isError($studiumPostRes))
+					return $studiumPostRes;
+
+				$infos[] = "Studiumdaten erfolgreich storniert"; // TODO phrases
+
+				$result = getData($studiumPostRes);
+			}
+			else
+			{
+				$infos[] = "Keine Studiumdaten zum Stornieren gefunden"; // TODO phrase
+			}
+		}
+		else
+			$infos[] = "Keine Studiumdaten zum Stornieren gefunden"; // TODO phrase
+
+		return $this->_getResponseArr(
+			$result,
+			$infos,
+			null,
+			true
+		);
 	}
 
 	// --------------------------------------------------------------------------------------------

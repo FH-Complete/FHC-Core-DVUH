@@ -43,7 +43,7 @@ $(document).ready(function()
 
 var DVUHMenu = {
 	fhcData: null,
-	actionsRequireFhcData: ['postErnpmeldung'],
+	actionsRequireFhcData: ['postErnpmeldung', 'postStudiumStorno'],
 	printFormWithFhcData: function(action, params)
 	{
 		if ($.inArray(action, DVUHMenu.actionsRequireFhcData) !== -1)
@@ -210,6 +210,22 @@ var DVUHMenu = {
 				html = '<h4>Prüfungsaktivitäten-Meldung durchführen</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
+				method = 'post';
+				writePreviewButton = true;
+				break;
+			case 'postStudiumStorno':
+
+				var stgDropdownValues = {};
+				for (var idx in DVUHMenu.fhcData.stg)
+				{
+					var stg = DVUHMenu.fhcData.stg[idx];
+					stgDropdownValues[stg.studiengang_kz] = stg.studiengang_kz + " ("+stg.studiengang_text+")";
+				}
+
+				html = '<h4>Studiumsdaten stornieren</h4>'; // TODO phrases
+				html += DVUHMenu._getMatrikelnummerRow()
+					+ DVUHMenu._getSemesterRow() // TODO - stg maybe dropdown?
+					+ DVUHMenu._getDropdownHtml('studiengang_kz', 'Studiengangskennzahl', stgDropdownValues, "null", 'optional, für einzelne Studien', true)
 				method = 'post';
 				writePreviewButton = true;
 				break;
@@ -435,7 +451,7 @@ var DVUHMenu = {
 					'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
 				'</div>';
 	},
-	_getDropdownHtml: function(name, title, values, selectedValue, hint)
+	_getDropdownHtml: function(name, title, values, selectedValue, hint, optional)
 	{
 		if (!hint)
 			hint = '';
@@ -444,6 +460,9 @@ var DVUHMenu = {
 					'<label class="col-lg-2 control-label" for="'+name+'">'+title+'</label>' +
 					'<div class="col-lg-5">'+
 					'<select class="form-control" name="'+name+'">';
+
+		if (optional === true)
+			html += '<option value="">--- Keine Auswahl ---</option>'; // TODO phrases
 
 		$.each(values, function(idx, value)
 			{

@@ -51,12 +51,12 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	 * @param string $be
 	 * @param int $person_id
 	 * @param string $studiensemester
-	 * @param array $posted passed by reference, to be filled with posted data to know for which prestudents Prüfungsaktivitäten were sent.
+	 * @param array $toPost passed by reference, to be filled with posted data to know for which prestudents Prüfungsaktivitäten were sent.
 	 * @return object success or error
 	 */
-	public function post($be, $person_id, $studiensemester, &$posted)
+	public function post($be, $person_id, $studiensemester, &$toPost)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $posted);
+		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $toPost);
 
 		if (isError($postData))
 			return $postData;
@@ -98,7 +98,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 				foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
 				{
-					// saved ects to post to variable
+					// save ects to post to variable
 					$toPost[$prestudent_id]['ects_angerechnet'] = $pruefungsaktivitaeten->ects_angerechnet;
 					$toPost[$prestudent_id]['ects_erworben'] = $pruefungsaktivitaeten->ects_erworben;
 

@@ -35,6 +35,7 @@ class DVUH extends Auth_Controller
 				'postErnpmeldung'=>'admin:rw',
 				'postPruefungsaktivitaeten'=>'admin:rw',
 				'postEkzanfordern'=>'admin:rw',
+				'postStudiumStorno'=>'admin:rw',
 				'deletePruefungsaktivitaeten'=>'admin:rw'
 			)
 		);
@@ -251,7 +252,9 @@ class DVUH extends Auth_Controller
 			'nations' => array()
 		);
 
-		$nationTextFieldName = getUserLanguage() == 'German' ? 'langtext' : 'engltext';
+		$language = getUserLanguage();
+
+		$nationTextFieldName = $language == 'German' ? 'langtext' : 'engltext';
 
 		$this->load->model('codex/Nation_model', 'NationModel');
 
@@ -265,7 +268,27 @@ class DVUH extends Auth_Controller
 			exit;
 		}
 
+		$this->load->model('organisation/Studiengang_model', 'StudiengangModel');
+
+		$stgTextFieldName = $language == 'German' ? 'bezeichnung' : 'english';
+
+		$this->StudiengangModel->addSelect("studiengang_kz, $stgTextFieldName AS studiengang_text");
+		$this->StudiengangModel->addOrder('studiengang_kz');
+		$stgRes = $this->StudiengangModel->loadWhere(
+			array(
+				'aktiv' => true,
+				'melderelevant' => true
+			)
+		);
+
+		if (isError($stgRes))
+		{
+			$this->outputJsonError(getError($stgRes));
+			exit;
+		}
+
 		$menuData['nations'] = getData($nationRes);
+		$menuData['stg'] = getData($stgRes);
 
 		$this->outputJsonSuccess($menuData);
 	}
@@ -392,21 +415,6 @@ class DVUH extends Auth_Controller
 		$this->outputJson($json);
 	}
 
-	public function deletePruefungsaktivitaeten()
-	{
-		$json = null;
-
-		$data = $this->input->post('data');
-
-		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
-		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
-		$semester = isset($data['semester']) ? $data['semester'] : null;
-
-		$json = $this->dvuhmanagementlib->deletePruefungsaktivitaeten($person_id, $semester, $prestudent_id);
-
-		$this->outputJson($json);
-	}
-
 	public function postEkzanfordern()
 	{
 		$json = null;
@@ -418,6 +426,37 @@ class DVUH extends Auth_Controller
 		$forcierungskey = isset($data['forcierungskey']) ? $data['forcierungskey'] : null;
 
 		$json = $this->dvuhmanagementlib->requestEkz($person_id, $forcierungskey, $preview);
+
+		$this->outputJson($json);
+	}
+
+	public function postStudiumStorno()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$studiengang_kz = isset($data['studiengang_kz']) ? $data['studiengang_kz'] : null;
+
+		$json = $this->dvuhmanagementlib->cancelStudyData($matrikelnummer, $semester, $studiengang_kz, $preview);
+
+		$this->outputJson($json);
+	}
+
+	public function deletePruefungsaktivitaeten()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
+		$semester = isset($data['semester']) ? $data['semester'] : null;
+
+		$json = $this->dvuhmanagementlib->deletePruefungsaktivitaeten($person_id, $semester, $prestudent_id);
 
 		$this->outputJson($json);
 	}
