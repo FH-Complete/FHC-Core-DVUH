@@ -93,12 +93,18 @@
 			{
 				echo "\t\t\t<gemeinsam>\n".
 						"\t\t\t\t<ausbildungssemester>".$studiengang['gemeinsam']['ausbildungssemester']."</ausbildungssemester>\n".
-						"\t\t\t\t<mobilitaetprogrammcode>".$studiengang['gemeinsam']['mobilitaetprogrammcode']."</mobilitaetprogrammcode>\n".
 						"\t\t\t\t<partnercode>".$studiengang['gemeinsam']['partnercode']."</partnercode>\n".
 						"\t\t\t\t<programmnr>".$studiengang['gemeinsam']['programmnr']."</programmnr>\n".
 						"\t\t\t\t<studstatuscode>".$studiengang['gemeinsam']['studstatuscode']."</studstatuscode>\n".
-						"\t\t\t\t<studtyp>".$studiengang['gemeinsam']['studtyp']."</studtyp>\n".
-					"\t\t\t</gemeinsam>\n";
+						"\t\t\t\t<studtyp>".$studiengang['gemeinsam']['studtyp']."</studtyp>\n";
+
+				if (isset($studiengang['gemeinsam']['beendigungsdatum']))
+					echo "\t\t\t\t<beendigungsdatum>".$studiengang['gemeinsam']['beendigungsdatum']."</beendigungsdatum>\n";
+
+				if (isset($studiengang['gemeinsam']['mobilitaetprogrammcode']))
+					echo "\t\t\t\t<mobilitaetprogrammcode>".$studiengang['gemeinsam']['mobilitaetprogrammcode']."</mobilitaetprogrammcode>\n";
+
+				echo "\t\t\t</gemeinsam>\n";
 			}
 
 			if (isset($studiengang['mobilitaet']))

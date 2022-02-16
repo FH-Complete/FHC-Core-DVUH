@@ -267,7 +267,7 @@ class DVUHSyncLib
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
 							ORDER BY datum ASC LIMIT 1) AS beginndatum,	
-				       	(SELECT datum FROM public.tbl_prestudentstatus
+				       (SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
     						AND tbl_prestudentstatus.studiensemester_kurzbz = pss.studiensemester_kurzbz
 							AND status_kurzbz IN ('Absolvent', 'Abbrecher')
@@ -477,7 +477,7 @@ class DVUHSyncLib
 
 						// gemeinsame Studien
 						$gemeinsam = null;
-						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp);
+						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $prestudentstatus->beendigungsdatum);
 
 						if (isset($gemeinsamResult) && isError($gemeinsamResult))
 							return $gemeinsamResult;
@@ -886,7 +886,7 @@ class DVUHSyncLib
 	 * @param string $studtyp pass to gsdata
 	 * @return object error or success with gsdata
 	 */
-	private function _getGemeinsameStudien($prestudentstatus, $semester, $studtyp)
+	private function _getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $beendigungsdatum)
 	{
 		if (!isset($studtyp))
 			return error('Kein Studientyp für gemeinsame Studien gefunden');
@@ -936,6 +936,7 @@ class DVUHSyncLib
 
 			$gemeinsamData = array(
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
+				'beendigungsdatum' => $beendigungsdatum,
 				'mobilitaetprogrammcode' => $gemeinsamestudien->mobilitaetsprogramm_code,
 				'partnercode' => $gemeinsamestudien->partner_code,
 				'programmnr' => $gemeinsamestudien->programm_code,
