@@ -10,7 +10,6 @@ class DVUHManagementLib
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
 	const STORNO_MELDESTATUS = 'O';
-	const STORNO_STATUSCODE = '4';
 
 	private $_ci; // code igniter instance
 	private $_be; // Bildungseinrichtung code
@@ -1446,8 +1445,9 @@ class DVUHManagementLib
 					}
 
 					// add storno data
+					$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
+					$studium->studstatuscode = $studium->studstatuscode == $kodex_studstatuscode_array['Absolvent'] ? $kodex_studstatuscode_array['Absolvent'] : $kodex_studstatuscode_array['Abbrecher'];
 					$studium->meldestatus = self::STORNO_MELDESTATUS;
-					$studium->studstatuscode = self::STORNO_STATUSCODE;
 
 					// convert object data to assoc array
 					$stdArr = json_decode(json_encode($studium), true);

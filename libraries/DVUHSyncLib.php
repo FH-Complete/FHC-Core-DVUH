@@ -271,6 +271,7 @@ class DVUHSyncLib
 							WHERE prestudent_id=ps.prestudent_id
     						AND tbl_prestudentstatus.studiensemester_kurzbz = pss.studiensemester_kurzbz
 							AND status_kurzbz IN ('Absolvent', 'Abbrecher')
+				       		AND datum <= NOW()
 							ORDER BY datum DESC LIMIT 1) AS beendigungsdatum
 				  FROM public.tbl_prestudent ps
 				  JOIN public.tbl_student using(prestudent_id)
@@ -477,7 +478,9 @@ class DVUHSyncLib
 
 						// gemeinsame Studien
 						$gemeinsam = null;
-						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $prestudentstatus->beendigungsdatum);
+						// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
+						$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
+						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $gsBeendigungsdatum);
 
 						if (isset($gemeinsamResult) && isError($gemeinsamResult))
 							return $gemeinsamResult;
@@ -893,31 +896,31 @@ class DVUHSyncLib
 
 		$prestudent_id = $prestudentstatus->prestudent_id;
 
-		$prevSemesterResult = $this->_ci->StudiensemesterModel->getPreviousFrom($semester);
-
-		if (hasData($prevSemesterResult))
-			$prevSemester = getData($prevSemesterResult)[0]->studiensemester_kurzbz;
-		else
-			return error('Kein vorheriges Studiensemester');
-
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 
 		$gemeinsamestudienResult = $this->_dbModel->execReadOnlyQuery("SELECT
-								tbl_mobilitaet.*,
+								mo.*,
 								tbl_gsprogramm.programm_code,
-								tbl_firma.partner_code
+								tbl_firma.partner_code,
+       							CASE WHEN EXISTS
+									(SELECT 1 FROM bis.tbl_mobilitaet
+									WHERE prestudent_id = mo.prestudent_id
+									AND studiensemester_kurzbz = mo.studiensemester_kurzbz
+									AND status_kurzbz = 'Absolvent')
+								THEN TRUE
+								ELSE FALSE
+								END AS ist_absolvent
 							FROM
-								bis.tbl_mobilitaet
+								bis.tbl_mobilitaet mo
 								LEFT JOIN bis.tbl_gsprogramm USING(gsprogramm_id)
 								LEFT JOIN public.tbl_firma USING(firma_id)
 							WHERE
 								prestudent_id=?
-								AND (studiensemester_kurzbz=? OR (studiensemester_kurzbz=? AND status_kurzbz = 'Absolvent'))
-							ORDER BY tbl_mobilitaet.insertamum DESC LIMIT 1;",
+								AND studiensemester_kurzbz=?
+							ORDER BY mo.insertamum DESC LIMIT 1;",
 			array(
 				$prestudent_id,
-				$semester,
-				$prevSemester
+				$semester
 			)
 		);
 
@@ -936,7 +939,6 @@ class DVUHSyncLib
 
 			$gemeinsamData = array(
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
-				'beendigungsdatum' => $beendigungsdatum,
 				'mobilitaetprogrammcode' => $gemeinsamestudien->mobilitaetsprogramm_code,
 				'partnercode' => $gemeinsamestudien->partner_code,
 				'programmnr' => $gemeinsamestudien->programm_code,
@@ -944,8 +946,13 @@ class DVUHSyncLib
 				'studtyp' => $studtyp
 			);
 
+			// set beendigungsdatum only if absolvent
+			if ($gemeinsamestudien->ist_absolvent === true)
+				$gemeinsamData['beendigungsdatum'] = $beendigungsdatum;
+
 			$gemeinsam = success($gemeinsamData);
 		}
+
 		return $gemeinsam;
 	}
 
