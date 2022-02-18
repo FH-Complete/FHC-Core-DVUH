@@ -87,13 +87,25 @@ $this->load->view('templates/FHC-Header', array(
 					</div>
 				</div>
 				<div class="row second-row">
-					<div class="col-lg-6">
+					<div class="col-lg-3">
 						<div class="panel panel-default">
 							<div class="panel-heading">Zahlungsmanagement</div>
 							<div class="list-unstyled panel-body">
 								<ul class="list-unstyled dvuhMenu">
 									<li id="getKontostaende"><a href="javascript:void(0)">Kontostand abfragen</a></li>
 									<li id="postPayment"><a href="javascript:void(0)">Zahlungseingang melden</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3">
+						<div class="panel panel-default">
+							<div class="panel-heading">Prüfungsaktivitätenmanagement</div> <!-- TODO phrases -->
+							<div class="list-unstyled panel-body">
+								<ul class="list-unstyled dvuhMenu">
+									<li id="getPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten abfragen</a></li>
+									<li id="postPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten melden</a></li>
+									<li id="deletePruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten l&ouml;schen</a></li>
 								</ul>
 							</div>
 						</div>
@@ -107,13 +119,12 @@ $this->load->view('templates/FHC-Header', array(
 										<ul class="list-unstyled dvuhMenu">
 											<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten abfragen</a></li>
 											<li id="getFullstudent"><a href="javascript:void(0)">Detaillierte Studiendaten abfragen</a></li>
-											<li id="getPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten abfragen</a></li>
 										</ul>
 									</div>
 									<div class="col-lg-6 menucolumn">
 										<ul class="list-unstyled dvuhMenu">
 											<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
-											<li id="postPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten melden</a></li>
+											<li id="postStudiumStorno"><a href="javascript:void(0)">Studiumsdaten stornieren</a></li>
 										</ul>
 									</div>
 								</div>

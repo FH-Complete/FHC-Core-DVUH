@@ -189,19 +189,37 @@ class XMLReaderLib
 	 */
 	private function _convertDomElementToPhpObj($domElement, &$phpObject)
 	{
+		// for all child nodes fo element
 		foreach ($domElement->childNodes as $child)
 		{
+			// fill continue recursion if there are child nodes
 			if (isset($child->childNodes))
 			{
 				if ($child->childNodes->length > 0)
 				{
-					$phpObject->{$child->tagName} = new stdClass();
-					$this->_convertDomElementToPhpObj($child, $phpObject->{$child->tagName});
+					// if there is already element with same name on this level...
+					if (isset($phpObject->{$child->tagName}))
+					{
+						// ...create array if multiple elements with same name
+						if (!is_array($phpObject->{$child->tagName}))
+							$phpObject->{$child->tagName} = array($phpObject->{$child->tagName});
+
+						// add new element to array
+						$phpObject->{$child->tagName}[] = new stdClass();
+
+						// recursive call for new array element to fill child data
+						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->tagName}[count($phpObject->{$child->tagName}) -1]);
+					}
+					else // if elment does not exist yet, create it and go down one level
+					{
+						$phpObject->{$child->tagName} = new stdClass();
+						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->tagName});
+					}
 				}
-				else
+				else // empty string if children have no value
 					$phpObject->{$child->tagName} = '';
 			}
-			else
+			else // no children anymore, send the value
 			{
 				$phpObject = $child->nodeValue;
 			}

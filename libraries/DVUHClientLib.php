@@ -128,7 +128,7 @@ class DVUHClientLib
 
 		// Call Service
 		$curl = curl_init();
-		if ($method == 'GET')
+		if (isset($getParametersArray) && !isEmptyArray($getParametersArray))
 		{
 			$params = array();
 			foreach($getParametersArray as $key=>$val)

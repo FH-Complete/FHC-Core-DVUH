@@ -9,9 +9,10 @@ class DVUHManagementLib
 	const STATUS_PAID_OTHER_UNIV = '8'; // payment status if paid on another university, for check
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
+	const STORNO_MELDESTATUS = 'O';
 
-	private $_be;
-	private $_ci;
+	private $_ci; // code igniter instance
+	private $_be; // Bildungseinrichtung code
 
 	// Statuscodes returned when checking Matrikelnr, resulting actions are array keys
 	private $_matrnr_statuscodes = array(
@@ -48,6 +49,7 @@ class DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_loeschen_model', 'PruefungsaktivitaetenLoeschenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ekzanfordern_model', 'EkzanfordernModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Feed_model', 'FeedModel');
@@ -681,7 +683,7 @@ class DVUHManagementLib
 								FROM sync.tbl_dvuh_zahlungen
 								WHERE buchungsnr = ?
 								AND betrag < 0
-								ORDER BY buchungsdatum DESC, insertamum DESC
+								ORDER BY buchungsdatum DESC, insertamum DESC NULLS LAST, zahlung_id DESC
 								LIMIT 1",
 					array(
 						$buchung->buchungsnr_verweis
@@ -837,6 +839,9 @@ class DVUHManagementLib
 		else
 			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
 
+		// get and reset warnings produced by dvuhsynclib
+		$warnings = $this->_ci->dvuhsynclib->readWarnings();
+
 		if (isError($studiumResult))
 			$result = $studiumResult;
 		elseif (hasData($studiumResult))
@@ -849,8 +854,6 @@ class DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$warnings = $this->_ci->dvuhsynclib->readWarnings();
-
 				$result = $this->_getResponseArr(
 					$xmlstr,
 					array('Studiumdaten erfolgreich in DVUH gespeichert'),
@@ -1116,7 +1119,8 @@ class DVUHManagementLib
 				return error("Daten fehlen: ".ucfirst($requiredField));
 		}
 
-		$no_pruefungen_info = 'Keine Pruefungsaktivitäten vorhanden';
+		// TODO phrases
+		$no_pruefungen_info = 'Keine Pruefungsaktivitäten vorhanden, in DVUH gespeicherte Aktivitäten werden gelöscht, wenn vorhanden';
 
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
 
@@ -1135,31 +1139,61 @@ class DVUHManagementLib
 			return $this->_getResponseArr($postData, $infos);
 		}
 
-		$prestudentsPosted = array();
+		$prestudentsToPost = array();
 
-		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz, $prestudentsPosted);
+		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz, $prestudentsToPost);
 
 		if (isError($pruefungsaktivitaetenResult))
 			$result = $pruefungsaktivitaetenResult;
-		elseif (hasData($pruefungsaktivitaetenResult))
+		else
 		{
-			$xmlstr = getData($pruefungsaktivitaetenResult);
-
-			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
-
-			if (isError($parsedObj))
-				$result = $parsedObj;
+			$pruefungsaktivitaetenResultData = null;
+			if (hasData($pruefungsaktivitaetenResult))
+				$pruefungsaktivitaetenResultData = getData($pruefungsaktivitaetenResult);
 			else
+				$infos[] = $no_pruefungen_info;
+
+			// check for each prestudent to post if deletion is needed
+			foreach ($prestudentsToPost as $prestudent_id => $ects)
 			{
-				foreach ($prestudentsPosted as $prestudent_id => $ects)
+				// if no ects were sent
+				if ($ects['ects_angerechnet'] == 0 && $ects['ects_erworben'] == 0)
 				{
+					// get last sent ects
+					$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->getLastSentPruefungsaktivitaet($prestudent_id, $studiensemester_kurzbz);
+
+					if (hasData($checkPruefungsaktivitaetenRes))
+					{
+						$checkPruefungsaktivitaeten = getData($checkPruefungsaktivitaetenRes)[0];
+
+						// if there were ects sent before, delete all Pruefungsaktivitaeten for the prestudent
+						if (isset($checkPruefungsaktivitaeten->ects_angerechnet) || isset($checkPruefungsaktivitaeten->ects_erworben))
+						{
+							$deletePruefunsaktivitaetenRes = $this->deletePruefungsaktivitaeten($person_id, $studiensemester_kurzbz, $prestudent_id);
+
+							if (isError($deletePruefunsaktivitaetenRes))
+								return $deletePruefunsaktivitaetenRes;
+
+							if (hasData($deletePruefunsaktivitaetenRes))
+							{
+								$deletePruefungsaktivitaeten = getData($deletePruefunsaktivitaetenRes);
+
+								$infos = array_merge($infos, $deletePruefungsaktivitaeten['infos']);
+								$warnings = array_merge($warnings, $deletePruefungsaktivitaeten['warnings']);
+							}
+						}
+					}
+				}
+				else
+				{
+					// if at least some ects were sent, write to sync table
 					$ects_angerechnet_posted = $ects['ects_angerechnet'] == 0
-												? null
-												: number_format($ects['ects_angerechnet'], 2, '.', '');
+						? null
+						: number_format($ects['ects_angerechnet'], 2, '.', '');
 
 					$ects_erworben_posted = $ects['ects_erworben'] == 0
-												? null
-												: number_format($ects['ects_erworben'], 2, '.', '');
+						? null
+						: number_format($ects['ects_erworben'], 2, '.', '');
 
 					$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
 						array(
@@ -1174,23 +1208,80 @@ class DVUHManagementLib
 					if (isError($pruefungsaktivitaetenSaveResult))
 						$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');
 				}
-
-				$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
-				$result = $this->_getResponseArr(
-					$xmlstr,
-					$infos,
-					$warnings,
-					true
-				);
 			}
-		}
-		else
-		{
-			$infos[] = $no_pruefungen_info;
-			$result = $this->_getResponseArr(null, $infos);
+
+			$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
+
+			$result = $this->_getResponseArr(
+				$pruefungsaktivitaetenResultData,
+				$infos,
+				$warnings,
+				true
+			);
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Deletes all Pruefungsaktivitäten of a person in DVUH.
+	 * @param $person_id
+	 * @param $studiensemester
+	 * @param $prestudent_id
+	 * @return object
+	 */
+	public function deletePruefungsaktivitaeten($person_id, $studiensemester, $prestudent_id = null)
+	{
+		$infos = array();
+		$warnings = array();
+
+		$requiredFields = array('person_id', 'studiensemester');
+
+		foreach ($requiredFields as $requiredField)
+		{
+			if (!isset($$requiredField))
+				return error("Daten fehlen: ".ucfirst($requiredField));
+		}
+
+		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
+
+		$deleteRes = $this->_ci->PruefungsaktivitaetenLoeschenModel->delete($this->_be, $person_id, $studiensemester, $prestudent_id);
+
+		if (isError($deleteRes))
+			return $deleteRes;
+
+		if (hasData($deleteRes))
+		{
+			$prestudentIdsResult = getData($deleteRes);
+
+			// delete returns array of deleted prestudent ids
+			foreach ($prestudentIdsResult as $prestudent_id)
+			{
+				// add entry to sync table with NULL to identify when Prüfungsaktivitäten were deleted
+				$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
+					array(
+						'prestudent_id' => $prestudent_id,
+						'studiensemester_kurzbz' => $studiensemester_kurzbz,
+						'ects_angerechnet' => null,
+						'ects_erworben' => null,
+						'meldedatum' => date('Y-m-d')
+					)
+				);
+
+				if (isError($pruefungsaktivitaetenSaveResult))
+					$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');// TODO phrases
+			}
+
+			$infos[] = "Prüfungsaktivitäten in Datenverbund gelöscht, prestudent Id(s): " . implode(', ', $prestudentIdsResult); // TODO phrases
+		}
+		else
+			$infos[] = "No Prüfungsaktivitäten found for deletion"; // TODO phrases
+
+		return $this->_getResponseArr(
+			null,
+			$infos,
+			$warnings
+		);
 	}
 
 	/**
@@ -1264,6 +1355,154 @@ class DVUHManagementLib
 			$result = error("Fehler bei EKZ-Anfrage");
 
 		return $result;
+	}
+
+	/**
+	 * Cancels study data in DVUH.
+	 * @param string $matrikelnummer
+	 * @param string $semester
+	 * @param int $studiengang_kz if passed, only study data for this studiengang is cancelled
+	 * @param bool $preview
+	 * @return object error or success
+	 */
+	public function cancelStudyData($matrikelnummer, $semester, $studiengang_kz = null, $preview = false)
+	{
+		$result = null;
+		$infos = array();
+
+		if (!isset($matrikelnummer))
+		{
+			return error("Matrikelnummer muss angegeben werden"); // TODO phrase
+		}
+
+		if (!isset($semester))
+		{
+			return error("Semester muss angegeben werden"); // TODO phrase
+		}
+
+		// get xml of study data in DVUH
+		$studyData = $this->_ci->StudiumModel->get($this->_be, $matrikelnummer, $semester);
+
+		if (hasData($studyData))
+		{
+			$xmlstr = getData($studyData);
+
+			// parse the received data
+			$studienRes = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('studiengang', 'lehrgang'));
+
+			if (isError($studienRes))
+				return $studienRes;
+
+			if (hasData($studienRes))
+			{
+				$studiengaenge = array();
+				$lehrgaenge = array();
+
+				$studienData = getData($studienRes);
+
+				$studien = array_merge($studienData->studiengang, $studienData->lehrgang);
+
+				$params = array(
+					"uuid" => getUUID(),
+					"studierendenkey" => array(
+						"matrikelnummer" => $matrikelnummer,
+						"be" => $this->_be,
+						"semester" => $semester
+					)
+				);
+
+				// default send method post for all Studiengänge of person
+				$sendMethodName = 'postManually';
+				$studiengangIdName = 'stgkz';
+				$lehrgangIdName = 'lehrgangsnr';
+
+				foreach ($studien as $studium)
+				{
+					$studiumIdName = null;
+					if (isset($studium->{$studiengangIdName}))
+					{
+						$studiumIdName = $studiengangIdName;
+					}
+					elseif (isset($studium->{$lehrgangIdName}))
+					{
+						$studiumIdName = $lehrgangIdName;
+					}
+
+					if (!isset($studiumIdName))
+						return error("Studium Id fehlt"); //TODO phrases
+
+					// if studiengang passed, use put method to cancel only one Studiengang
+					if (isset($studiengang_kz))
+					{
+						// use put if update only one studium
+						$sendMethodName = 'putManually';
+
+						$dvuh_stgkz = $this->_ci->dvuhsynclib->convertStudiengangskennzahlToDVUH($studiengang_kz);
+
+						// only send one studiengang if studiengang_kz passed
+						if ($dvuh_stgkz !== substr($studium->{$studiumIdName}, -1 * strlen($dvuh_stgkz)))
+							continue;
+					}
+
+					// add storno data
+					$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
+					$studium->studstatuscode = $studium->studstatuscode == $kodex_studstatuscode_array['Absolvent'] ? $kodex_studstatuscode_array['Absolvent'] : $kodex_studstatuscode_array['Abbrecher'];
+					$studium->meldestatus = self::STORNO_MELDESTATUS;
+
+					// convert object data to assoc array
+					$stdArr = json_decode(json_encode($studium), true);
+
+					if (isset($studium->{$studiengangIdName}))
+					{
+						$studiengaenge[] = $stdArr;
+					}
+					elseif (isset($studium->{$lehrgangIdName}))
+					{
+						$lehrgaenge[] = $stdArr;
+					}
+				}
+
+				$params['studiengaenge'] = $studiengaenge;
+				$params['lehrgaenge'] = $lehrgaenge;
+
+				// abort if no studien found
+				if (isEmptyArray($studiengaenge) && isEmptyArray($lehrgaenge))
+				{
+					$infos[] = 'keine Studien in DVUH gefunden';// TODO phrases
+					return $this->_getResponseArr(null, $infos);
+				}
+
+				// show preview
+				if ($preview)
+				{
+					$postData = $this->_ci->StudiumModel->retrievePostDataString($params);
+					return $this->_getResponseArr($postData);
+				}
+
+				// send study data with modified storno data
+				$studiumPostRes = $this->_ci->StudiumModel->{$sendMethodName}($params);
+
+				if (isError($studiumPostRes))
+					return $studiumPostRes;
+
+				$infos[] = "Studiumdaten erfolgreich storniert"; // TODO phrases
+
+				$result = getData($studiumPostRes);
+			}
+			else
+			{
+				$infos[] = "Keine Studiumdaten zum Stornieren gefunden"; // TODO phrase
+			}
+		}
+		else
+			$infos[] = "Keine Studiumdaten zum Stornieren gefunden"; // TODO phrase
+
+		return $this->_getResponseArr(
+			$result,
+			$infos,
+			null,
+			true
+		);
 	}
 
 	// --------------------------------------------------------------------------------------------

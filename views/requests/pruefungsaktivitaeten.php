@@ -12,7 +12,7 @@
 			</studierendenkey>
 			<?php if (isset($studiumpruefung['ects'])):?>
 				<pruefungen>
-					<?php if (isset($studiumpruefung['ects']->ects_angerechnet) && $studiumpruefung['ects']->ects_angerechnet > 0):?>
+					<?php if (isset($studiumpruefung['ects']->ects_angerechnet) && $studiumpruefung['ects']->ects_angerechnet >= 0):?>
 						<pruefung>
 							<ects bezug="angerechnet"><?php echo $studiumpruefung['ects']->ects_angerechnet ?></ects>
 							<fach>1</fach>
@@ -21,7 +21,7 @@
 							<semesterzahl>1</semesterzahl>
 						</pruefung>
 					<?php endif; ?>
-					<?php if (isset($studiumpruefung['ects']->ects_erworben) && $studiumpruefung['ects']->ects_erworben > 0):?>
+					<?php if (isset($studiumpruefung['ects']->ects_erworben) && $studiumpruefung['ects']->ects_erworben >= 0):?>
 						<pruefung>
 							<ects bezug="erworben"><?php echo $studiumpruefung['ects']->ects_erworben ?></ects>
 							<fach>1</fach>

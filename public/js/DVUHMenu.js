@@ -4,6 +4,7 @@
 
 $(document).ready(function()
 	{
+		// show / hide menu
 		$("#toggleMenu").click(
 			function()
 			{
@@ -12,33 +13,53 @@ $(document).ready(function()
 			}
 		);
 
+		// print form when clicking on menu entry
 		$(".dvuhMenu li").click(
 			function()
 			{
 				var id = $(this).prop('id');
-				DVUHMenu.printForm(id);
+				DVUHMenu.printFormWithFhcData(id);
 			}
 		);
 
+		// scroll to top button
 		DVUHMenu._setScrollToTop();
 
+		// get hash params from url and show appropriate form (if coming from external site)
 		var hash = window.location.hash.substr(1);
 
-		// get hash params from url and show appropriate form (if coming from external site)
 		var result = hash.split('&').reduce(function (res, item) {
 			var parts = item.split('=');
 			res[parts[0]] = parts[1];
 			return res;
 		}, {});
 
-		if (result.page.length > 0)
+		if (result.page && result.page.length > 0)
 		{
-			DVUHMenu.printForm(result.page, result);
+			DVUHMenu.printFormWithFhcData(result.page, result);
 		}
 	}
 );
 
 var DVUHMenu = {
+	fhcData: null,
+	actionsRequireFhcData: ['postErnpmeldung', 'postStudiumStorno'],
+	printFormWithFhcData: function(action, params)
+	{
+		if ($.inArray(action, DVUHMenu.actionsRequireFhcData) !== -1)
+		{
+			DVUHMenu.getDvuhMenuData(
+				function()
+				{
+					DVUHMenu.printForm(action, params);
+				}
+			);
+		}
+		else
+		{
+			DVUHMenu.printForm(action, params);
+		}
+	},
 	printForm: function(action, params)
 	{
 		var html = '';
@@ -156,6 +177,14 @@ var DVUHMenu = {
 				writePreviewButton = true;
 				break;
 			case 'postErnpmeldung':
+
+				var nationsDropdownValues = {};
+				for (var idx in DVUHMenu.fhcData.nations)
+				{
+					var nation = DVUHMenu.fhcData.nations[idx];
+					nationsDropdownValues[nation.nation_code] = nation.nation_text+" - "+nation.nation_code;
+				}
+
 				html = '<h4>ERnP-Meldung durchführen</h4>';
 				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
 					'wenn für die Person keine bPK ermittelt werden kann.<br />Beim Punkt "bPK ermitteln" sollte dementsprechend keine bPK zurückgegeben werden. ' +
@@ -163,7 +192,7 @@ var DVUHMenu = {
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
-					+ DVUHMenu._getTextfieldHtml('ausstellland', 'Ausstellland', '1-3 Stellen Codex (zb D für Deutschland)', 3)
+					+ DVUHMenu._getDropdownHtml('ausstellland', 'Ausstellland', nationsDropdownValues, "D", '1-3 Stellen Codex (zb D für Deutschland)')
 					+ DVUHMenu._getTextfieldHtml('dokumentnr', 'Dokumentnr', '1 bis 255 Stellen', 255)
 					+ DVUHMenu._getDropdownHtml('dokumenttyp', 'Dokumenttyp', {'REISEP': 'Reisepass', 'PERSAUSW': 'Personalausweis'}, 'REISEP')
 				method = 'post';
@@ -183,6 +212,29 @@ var DVUHMenu = {
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				writePreviewButton = true;
+				break;
+			case 'postStudiumStorno':
+
+				var stgDropdownValues = {};
+				for (var idx in DVUHMenu.fhcData.stg)
+				{
+					var stg = DVUHMenu.fhcData.stg[idx];
+					stgDropdownValues[stg.studiengang_kz] = stg.studiengang_kz + " ("+stg.studiengang_text+")";
+				}
+
+				html = '<h4>Studiumsdaten stornieren</h4>'; // TODO phrases
+				html += DVUHMenu._getMatrikelnummerRow()
+					+ DVUHMenu._getSemesterRow() // TODO - stg maybe dropdown?
+					+ DVUHMenu._getDropdownHtml('studiengang_kz', 'Studiengangskennzahl', stgDropdownValues, "null", 'optional, für einzelne Studien', true)
+				method = 'post';
+				writePreviewButton = true;
+				break;
+			case 'deletePruefungsaktivitaeten':
+				html = '<h4>Prüfungsaktivitäten löschen</h4>';
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+					+ DVUHMenu._getSemesterRow()
+					+ DVUHMenu._getTextfieldHtml('prestudent_id', 'PrestudentID', 'optional')
+				method = 'post';
 				break;
 		}
 
@@ -290,7 +342,7 @@ var DVUHMenu = {
 	},
 	sendForm: function(action, method, preview)
 	{
-		var url = FHC_JS_DATA_STORAGE_OBJECT.called_path + '/'+action;
+		var url = FHC_JS_DATA_STORAGE_OBJECT.called_path + '/' + action;
 		var formData = DVUHMenu._getFormData();
 		var boxid = 'dvuhOutput';
 
@@ -343,6 +395,34 @@ var DVUHMenu = {
 			);
 		}
 	},
+
+	/* ajax calls */
+	getDvuhMenuData: function(callback)
+	{
+		FHC_AjaxClient.ajaxCallGet(
+			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/getDvuhMenuData',
+			null,
+			{
+				successCallback: function(data)
+				{
+					// TODO phrases
+					if (FHC_AjaxClient.hasData(data))
+					{
+						DVUHMenu.fhcData = FHC_AjaxClient.getData(data);
+						callback();
+					}
+					else
+						FHC_DialogLib.alertError("Fehler bei Holen der fhcomplete Daten");
+				},
+				errorCallback: function(jqXHR, textStatus, errorThrown)
+				{
+					FHC_DialogLib.alertError("Fehler bei Holen der fhcomplete Daten");
+				}
+			}
+		);
+	},
+
+	/* additional "private" methods */
 	_getMatrikelnummerRow: function()
 	{
 		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', '', 8)
@@ -371,7 +451,7 @@ var DVUHMenu = {
 					'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
 				'</div>';
 	},
-	_getDropdownHtml: function(name, title, values, selectedValue, hint)
+	_getDropdownHtml: function(name, title, values, selectedValue, hint, optional)
 	{
 		if (!hint)
 			hint = '';
@@ -381,9 +461,12 @@ var DVUHMenu = {
 					'<div class="col-lg-5">'+
 					'<select class="form-control" name="'+name+'">';
 
+		if (optional === true)
+			html += '<option value="">--- Keine Auswahl ---</option>'; // TODO phrases
+
 		$.each(values, function(idx, value)
 			{
-				var selected = selectedValue === value ? ' selected' : '';
+				var selected = selectedValue === idx ? ' selected' : '';
 				html += '<option value="'+idx+'"'+selected+'>'+value+'</option>';
 			}
 		)
@@ -436,7 +519,7 @@ var DVUHMenu = {
 
 		return result;
 	},
-	_writeResult: function(text, boxid, type)
+	_writeResult: function(resultToWrite, boxid, type)
 	{
 		var colorClass = '';
 		var intro = 'Abfrage ausgeführt, Antwort:';
@@ -448,42 +531,41 @@ var DVUHMenu = {
 			colorClass = ' class="text-danger"';
 			intro = 'Fehler aufgetreten, Antwort:';
 			isError = true;
-			textToWrite = text;
+			textToWrite = resultToWrite;
 		}
 		else
 		{
-
-			if (text.infos)
+			if (resultToWrite.infos)
 			{
-				for (var i = 0; i < text.infos.length; i++)
+				for (var i = 0; i < resultToWrite.infos.length; i++)
 				{
 					textToWrite += "<span class='text-success'>";
-					textToWrite += text.infos[i];
+					textToWrite += resultToWrite.infos[i];
 					textToWrite += "</span><br />";
 				}
 			}
 
-			if (text.warnings)
+			if (resultToWrite.warnings)
 			{
-				for (var i = 0; i < text.warnings.length; i++)
+				for (var i = 0; i < resultToWrite.warnings.length; i++)
 				{
-					if (!FHC_AjaxClient.isError(text.warnings[i]))
+					if (!FHC_AjaxClient.isError(resultToWrite.warnings[i]))
 						continue;
 
 					textToWrite += "<span class='text-warning'>";
-					textToWrite += FHC_AjaxClient.getError(text.warnings[i]);
+					textToWrite += FHC_AjaxClient.getError(resultToWrite.warnings[i]);
 					textToWrite += "</span><br />";
 				}
 			}
 
 			var result = null
-			if (text.result)
+			if (resultToWrite.result)
 			{
-				result = text.result;
+				result = resultToWrite.result;
 			}
-			else if (typeof text == 'string')
+			else if (typeof resultToWrite == 'string')
 			{
-				result = text;
+				result = resultToWrite;
 			}
 
 			if (jQuery.isArray(result))
@@ -504,7 +586,6 @@ var DVUHMenu = {
 			{
 				textToWrite += DVUHMenu._printXmlTree(result);
 			}
-
 		}
 
 		var spanid = boxid+"Span";
