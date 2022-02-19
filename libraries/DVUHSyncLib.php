@@ -275,10 +275,11 @@ class DVUHSyncLib
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
 							ORDER BY datum ASC LIMIT 1) AS beginndatum,	
-				       	(SELECT datum FROM public.tbl_prestudentstatus
+				       (SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
     						AND tbl_prestudentstatus.studiensemester_kurzbz = pss.studiensemester_kurzbz
 							AND status_kurzbz IN ('Absolvent', 'Abbrecher')
+				       		AND datum <= NOW()
 							ORDER BY datum DESC LIMIT 1) AS beendigungsdatum
 				  FROM public.tbl_prestudent ps
 				  JOIN public.tbl_student using(prestudent_id)
@@ -354,20 +355,19 @@ class DVUHSyncLib
 					// booleans isIncoming, isAusserordentlich, isLehrgang
 					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
-					$isAusserordentlich = mb_substr($prestudentstatus->personenkennzeichen,3,1) == '9';
+					$isAusserordentlich = $this->checkIfAusserordentlich($prestudentstatus->personenkennzeichen);
+
 					// lehrgang - either typ l or studiengang_kz < 0, but not ausserordentlich
 					$isLehrgang = !$isAusserordentlich && ($prestudentstatus->studiengang_typ == 'l' || $studiengang_kz < 0);
 
-
 					// studiengang kz
-					$erhalter_kz = str_pad($prestudentstatus->erhalter_kz, 3, '0', STR_PAD_LEFT);
+					$erhalter_kz = $this->convertErhalterkennzahlToDVUH($prestudentstatus->erhalter_kz);
 
 					// if ausserordentlich, students are sent with special studiengang_kz
-					$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
-					if ($isAusserordentlich && isset($ausserordentlich_prefix) && is_numeric($ausserordentlich_prefix))
-						$studiengang_kz = $ausserordentlich_prefix.$erhalter_kz;
+					if ($isAusserordentlich)
+						$studiengang_kz = $this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $erhalter_kz);
 
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
+					$dvuh_stgkz = $erhalter_kz . $this->convertStudiengangskennzahlToDVUH($studiengang_kz);
 
 					// studtyp - if extern, certain data should not be sent to DVUH
 					$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
@@ -405,9 +405,7 @@ class DVUHSyncLib
 						$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum, $isIncoming);
 
 						if (isError($zugangsberechtigungResult))
-						{
 							return $zugangsberechtigungResult;
-						}
 
 						if (hasData($zugangsberechtigungResult))
 						{
@@ -487,7 +485,9 @@ class DVUHSyncLib
 
 						// gemeinsame Studien
 						$gemeinsam = null;
-						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp);
+						// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
+						$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
+						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $gsBeendigungsdatum);
 
 						if (isset($gemeinsamResult) && isError($gemeinsamResult))
 							return $gemeinsamResult;
@@ -641,31 +641,7 @@ class DVUHSyncLib
 		$prestudentEcts = array();
 
 		//get all valid prestudents of person
-		$params = array(
-			$person_id,
-			$studiensemester
-		);
-
-		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, stg.studiengang_kz, stg.erhalter_kz, pers.matr_nr
-					FROM public.tbl_prestudent ps
-					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
-					JOIN public.tbl_person pers USING(person_id)
-					JOIN public.tbl_studiengang stg  USING(studiengang_kz)
-					WHERE person_id = ?
-					AND pss.studiensemester_kurzbz = ?
-					AND ps.bismelden = TRUE
-					AND stg.melderelevant = TRUE";
-
-		if (isset($status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]))
-		{
-			$prstQry .= " AND pss.status_kurzbz IN ?";
-			$params[] = $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN];
-		}
-
-		$prestudentsRes = $this->_dbModel->execReadOnlyQuery(
-			$prstQry,
-			$params
-		);
+		$prestudentsRes = $this->_ci->fhcmanagementlib->getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
 
 		if (isError($prestudentsRes))
 			return $prestudentsRes;
@@ -676,11 +652,21 @@ class DVUHSyncLib
 
 			foreach ($prestudents as $prestudent)
 			{
+				// convert erhalter kz and studiengangskennzahl to DVUH format
+				$isAusserordentlich = isset($prestudent->personenkennzeichen) && $this->checkIfAusserordentlich($prestudent->personenkennzeichen);
+				$studiengang_kz = $prestudent->studiengang_kz;
+				$dvuh_erhalter_kz = $this->convertErhalterkennzahlToDVUH($prestudent->erhalter_kz);
+
+				// if ausserordentlich, students are sent with special studiengang_kz
+				if ($isAusserordentlich)
+					$studiengang_kz = $this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $dvuh_erhalter_kz);
+
+				$dvuh_stgkz = $dvuh_erhalter_kz . $this->convertStudiengangskennzahlToDVUH($studiengang_kz);
+
 				$prestudentEctsObj = new stdClass();
 				$prestudentEctsObj->ects_erworben = 0.0;
 				$prestudentEctsObj->ects_angerechnet = 0.0;
-				$prestudentEctsObj->erhalter_kz = $prestudent->erhalter_kz;
-				$prestudentEctsObj->studiengang_kz = $prestudent->studiengang_kz;
+				$prestudentEctsObj->dvuh_stgkz = $dvuh_stgkz;
 				$prestudentEctsObj->matr_nr = $prestudent->matr_nr;
 				$prestudentEcts[$prestudent->prestudent_id] = $prestudentEctsObj;
 			}
@@ -756,6 +742,41 @@ class DVUHSyncLib
 	}
 
 	/**
+	 * Converts Erhalter Kennzahl to DVUH format.
+	 * @param string $erhalter_kz
+	 * @return string
+	 */
+	public function convertErhalterkennzahlToDVUH($erhalter_kz)
+	{
+		return str_pad($erhalter_kz, 3, '0', STR_PAD_LEFT);
+	}
+
+	/**
+	 * Converts Studiengangskennzahl to DVUH format.
+	 * @param string $studiengang_kz
+	 * @return string
+	 */
+	public function convertStudiengangskennzahlToDVUH($studiengang_kz)
+	{
+		return str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
+	}
+
+	/**
+	 * Converts Studiengangskennzahl of a student who is ausserordentlich to DVUH format.
+	 * @param $studiengang_kz
+	 * @param $erhalter_kz
+	 * @return string
+	 */
+	public function convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $erhalter_kz)
+	{
+		$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
+		if (isset($ausserordentlich_prefix) && is_numeric($ausserordentlich_prefix))
+			$studiengang_kz = $ausserordentlich_prefix.$erhalter_kz;
+
+		return $studiengang_kz;
+	}
+
+	/**
 	 * Checks an adress for validity.
 	 * @param object $addr
 	 * @return error or success with true/false (valid or not)
@@ -825,6 +846,16 @@ class DVUHSyncLib
 	}
 
 	/**
+	 * Checks if a student is ausserordentlich.
+	 * @param string $personenkennzeichen
+	 * @return bool
+	 */
+	public function checkIfAusserordentlich($personenkennzeichen)
+	{
+		return mb_substr($personenkennzeichen,3,1) == '9';
+	}
+
+	/**
 	 * Gets occured warnings and resets them.
 	 * @return array
 	 */
@@ -887,38 +918,38 @@ class DVUHSyncLib
 	 * @param string $studtyp pass to gsdata
 	 * @return object error or success with gsdata
 	 */
-	private function _getGemeinsameStudien($prestudentstatus, $semester, $studtyp)
+	private function _getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $beendigungsdatum)
 	{
 		if (!isset($studtyp))
 			return error('Kein Studientyp für gemeinsame Studien gefunden');
 
 		$prestudent_id = $prestudentstatus->prestudent_id;
 
-		$prevSemesterResult = $this->_ci->StudiensemesterModel->getPreviousFrom($semester);
-
-		if (hasData($prevSemesterResult))
-			$prevSemester = getData($prevSemesterResult)[0]->studiensemester_kurzbz;
-		else
-			return error('Kein vorheriges Studiensemester');
-
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 
 		$gemeinsamestudienResult = $this->_dbModel->execReadOnlyQuery("SELECT
-								tbl_mobilitaet.*,
+								mo.*,
 								tbl_gsprogramm.programm_code,
-								tbl_firma.partner_code
+								tbl_firma.partner_code,
+       							CASE WHEN EXISTS
+									(SELECT 1 FROM bis.tbl_mobilitaet
+									WHERE prestudent_id = mo.prestudent_id
+									AND studiensemester_kurzbz = mo.studiensemester_kurzbz
+									AND status_kurzbz = 'Absolvent')
+								THEN TRUE
+								ELSE FALSE
+								END AS ist_absolvent
 							FROM
-								bis.tbl_mobilitaet
+								bis.tbl_mobilitaet mo
 								LEFT JOIN bis.tbl_gsprogramm USING(gsprogramm_id)
 								LEFT JOIN public.tbl_firma USING(firma_id)
 							WHERE
 								prestudent_id=?
-								AND (studiensemester_kurzbz=? OR (studiensemester_kurzbz=? AND status_kurzbz = 'Absolvent'))
-							ORDER BY tbl_mobilitaet.insertamum DESC limit 1;",
+								AND studiensemester_kurzbz=?
+							ORDER BY mo.insertamum DESC LIMIT 1;",
 			array(
 				$prestudent_id,
-				$semester,
-				$prevSemester
+				$semester
 			)
 		);
 
@@ -944,8 +975,13 @@ class DVUHSyncLib
 				'studtyp' => $studtyp
 			);
 
+			// set beendigungsdatum only if absolvent
+			if ($gemeinsamestudien->ist_absolvent === true)
+				$gemeinsamData['beendigungsdatum'] = $beendigungsdatum;
+
 			$gemeinsam = success($gemeinsamData);
 		}
+
 		return $gemeinsam;
 	}
 
@@ -1073,22 +1109,25 @@ class DVUHSyncLib
 							);
 						}
 
-						$bisio_foerderung = getData($bisio_foerderung_result);
-
-						foreach ($bisio_foerderung as $row_foerderung)
+						if (hasData($bisio_foerderung_result))
 						{
-							// ...wenn code = 5, nur ein Wert erlaubt (keine Mehrfachangaben)
-							if ($row_foerderung->aufenthaltfoerderung_code == 5)
-							{
-								unset($aufenthaltfoerderung_code_arr);
-								$aufenthaltfoerderung_code_arr[] = $row_foerderung->aufenthaltfoerderung_code;
-								break;
-							}
+							$bisio_foerderung = getData($bisio_foerderung_result);
 
-							// nur eindeutige Werte
-							if (!in_array($row_foerderung->aufenthaltfoerderung_code, $aufenthaltfoerderung_code_arr))
+							foreach ($bisio_foerderung as $row_foerderung)
 							{
-								$aufenthaltfoerderung_code_arr[] = $row_foerderung->aufenthaltfoerderung_code;
+								// ...wenn code = 5, nur ein Wert erlaubt (keine Mehrfachangaben)
+								if ($row_foerderung->aufenthaltfoerderung_code == 5)
+								{
+									unset($aufenthaltfoerderung_code_arr);
+									$aufenthaltfoerderung_code_arr[] = $row_foerderung->aufenthaltfoerderung_code;
+									break;
+								}
+
+								// nur eindeutige Werte
+								if (!in_array($row_foerderung->aufenthaltfoerderung_code, $aufenthaltfoerderung_code_arr))
+								{
+									$aufenthaltfoerderung_code_arr[] = $row_foerderung->aufenthaltfoerderung_code;
+								}
 							}
 						}
 

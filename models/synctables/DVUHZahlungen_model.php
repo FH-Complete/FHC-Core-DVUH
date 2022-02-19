@@ -24,7 +24,7 @@ class DVUHZahlungen_model extends DB_Model
 								FROM sync.tbl_dvuh_zahlungen
 								WHERE buchungsnr = ?
 								AND betrag < 0
-								ORDER BY buchungsdatum DESC, insertamum DESC
+								ORDER BY buchungsdatum DESC, insertamum DESC NULLS LAST, zahlung_id DESC
 								LIMIT 1",
 			array(
 				$buchungsnr

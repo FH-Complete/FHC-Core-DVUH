@@ -24,24 +24,25 @@ class Studium_model extends DVUHClientModel
 	 * Performs the Webservice Call
 	 * @param string $be Code of the Bildungseinrichtung
 	 * @param string $matrikelnummer Matrikelnummer of the Person you are Searching for
-	 * @param string $semester Studysemester in format 2019W (optional)
+	 * @param string $semester Studysemester in format 2019W
 	 * @param string $studienkennung Die Studienkennung muss mindestens sechs Zeichen lang sein (optional)
 	 * @return object success or error
 	 */
-	public function get($be, $matrikelnummer, $semester = null, $studienkennung = null)
+	public function get($be, $matrikelnummer, $semester, $studienkennung = null)
 	{
 		$callParametersArray = array(
 			'be' => $be,
 			'matrikelnummer' => $matrikelnummer,
+			'semester' => $semester,
 			'uuid' => getUUID()
 		);
 
 		if (isEmptyString($matrikelnummer))
 			$result = error('Matrikelnummer nicht gesetzt');
+		elseif (isEmptyString($semester))
+			$result = error('Studiensemester nicht gesetzt');
 		else
 		{
-			if (!is_null($semester))
-				$callParametersArray['semester'] = $semester;
 			if (!is_null($studienkennung))
 				$callParametersArray['studienkennung'] = $studienkennung;
 
@@ -68,9 +69,21 @@ class Studium_model extends DVUHClientModel
 		if (isError($postData))
 			$result = $postData;
 		else
-			$result = $this->_call('POST', null, getData($postData));
+			$result = $this->postManually(getData($postData));
 
 		return $result;
+	}
+
+	/**
+	 * Execute studium post call.
+	 * @param array $params
+	 * @return object success or error
+	 */
+	public function postManually($params)
+	{
+		$postData = $this->retrievePostDataString($params);
+
+		return $this->_call('POST', null, $postData);
 	}
 
 	/**
@@ -88,9 +101,21 @@ class Studium_model extends DVUHClientModel
 		if (isError($postData))
 			$result = $postData;
 		else
-			$result = $this->_call('PUT', null, getData($postData));
+			$result = $this->putManually(getData($postData));
 
 		return $result;
+	}
+
+	/**
+	 * Execute studium put call.
+	 * @param array $params
+	 * @return object success or error
+	 */
+	public function putManually($params)
+	{
+		$postData = $this->retrievePostDataString($params);
+
+		return $this->_call('PUT', null, $postData);
 	}
 
 	/**
@@ -124,7 +149,7 @@ class Studium_model extends DVUHClientModel
 			$params['lehrgaenge'] = $studiumData->lehrgaenge;
 			$this->_prestudentIdsToSave = $studiumData->prestudent_ids;
 
-			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/studium', $params, true);
+			$postData = $this->retrievePostDataString($params);
 
 			$result = success($postData);
 		}
@@ -132,6 +157,16 @@ class Studium_model extends DVUHClientModel
 			$result = error("Keine Studiumdaten gefunden");
 
 		return $result;
+	}
+
+	/**
+	 * Gets xml string for studium.xml call.
+	 * @param array $params
+	 * @return string
+	 */
+	public function retrievePostDataString($params)
+	{
+		return $this->load->view('extensions/FHC-Core-DVUH/requests/studium', $params, true);
 	}
 
 	/**

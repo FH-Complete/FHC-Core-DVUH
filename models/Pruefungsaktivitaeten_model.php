@@ -51,17 +51,20 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	 * @param string $be
 	 * @param int $person_id
 	 * @param string $studiensemester
-	 * @param array $posted passed by reference, to be filled with posted data to know for which prestudents Prüfungsaktivitäten were sent.
+	 * @param array $toPost passed by reference, to be filled with posted data to know for which prestudents Prüfungsaktivitäten were sent.
 	 * @return object success or error
 	 */
-	public function post($be, $person_id, $studiensemester, &$posted)
+	public function post($be, $person_id, $studiensemester, &$toPost)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $posted);
+		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $toPost);
+
+		if (isError($postData))
+			return $postData;
 
 		if (hasData($postData))
 			$result = $this->_call('POST', null, getData($postData));
 		else
-			$result = $postData;
+			$result = $postData; // return empty array
 
 		return $result;
 	}
@@ -95,17 +98,13 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 				foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
 				{
-					// saved ects to post to variable
+					// save ects to post to variable
 					$toPost[$prestudent_id]['ects_angerechnet'] = $pruefungsaktivitaeten->ects_angerechnet;
 					$toPost[$prestudent_id]['ects_erworben'] = $pruefungsaktivitaeten->ects_erworben;
 
 					// only send Pruefungsaktivitaeten if there are ects
 					if ($pruefungsaktivitaeten->ects_angerechnet == 0 && $pruefungsaktivitaeten->ects_erworben == 0)
 						continue;
-
-					// studiengang kz
-					$erhalter_kz = str_pad($pruefungsaktivitaeten->erhalter_kz, 3, '0', STR_PAD_LEFT);
-					$dvuh_stgkz = $erhalter_kz . str_pad(str_replace('-', '', $pruefungsaktivitaeten->studiengang_kz), 4, '0', STR_PAD_LEFT);
 
 					// format ects
 					$ectsSums = new stdClass();
@@ -114,16 +113,13 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 
 					$studiumpruefungen[$prestudent_id]['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
 					$studiumpruefungen[$prestudent_id]['studiensemester'] = $dvuh_studiensemester;
-					$studiumpruefungen[$prestudent_id]['studiengang'] = $dvuh_stgkz;
+					$studiumpruefungen[$prestudent_id]['studiengang'] = $pruefungsaktivitaeten->dvuh_stgkz;
 					$studiumpruefungen[$prestudent_id]['ects'] = $ectsSums;
 				}
 
 				if (isEmptyArray($studiumpruefungen))
 				{
-					// TODO if no pruefungen found for person or only angerechnete ects, and there were erworbene ects sent last sync -
-					// delete pruefungsaktivitaeten
-
-					$result = success(array());
+					$result = success(array()); // empty array means no pruefungsaktivitaeten were found
 				}
 				else
 				{
@@ -139,7 +135,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 				}
 			}
 			else
-				$result = success(array());
+				$result = success(array());// empty array means no pruefungsaktivitaeten were found
 		}
 
 		return $result;
