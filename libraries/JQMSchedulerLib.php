@@ -235,6 +235,16 @@ class JQMSchedulerLib
 							LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
 							WHERE ps.bismelden = TRUE
 							AND stg.melderelevant = TRUE
+						  	AND NOT ( /* if Abgewiesener last status and matr_nr NULL - rejected before study start, do not send to DVUH */
+								EXISTS (
+									SELECT 1 FROM public.tbl_prestudentstatus
+									WHERE prestudent_id = ps.prestudent_id
+									AND status_kurzbz = 'Abgewiesener'
+									ORDER BY datum DESC, tbl_prestudentstatus.insertamum DESC NULLS LAST
+									LIMIT 1
+								)
+								AND pers.matr_nr IS NULL
+						  	)
 							AND pss.studiensemester_kurzbz IN ?";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_CHARGE]))
