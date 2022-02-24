@@ -1390,6 +1390,7 @@ class DVUHManagementLib
 			{
 				$studiengaenge = array();
 				$lehrgaenge = array();
+				$cancelledStudiengaenge = array();
 
 				$studienData = getData($studienRes);
 
@@ -1411,6 +1412,7 @@ class DVUHManagementLib
 
 				foreach ($studien as $studium)
 				{
+					$isLehrgang = false;
 					$studiumIdName = null;
 					if (isset($studium->{$studiengangIdName}))
 					{
@@ -1419,10 +1421,14 @@ class DVUHManagementLib
 					elseif (isset($studium->{$lehrgangIdName}))
 					{
 						$studiumIdName = $lehrgangIdName;
+						$isLehrgang = true;
 					}
 
 					if (!isset($studiumIdName))
 						return error("Studium Id fehlt"); //TODO phrases
+
+					$dvuh_stgkz = substr($studium->{$studiumIdName}, -1 * DVUHSyncLib::DVUH_STGKZ_LENGTH);
+					$fhc_stgkz = ($isLehrgang ? '-' : '') . ltrim($dvuh_stgkz);
 
 					// if studiengang passed, use put method to cancel only one Studiengang
 					if (isset($studiengang_kz))
@@ -1430,10 +1436,8 @@ class DVUHManagementLib
 						// use put if update only one studium
 						$sendMethodName = 'putManually';
 
-						$dvuh_stgkz = $this->_ci->dvuhsynclib->convertStudiengangskennzahlToDVUH($studiengang_kz);
-
 						// only send one studiengang if studiengang_kz passed
-						if ($dvuh_stgkz !== substr($studium->{$studiumIdName}, -1 * strlen($dvuh_stgkz)))
+						if ($studiengang_kz != $fhc_stgkz)
 							continue;
 					}
 
@@ -1445,14 +1449,17 @@ class DVUHManagementLib
 					// convert object data to assoc array
 					$stdArr = json_decode(json_encode($studium), true);
 
-					if (isset($studium->{$studiengangIdName}))
-					{
-						$studiengaenge[] = $stdArr;
-					}
-					elseif (isset($studium->{$lehrgangIdName}))
+					if ($isLehrgang)
 					{
 						$lehrgaenge[] = $stdArr;
 					}
+					else
+					{
+						$studiengaenge[] = $stdArr;
+					}
+
+					// save sent studiengang_kz for saving in sync table
+					$cancelledStudiengaenge[] = $fhc_stgkz;
 				}
 
 				$params['studiengaenge'] = $studiengaenge;
@@ -1477,6 +1484,34 @@ class DVUHManagementLib
 
 				if (isError($studiumPostRes))
 					return $studiumPostRes;
+
+				// insert into sync table to record that data was cancelled
+				$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($semester);
+				$cancelledPrestudentsRes = $this->_ci->fhcmanagementlib->getPrestudentsByMatrikelnummerAndStudiengang($matrikelnummer, $studiensemester_kurzbz, $cancelledStudiengaenge);
+
+				if (isError($cancelledPrestudentsRes))
+					return $cancelledPrestudentsRes;
+
+				if (hasData($cancelledPrestudentsRes))
+				{
+					$cancelledPrestudents = getData($cancelledPrestudentsRes);
+
+					// insert for each cancelled prestudent
+					foreach ($cancelledPrestudents as $prestudent)
+					{
+						$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
+							array(
+								'prestudent_id' => $prestudent->prestudent_id,
+								'studiensemester_kurzbz' => $studiensemester_kurzbz,
+								'meldedatum' => date('Y-m-d'),
+								'storniert' => true
+							)
+						);
+
+						if (isError($studiumSaveResult)) // TODO phrases
+							return error("Studiumdaten erfolgreich storniert, Fehler beim Speichern in der Synctabelle in FHC");
+					}
+				}
 
 				$infos[] = "Studiumdaten erfolgreich storniert"; // TODO phrases
 

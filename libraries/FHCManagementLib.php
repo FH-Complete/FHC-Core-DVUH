@@ -35,7 +35,7 @@ class FHCManagementLib
 	 * @param array $status_kurzbz
 	 * @return object success with prestudents or error
 	 */
-	public function getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz)
+	public function getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz = null)
 	{
 		$params = array(
 			$person_id,
@@ -58,6 +58,39 @@ class FHCManagementLib
 		{
 			$prstQry .= " AND pss.status_kurzbz IN ?";
 			$params[] = $status_kurzbz;
+		}
+
+		return $this->_dbModel->execReadOnlyQuery(
+			$prstQry,
+			$params
+		);
+	}
+
+	/**
+	 * Gets prestudents of certain Studiengänge for person with certain matrikelnummer.
+	 * @param string $matr_nr
+	 * @param string $studiensemester_kurzbz
+	 * @param array $studiengang_kz_arr
+	 * @return object success with prestudents or error
+	 */
+	public function getPrestudentsByMatrikelnummerAndStudiengang($matr_nr, $studiensemester_kurzbz, $studiengang_kz_arr)
+	{
+		$params = array(
+			$matr_nr,
+			$studiensemester_kurzbz
+		);
+
+		$prstQry = "SELECT DISTINCT prestudent_id
+					FROM public.tbl_prestudent ps
+					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
+					JOIN public.tbl_person pers USING(person_id)
+					WHERE matr_nr = ?
+					AND pss.studiensemester_kurzbz = ?";
+
+		if (isset($studiengang_kz_arr) && is_array($studiengang_kz_arr))
+		{
+			$prstQry .= " AND ps.studiengang_kz IN ?";
+			$params[] = $studiengang_kz_arr;
 		}
 
 		return $this->_dbModel->execReadOnlyQuery(

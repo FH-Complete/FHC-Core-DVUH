@@ -10,6 +10,9 @@ class DVUHSyncLib
 	private $_dbModel;
 	private $_warnings = array();
 
+	const DVUH_STGKZ_LENGTH = 4;
+	const DVUH_ERHALTER_LENGTH = 3;
+
 	/**
 	 * Library initialization
 	 */
@@ -748,7 +751,7 @@ class DVUHSyncLib
 	 */
 	public function convertErhalterkennzahlToDVUH($erhalter_kz)
 	{
-		return str_pad($erhalter_kz, 3, '0', STR_PAD_LEFT);
+		return str_pad($erhalter_kz, self::DVUH_ERHALTER_LENGTH, '0', STR_PAD_LEFT);
 	}
 
 	/**
@@ -758,7 +761,7 @@ class DVUHSyncLib
 	 */
 	public function convertStudiengangskennzahlToDVUH($studiengang_kz)
 	{
-		return str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
+		return str_pad(str_replace('-', '', $studiengang_kz), self::DVUH_STGKZ_LENGTH, '0', STR_PAD_LEFT);
 	}
 
 	/**
