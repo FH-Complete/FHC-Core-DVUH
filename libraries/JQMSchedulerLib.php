@@ -550,15 +550,15 @@ class JQMSchedulerLib
 						prestudenten.studiensemester_kurzbz = anzahl_ects.studiensemester_kurzbz	
 					GROUP BY prestudenten.studiensemester_kurzbz, person_id, prestudenten.prestudent_id
 				) summen_ects
-				WHERE (summe_ects_angerechnet <> /* different ects sums sent last time */
+				WHERE (/*summe_ects_angerechnet <> 
 							(SELECT COALESCE(SUM(last_ects_ar), 0)
 								FROM (SELECT ects_angerechnet as last_ects_ar
 								FROM sync.tbl_dvuh_pruefungsaktivitaeten
 								WHERE prestudent_id = summen_ects.prestudent_id
 								AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
 								ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_ar
-							)
-							OR summe_ects_erworben <>
+							) OR */
+							summe_ects_erworben <> /* different ects sums sent last time */
 							(SELECT COALESCE(SUM(last_ects_er), 0)
 								FROM (SELECT ects_erworben as last_ects_er
 								FROM sync.tbl_dvuh_pruefungsaktivitaeten

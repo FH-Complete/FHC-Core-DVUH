@@ -10,26 +10,24 @@
 				<be><?php echo $be ?></be>
 				<semester><?php echo $studiumpruefung['studiensemester'] ?></semester>
 			</studierendenkey>
-			<?php if (isset($studiumpruefung['ects'])):?>
+			<?php
+			$ectsArExists = isset($studiumpruefung['ects']->ects_angerechnet) && $studiumpruefung['ects']->ects_angerechnet >= 0;
+			$ectsErExists = isset($studiumpruefung['ects']->ects_erworben) && $studiumpruefung['ects']->ects_erworben >= 0;
+			?>
+			<?php if ($ectsArExists || $ectsErExists):?>
 				<pruefungen>
-					<?php if (isset($studiumpruefung['ects']->ects_angerechnet) && $studiumpruefung['ects']->ects_angerechnet >= 0):?>
-						<pruefung>
-							<ects bezug="angerechnet"><?php echo $studiumpruefung['ects']->ects_angerechnet ?></ects>
-							<fach>1</fach>
-							<semesterstunden>0</semesterstunden>
-							<semesterstundenpositiv>0</semesterstundenpositiv>
-							<semesterzahl>1</semesterzahl>
-						</pruefung>
-					<?php endif; ?>
-					<?php if (isset($studiumpruefung['ects']->ects_erworben) && $studiumpruefung['ects']->ects_erworben >= 0):?>
-						<pruefung>
+					<pruefung>
+						<?php if ($ectsErExists):?>
 							<ects bezug="erworben"><?php echo $studiumpruefung['ects']->ects_erworben ?></ects>
-							<fach>1</fach>
-							<semesterstunden>0</semesterstunden>
-							<semesterstundenpositiv>0</semesterstundenpositiv>
-							<semesterzahl>1</semesterzahl>
-						</pruefung>
-					<?php endif; ?>
+						<?php endif; ?>
+						<?php if ($ectsArExists):?>
+							<ects bezug="angerechnet"><?php echo $studiumpruefung['ects']->ects_angerechnet ?></ects>
+						<?php endif; ?>
+						<fach>1</fach>
+						<semesterstunden>0</semesterstunden>
+						<semesterstundenpositiv>0</semesterstundenpositiv>
+						<semesterzahl>1</semesterzahl>
+					</pruefung>
 				</pruefungen>
 			<?php endif; ?>
 		</studiumpruefung>
