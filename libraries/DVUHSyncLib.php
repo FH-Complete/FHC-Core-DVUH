@@ -2,13 +2,16 @@
 
 /**
  * Library for retrieving data from FHC for DVUH.
- * Extracts data from FHC db, performs BIS-Meldung checks and puts data in DVUH form.
+ * Extracts data from FHC db, performs data quality checks and puts data in DVUH form.
  */
 class DVUHSyncLib
 {
 	private $_ci;
 	private $_dbModel;
 	private $_warnings = array();
+
+	const DVUH_STGKZ_LENGTH = 4;
+	const DVUH_ERHALTER_LENGTH = 3;
 
 	/**
 	 * Library initialization
@@ -79,11 +82,14 @@ class DVUHSyncLib
 				$addrCheck = $this->checkAdresse($addr);
 
 				if (isError($addrCheck))
+				{
 					return createError(
 						"Adresse ungültig: " . getError($addrCheck),
 						'adresseUngueltig',
-						array(getError($addrCheck))
+						array(getError($addrCheck)),
+						array('adresse_id' => $adresse->adresse_id)
 					);
+				}
 
 				if ($adresse->zustelladresse)
 				{
@@ -121,7 +127,12 @@ class DVUHSyncLib
 				if ($kontakt->kontakttyp == 'email')
 				{
 					if (!validateXmlTextValue($kontakt->kontakt))
-						return createError('Email enthält Sonderzeichen', 'emailEnthaeltSonderzeichen');
+						return createError(
+							'Email enthält Sonderzeichen',
+							'emailEnthaeltSonderzeichen',
+							null, // issue_fehlertext_params
+							array('kontakt_id' => $kontakt->kontakt_id) // issue_resolution_params
+						);
 
 					$knt = array();
 					$knt['emailadresse'] = $kontakt->kontakt;
@@ -324,8 +335,15 @@ class DVUHSyncLib
 					// personenkennzeichen
 					$perskz = trim($prestudentstatus->personenkennzeichen);
 
-					if (isEmptyString($perskz) || !preg_match("/^\d{10}$/", $perskz))
-						return createError("Personenkennzeichen ungültig", 'personenkennzeichenUngueltig', array($perskz));
+					if (!$this->checkPersonenkennzeichen($perskz))
+					{
+						return createError(
+							"Personenkennzeichen ungültig",
+							'personenkennzeichenUngueltig',
+							array($perskz),
+							array('student_uid' => $prestudentstatus->student_uid)
+						);
+					}
 
 					// studstatuscode
 					$studstatuscodeResult = $this->_getStatuscode($status_kurzbz);
@@ -390,11 +408,7 @@ class DVUHSyncLib
 						$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum, $isIncoming);
 
 						if (isError($zugangsberechtigungResult))
-							return createError(
-								"Fehlerhafte ZGV Daten: ".getError($zugangsberechtigungResult),
-								'fehlerhafteZgvDaten',
-								array(getError($zugangsberechtigungResult))
-							);
+							return $zugangsberechtigungResult;
 
 						if (hasData($zugangsberechtigungResult))
 						{
@@ -407,11 +421,7 @@ class DVUHSyncLib
 					$zugangsberechtigungMAResult = $this->_getZgvMaster($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich);
 
 					if (isset($zugangsberechtigungMAResult) && isError($zugangsberechtigungMAResult))
-						return createError(
-							"Fehlerhafte ZGV Master Daten: ".getError($zugangsberechtigungMAResult),
-							'fehlerhafteZgvMasterDaten',
-							array(getError($zugangsberechtigungMAResult))
-						);
+						return $zugangsberechtigungMAResult;
 
 					if (hasData($zugangsberechtigungMAResult))
 					{
@@ -544,7 +554,14 @@ class DVUHSyncLib
 							if ($orgformcode != '1')
 							{
 								if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
-									$this->_addWarning('Berufstätigkeitcode fehlt', 'berufstaetigkeitcodeFehlt');
+								{
+									$this->_addWarning(
+										'Berufstätigkeitcode fehlt',
+										'berufstaetigkeitcodeFehlt',
+										null,
+										array('prestudent_id' => $prestudent_id)
+									);
+								}
 								else
 									$berufstaetigkeit_code = $prestudentstatus->berufstaetigkeit_code;
 							}
@@ -734,7 +751,7 @@ class DVUHSyncLib
 	 */
 	public function convertErhalterkennzahlToDVUH($erhalter_kz)
 	{
-		return str_pad($erhalter_kz, 3, '0', STR_PAD_LEFT);
+		return str_pad($erhalter_kz, self::DVUH_ERHALTER_LENGTH, '0', STR_PAD_LEFT);
 	}
 
 	/**
@@ -744,7 +761,7 @@ class DVUHSyncLib
 	 */
 	public function convertStudiengangskennzahlToDVUH($studiengang_kz)
 	{
-		return str_pad(str_replace('-', '', $studiengang_kz), 4, '0', STR_PAD_LEFT);
+		return str_pad(str_replace('-', '', $studiengang_kz), self::DVUH_STGKZ_LENGTH, '0', STR_PAD_LEFT);
 	}
 
 	/**
@@ -771,17 +788,22 @@ class DVUHSyncLib
 	{
 		$result = success(true);
 
+		$errorText = '';
+
 		if (!isset($addr['ort']) || isEmptyString($addr['ort']) || !validateXmlTextValue($addr['ort']))
-			$result = error('Ort (Feld Gemeinde) fehlt oder enthält Sonderzeichen');
+			$errorText .= (!isEmptyString($errorText) ? ', ' : '') . 'Ort (Feld Gemeinde) fehlt oder enthält Sonderzeichen';
 
 		if (!isset($addr['plz']) || isEmptyString($addr['plz']) || !validateXmlTextValue($addr['plz']))
-			$result = error('Plz fehlt oder enthält Sonderzeichen');
+			$errorText .= (!isEmptyString($errorText) ? ', ' : '') . 'Plz fehlt oder enthält Sonderzeichen';
 
 		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']) || !validateXmlTextValue($addr['strasse']))
-			$result = error('Strasse fehlt oder enthält Sonderzeichen');
+			$errorText .= (!isEmptyString($errorText) ? ', ' : '') . 'Strasse fehlt oder enthält Sonderzeichen';
 
 		if (!isset($addr['staat']) || isEmptyString($addr['staat']))
-			$result = error('Nation fehlt');
+			$errorText .= (!isEmptyString($errorText) ? ', ' : '') . 'Nation fehlt';
+
+		if (!isEmptyString($errorText))
+			$result = error($errorText);
 
 		return $result;
 	}
@@ -814,6 +836,16 @@ class DVUHSyncLib
 	public function checkBpk($bpk)
 	{
 		return preg_match("/^([A-Za-z0-9+\/]{27})=$/", $bpk) === 1;
+	}
+
+	/**
+	 * Checks Bpk for validity.
+	 * @param string $bpk
+	 * @return bool valid or not
+	 */
+	public function checkPersonenkennzeichen($perskz)
+	{
+		return preg_match("/^\d{10}$/", $perskz);
 	}
 
 	/**
@@ -1022,8 +1054,9 @@ class DVUHSyncLib
 						{
 							return createError(
 								"Es sind" . count($bisio_zweck) . " Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)",
-								'zuVieleZweckeIncoming',
-								array(count($bisio_zweck))
+								'zuVieleZweckeIncomingPlausi',
+								array(count($bisio_zweck)),
+								array('bisio_id' => $bisio_id)
 							);
 						}
 
@@ -1032,8 +1065,9 @@ class DVUHSyncLib
 						{
 							return createError(
 								"Aufenthaltszweckcode ist " . $bisio_zweck[0]->zweck_code . " (f&uuml;r Incomings ist nur Zweck 1, 2, 3 erlaubt)",
-								'falscherIncomingZweck',
-								array(count($bisio_zweck[0]->zweck_code))
+								'falscherIncomingZweckPlausi',
+								array($bisio_zweck[0]->zweck_code),
+								array('bisio_id' => $bisio_id)
 							);
 						}
 					}
@@ -1072,7 +1106,9 @@ class DVUHSyncLib
 						{
 							return createError(
 								"Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)",
-								'outgoingAufenthaltfoerderungfehlt'
+								'outgoingAufenthaltfoerderungfehltPlausi',
+								null,
+								array('bisio_id' => $bisio_id)
 							);
 						}
 
@@ -1102,7 +1138,9 @@ class DVUHSyncLib
 						{
 							return createError(
 								"Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
-								'outgoingErworbeneEctsFehlen'
+								'outgoingErworbeneEctsFehlenPlausi',
+								null,
+								array('bisio_id' => $bisio_id)
 							);
 						}
 
@@ -1110,7 +1148,9 @@ class DVUHSyncLib
 						{
 							return createError(
 								"Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
-								'outgoingAngerechneteEctsFehlen'
+								'outgoingAngerechneteEctsFehlenPlausi',
+								null,
+								array('bisio_id' => $bisio_id)
 							);
 						}
 
@@ -1119,7 +1159,14 @@ class DVUHSyncLib
 					}
 				}
 				else
-					return error('Bisio Zweck nicht gefunden');
+				{
+					return createError(
+						"Kein Aufenthaltszweck gefunden",
+						'keinAufenthaltszweckPlausi',
+						null,
+						array('bisio_id' => $bisio_id)
+					);
+				}
 
 				$mobilitaet = array(
 					'programm' => $programm,
@@ -1249,15 +1296,45 @@ class DVUHSyncLib
 		$zugangsberechtigung = null;
 
 		if (!isset($prestudentstatus->zgv_code))
-			$this->_addWarning('Zgv fehlt', 'zgvFehlt');
-		elseif (!isset($prestudentstatus->zgvdatum))
-			$this->_addWarning('ZGV Datum fehlt', 'zgvDatumFehlt');
+		{
+			$this->_addWarning(
+				'Zgv fehlt',
+				'zgvFehlt',
+				null,
+				array('prestudent_id' => $prestudentstatus->prestudent_id)
+			);
+		}
+
+		if (!isset($prestudentstatus->zgvdatum))
+		{
+			$this->_addWarning(
+				'ZGV Datum fehlt',
+				'zgvDatumFehlt',
+				null,
+				array('prestudent_id' => $prestudentstatus->prestudent_id)
+			);
+		}
 		else
 		{
 			if ($prestudentstatus->zgvdatum > date("Y-m-d"))
-				return error("ZGV Datum in Zukunft");
+			{
+				return createError(
+					"ZGV Datum in Zukunft",
+					'zgvDatumInZukunft',
+					null,
+					array('prestudent_id' => $prestudentstatus->prestudent_id)
+				);
+			}
+
 			if ($prestudentstatus->zgvdatum < $gebdatum)
-				return error("ZGV Datum vor Geburtsdatum");
+			{
+				return createError(
+					"ZGV Datum vor Geburtsdatum",
+					'zgvDatumVorGeburtsdatum',
+					null,
+					array('prestudent_id' => $prestudentstatus->prestudent_id)
+				);
+			}
 
 			// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
 			$zugangsvoraussetzung = str_pad($prestudentstatus->zgv_code, 2, '0', STR_PAD_LEFT);
@@ -1289,22 +1366,53 @@ class DVUHSyncLib
 		if ($prestudentstatus->studiengang_typ == 'm' || $prestudentstatus->lgart_biscode == '1')
 		{
 			if (!isset($prestudentstatus->zgvmas_code))
-				$this->_addWarning('Zgv Master fehlt', 'zgvMasterFehlt');
-			elseif (!isset($prestudentstatus->zgvmadatum))
-				$this->_addWarning('ZGV Masterdatum fehlt', 'zgvMasterDatumFehlt');
+			{
+				$this->_addWarning(
+					'Zgv Master fehlt',
+					'zgvMasterFehlt',
+					null,
+					array('prestudent_id' => $prestudentstatus->prestudent_id)
+				);
+			}
+
+			if (!isset($prestudentstatus->zgvmadatum))
+			{
+				$this->_addWarning(
+					'ZGV Masterdatum fehlt',
+					'zgvMasterDatumFehlt',
+					null,
+					array('prestudent_id' => $prestudentstatus->prestudent_id)
+				);
+			}
 			else
 			{
 				if ($prestudentstatus->zgvmadatum > date("Y-m-d"))
 				{
-					return error("ZGV Masterdatum in Zukunft");
+					return createError(
+						"ZGV Masterdatum in Zukunft",
+						'zgvMasterDatumInZukunft',
+						null,
+						array('prestudent_id' => $prestudentstatus->prestudent_id)
+					);
 				}
+
 				if ($prestudentstatus->zgvmadatum < $prestudentstatus->zgvdatum)
 				{
-					return error("ZGV Masterdatum vor Zgvdatum");
+					return createError(
+						"ZGV Masterdatum vor Zgvdatum",
+						'zgvMasterDatumVorZgvdatum',
+						null,
+						array('prestudent_id' => $prestudentstatus->prestudent_id)
+					);
 				}
+
 				if ($prestudentstatus->zgvmadatum < $gebdatum)
 				{
-					return error("ZGV Masterdatum vor Geburtsdatum");
+					return createError(
+						"zgvMasterDatumVorGeburtsdatum",
+						'ZGV Masterdatum vor Geburtsdatum',
+						array('prestudent_id' => $prestudentstatus->prestudent_id)
+					);
 				}
 
 				// Laut Dokumentation 2 stellig muss daher mit 0 aufgefuellt werden
@@ -1330,8 +1438,9 @@ class DVUHSyncLib
 	 * @param $warningtext
 	 * @param string $issue_fehler_kurzbz if set, issue is created and added as warning
 	 * @param array $issue_fehlertext_params
+	 * @param array $issue_resolution_prams
 	 */
-	private function _addWarning($warningtext, $issue_fehler_kurzbz = null, $issue_fehlertext_params = null)
+	private function _addWarning($warningtext, $issue_fehler_kurzbz = null, $issue_fehlertext_params = null, $issue_resolution_prams = null)
 	{
 		if (isEmptyString($issue_fehler_kurzbz))
 		{
@@ -1339,7 +1448,7 @@ class DVUHSyncLib
 		}
 		else
 		{
-			$this->_warnings[] = createError($warningtext, $issue_fehler_kurzbz, $issue_fehlertext_params);
+			$this->_warnings[] = createError($warningtext, $issue_fehler_kurzbz, $issue_fehlertext_params, $issue_resolution_prams);
 		}
 	}
 }

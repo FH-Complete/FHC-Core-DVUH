@@ -118,13 +118,13 @@ class DVUHManagementLib
 			$person = getData($personResult)[0];
 
 			$matrPruefungResult = $this->_ci->MatrikelpruefungModel->get(
-				$bpk = !isEmptyString($person->bpk) ? $person->bpk : null,
-				$ekz = $person->ersatzkennzeichen,
-				$geburtsdatum = $person->gebdatum,
-				$matrikelnummer = null,
-				$nachname = $person->nachname,
-				$svnr = !isEmptyString($person->svnr) ? $person->svnr : null,
-				$vorname = $person->vorname
+				!isEmptyString($person->bpk) ? $person->bpk : null,
+				$person->ersatzkennzeichen,
+				$person->gebdatum,
+				null, // matrikelnummer
+				$person->nachname,
+				!isEmptyString($person->svnr) ? $person->svnr : null,
+				$person->vorname
 			);
 
 			if (isError($matrPruefungResult))
@@ -395,7 +395,7 @@ class DVUHManagementLib
 						{
 							$versicherungBeitragAmount = $oehbeitragAmounts->versicherung;
 
-							// plus because buchungsbetrag is negative
+							// plus because beitragAmount is negative
 							$beitragAmount += $versicherungBeitragAmount;
 						}
 					}
@@ -404,7 +404,8 @@ class DVUHManagementLib
 						return createError(
 							"Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester $studiensemester_kurzbz spezifiziert, Buchung " . $buchung->buchungsnr,
 							'oehbeitragNichtSpezifiziert',
-							array($studiensemester_kurzbz, $buchung->buchungsnr)
+							array($studiensemester_kurzbz, $buchung->buchungsnr),
+							array('studiensemester_kurzbz' => $studiensemester_kurzbz)
 						);
 					}
 
@@ -431,12 +432,17 @@ class DVUHManagementLib
 					$vorschreibung['origoehbuchung'][] = $buchung;
 
 					// warning if amount in Buchung after Versicherung deduction not equal to amount in oehbeitrag table
-					if (-1 * $beitragAmount != $studierendenBeitragAmount && $beitragAmount > 0)
+					if (-1 * $beitragAmount != $studierendenBeitragAmount && $beitragAmount < 0)
 					{
 						$vorgeschrBeitrag = number_format(-1 * $beitragAmount, 2, ',', '.');
 						$festgesBeitrag = number_format($studierendenBeitragAmount, 2, ',', '.');
-						$warnings[] = createError("Vorgeschriebener Beitrag $vorgeschrBeitrag nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, "
-										. "$festgesBeitrag, überein", 'vorgeschrBetragUngleichFestgesetzt', array($vorgeschrBeitrag, $festgesBeitrag));
+						$warnings[] = createError(
+							"Vorgeschriebener Beitrag $vorgeschrBeitrag nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, "
+										. "$festgesBeitrag, überein",
+							'vorgeschrBetragUngleichFestgesetzt',
+							array($vorgeschrBeitrag, $festgesBeitrag),
+							array('buchungsnr' => $buchung->buchungsnr, 'studiensemester_kurzbz' => $studiensemester_kurzbz)
+						);
 					}
 				}
 				elseif ($dvuh_buchungstyp == 'studiengebuehr')
@@ -496,6 +502,7 @@ class DVUHManagementLib
 				if (isError($stammdatenSaveResult))
 					$result = error("Stammdaten erfolgreich in DVUH gespeichert, Fehler beim Speichern der Stammdaten in FHC");
 
+				//if oehbeitrag was sent
 				if (isset($vorschreibung['oehbeitrag']) && isset($vorschreibung['origoehbuchung'])
 					&& $vorschreibung['oehbeitrag'] <= 0)
 				{
@@ -515,6 +522,7 @@ class DVUHManagementLib
 					}
 				}
 
+				// if studiengebuehr was sent
 				if (isset($vorschreibung['studiengebuehr']) && isset($vorschreibung['origstudiengebuehrbuchung'])
 					&& $vorschreibung['studiengebuehr'] <= 0)
 				{
@@ -636,26 +644,9 @@ class DVUHManagementLib
 		{
 			// check: are there still unpaid Buchungen for the semester? Payment should only be sent if everything is paid
 			// to avoid part payments
-			$openPayments = $this->_dbModel->execReadOnlyQuery("
-								SELECT buchungsnr
-								FROM public.tbl_konto
-								WHERE person_id = ?
-								  AND studiensemester_kurzbz = ?
-								  AND buchungsnr_verweis IS NULL
-								  AND betrag < 0
-								  AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
-								  					WHERE kto.person_id = tbl_konto.person_id
-								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
-								      				LIMIT 1)
-								  AND buchungstyp_kurzbz IN ?
-								  ORDER BY buchungsdatum, buchungsnr
-								  LIMIT 1",
-				array(
-					$person_id, $studiensemester_kurzbz, $all_buchungstypen
-				)
-			);
+			$unpaidBuchungen = $this->_ci->fhcmanagementlib->getUnpaidBuchungen($person_id, $studiensemester_kurzbz, $all_buchungstypen);
 
-			if (hasData($openPayments))
+			if (hasData($unpaidBuchungen))
 			{
 				// return warning
 				return $this->_getResponseArr(
@@ -664,7 +655,9 @@ class DVUHManagementLib
 					array(
 						createError(
 							"Es gibt noch offene Buchungen.",
-							'offeneBuchungen'
+							'offeneBuchungen',
+							null,
+							array('studiensemester_kurzbz' => $studiensemester_kurzbz)
 						)
 					)
 				);
@@ -678,26 +671,19 @@ class DVUHManagementLib
 				$buchungsnr = $buchung->buchungsnr;
 
 				// check: all Buchungen to be paid must have been sent to DVUH as Vorschreibung in Stammdatenmeldung
-				$charges = $this->_dbModel->execReadOnlyQuery("
-								SELECT betrag
-								FROM sync.tbl_dvuh_zahlungen
-								WHERE buchungsnr = ?
-								AND betrag < 0
-								ORDER BY buchungsdatum DESC, insertamum DESC NULLS LAST, zahlung_id DESC
-								LIMIT 1",
-					array(
-						$buchung->buchungsnr_verweis
-					)
+				$charge = $this->_ci->DVUHZahlungenModel->getLastCharge(
+					$buchung->buchungsnr_verweis
 				);
 
-				if (hasData($charges))
+				if (hasData($charge))
 				{
-					if (abs(getData($charges)[0]->betrag) != $buchung->summe_buchungen)
+					if (abs(getData($charge)[0]->betrag) != $buchung->summe_buchungen)
 					{
 						return createError(
 							"Buchung: $buchungsnr: Zahlungsbetrag abweichend von Vorschreibungsbetrag",
 							'zlgUngleichVorschreibung',
-							array($buchungsnr)
+							array($buchungsnr), // text params
+							array('buchungsnr_verweis' => $buchung->buchungsnr_verweis) // resolution params
 						);
 					}
 				}
@@ -710,7 +696,8 @@ class DVUHManagementLib
 							createError(
 								"Buchung $buchungsnr: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet",
 								'zlgKeineVorschreibungGesendet',
-								array($buchungsnr)
+								array($buchungsnr),
+								array('buchungsnr_verweis' => $buchung->buchungsnr_verweis)
 							)
 						)
 					);
@@ -1144,81 +1131,87 @@ class DVUHManagementLib
 		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz, $prestudentsToPost);
 
 		if (isError($pruefungsaktivitaetenResult))
-			$result = $pruefungsaktivitaetenResult;
-		else
+			return $pruefungsaktivitaetenResult;
+
+		$pruefungsaktivitaetenResultData = null;
+
+		if (hasData($pruefungsaktivitaetenResult))
 		{
-			$pruefungsaktivitaetenResultData = null;
-			if (hasData($pruefungsaktivitaetenResult))
-				$pruefungsaktivitaetenResultData = getData($pruefungsaktivitaetenResult);
-			else
-				$infos[] = $no_pruefungen_info;
+			$xmlstr = getData($pruefungsaktivitaetenResult);
 
-			// check for each prestudent to post if deletion is needed
-			foreach ($prestudentsToPost as $prestudent_id => $ects)
+			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+
+			if (isError($parsedObj))
+				return $parsedObj;
+		}
+		else
+			$infos[] = $no_pruefungen_info;
+
+		// check for each prestudent to post if deletion is needed
+		foreach ($prestudentsToPost as $prestudent_id => $ects)
+		{
+			// if no ects were sent
+			if ($ects['ects_angerechnet'] == 0 && $ects['ects_erworben'] == 0)
 			{
-				// if no ects were sent
-				if ($ects['ects_angerechnet'] == 0 && $ects['ects_erworben'] == 0)
+				// get last sent ects
+				$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->getLastSentPruefungsaktivitaet($prestudent_id, $studiensemester_kurzbz);
+
+				if (hasData($checkPruefungsaktivitaetenRes))
 				{
-					// get last sent ects
-					$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->getLastSentPruefungsaktivitaet($prestudent_id, $studiensemester_kurzbz);
+					$checkPruefungsaktivitaeten = getData($checkPruefungsaktivitaetenRes)[0];
 
-					if (hasData($checkPruefungsaktivitaetenRes))
+					// if there were ects sent before, delete all Pruefungsaktivitaeten for the prestudent
+					if (isset($checkPruefungsaktivitaeten->ects_angerechnet) || isset($checkPruefungsaktivitaeten->ects_erworben))
 					{
-						$checkPruefungsaktivitaeten = getData($checkPruefungsaktivitaetenRes)[0];
+						$deletePruefunsaktivitaetenRes = $this->deletePruefungsaktivitaeten($person_id, $studiensemester_kurzbz, $prestudent_id);
 
-						// if there were ects sent before, delete all Pruefungsaktivitaeten for the prestudent
-						if (isset($checkPruefungsaktivitaeten->ects_angerechnet) || isset($checkPruefungsaktivitaeten->ects_erworben))
+						if (isError($deletePruefunsaktivitaetenRes))
+							return $deletePruefunsaktivitaetenRes;
+
+						if (hasData($deletePruefunsaktivitaetenRes))
 						{
-							$deletePruefunsaktivitaetenRes = $this->deletePruefungsaktivitaeten($person_id, $studiensemester_kurzbz, $prestudent_id);
+							$deletePruefungsaktivitaeten = getData($deletePruefunsaktivitaetenRes);
 
-							if (isError($deletePruefunsaktivitaetenRes))
-								return $deletePruefunsaktivitaetenRes;
-
-							if (hasData($deletePruefunsaktivitaetenRes))
-							{
-								$deletePruefungsaktivitaeten = getData($deletePruefunsaktivitaetenRes);
-
-								$infos = array_merge($infos, $deletePruefungsaktivitaeten['infos']);
-								$warnings = array_merge($warnings, $deletePruefungsaktivitaeten['warnings']);
-							}
+							$infos = array_merge($infos, $deletePruefungsaktivitaeten['infos']);
+							$warnings = array_merge($warnings, $deletePruefungsaktivitaeten['warnings']);
 						}
 					}
 				}
-				else
-				{
-					// if at least some ects were sent, write to sync table
-					$ects_angerechnet_posted = $ects['ects_angerechnet'] == 0
-						? null
-						: number_format($ects['ects_angerechnet'], 2, '.', '');
-
-					$ects_erworben_posted = $ects['ects_erworben'] == 0
-						? null
-						: number_format($ects['ects_erworben'], 2, '.', '');
-
-					$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
-						array(
-							'prestudent_id' => $prestudent_id,
-							'studiensemester_kurzbz' => $studiensemester_kurzbz,
-							'ects_angerechnet' => $ects_angerechnet_posted,
-							'ects_erworben' => $ects_erworben_posted,
-							'meldedatum' => date('Y-m-d')
-						)
-					);
-
-					if (isError($pruefungsaktivitaetenSaveResult))
-						$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');
-				}
 			}
+			else
+			{
+				// if at least some ects were sent, write to sync table
+				$ects_angerechnet_posted = $ects['ects_angerechnet'] == 0
+					? null
+					: number_format($ects['ects_angerechnet'], 2, '.', '');
 
-			$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
+				$ects_erworben_posted = $ects['ects_erworben'] == 0
+					? null
+					: number_format($ects['ects_erworben'], 2, '.', '');
 
-			$result = $this->_getResponseArr(
-				$pruefungsaktivitaetenResultData,
-				$infos,
-				$warnings,
-				true
-			);
+				$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
+					array(
+						'prestudent_id' => $prestudent_id,
+						'studiensemester_kurzbz' => $studiensemester_kurzbz,
+						'ects_angerechnet' => $ects_angerechnet_posted,
+						'ects_erworben' => $ects_erworben_posted,
+						'meldedatum' => date('Y-m-d')
+					)
+				);
+
+				if (isError($pruefungsaktivitaetenSaveResult))
+					$warnings[] = error('Pruefungsaktivitätenmeldung erfolgreich, Fehler beim Speichern in der Synctabelle in FHC');
+			}
 		}
+
+		$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
+
+		$result = $this->_getResponseArr(
+			$pruefungsaktivitaetenResultData,
+			$infos,
+			$warnings,
+			true
+		);
 
 		return $result;
 	}
@@ -1397,6 +1390,7 @@ class DVUHManagementLib
 			{
 				$studiengaenge = array();
 				$lehrgaenge = array();
+				$cancelledStudiengaenge = array();
 
 				$studienData = getData($studienRes);
 
@@ -1418,6 +1412,7 @@ class DVUHManagementLib
 
 				foreach ($studien as $studium)
 				{
+					$isLehrgang = false;
 					$studiumIdName = null;
 					if (isset($studium->{$studiengangIdName}))
 					{
@@ -1426,10 +1421,14 @@ class DVUHManagementLib
 					elseif (isset($studium->{$lehrgangIdName}))
 					{
 						$studiumIdName = $lehrgangIdName;
+						$isLehrgang = true;
 					}
 
 					if (!isset($studiumIdName))
 						return error("Studium Id fehlt"); //TODO phrases
+
+					$dvuh_stgkz = substr($studium->{$studiumIdName}, -1 * DVUHSyncLib::DVUH_STGKZ_LENGTH);
+					$fhc_stgkz = ($isLehrgang ? '-' : '') . ltrim($dvuh_stgkz);
 
 					// if studiengang passed, use put method to cancel only one Studiengang
 					if (isset($studiengang_kz))
@@ -1437,29 +1436,30 @@ class DVUHManagementLib
 						// use put if update only one studium
 						$sendMethodName = 'putManually';
 
-						$dvuh_stgkz = $this->_ci->dvuhsynclib->convertStudiengangskennzahlToDVUH($studiengang_kz);
-
 						// only send one studiengang if studiengang_kz passed
-						if ($dvuh_stgkz !== substr($studium->{$studiumIdName}, -1 * strlen($dvuh_stgkz)))
+						if ($studiengang_kz != $fhc_stgkz)
 							continue;
 					}
 
 					// add storno data
 					$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
-					$studium->studstatuscode = $studium->studstatuscode == $kodex_studstatuscode_array['Absolvent'] ? $kodex_studstatuscode_array['Absolvent'] : $kodex_studstatuscode_array['Abbrecher'];
+					//$studium->studstatuscode = $studium->studstatuscode == $kodex_studstatuscode_array['Absolvent'] ? $kodex_studstatuscode_array['Absolvent'] : $kodex_studstatuscode_array['Abbrecher'];
 					$studium->meldestatus = self::STORNO_MELDESTATUS;
 
 					// convert object data to assoc array
 					$stdArr = json_decode(json_encode($studium), true);
 
-					if (isset($studium->{$studiengangIdName}))
-					{
-						$studiengaenge[] = $stdArr;
-					}
-					elseif (isset($studium->{$lehrgangIdName}))
+					if ($isLehrgang)
 					{
 						$lehrgaenge[] = $stdArr;
 					}
+					else
+					{
+						$studiengaenge[] = $stdArr;
+					}
+
+					// save sent studiengang_kz for saving in sync table
+					$cancelledStudiengaenge[] = $fhc_stgkz;
 				}
 
 				$params['studiengaenge'] = $studiengaenge;
@@ -1484,6 +1484,34 @@ class DVUHManagementLib
 
 				if (isError($studiumPostRes))
 					return $studiumPostRes;
+
+				// insert into sync table to record that data was cancelled
+				$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($semester);
+				$cancelledPrestudentsRes = $this->_ci->fhcmanagementlib->getPrestudentsByMatrikelnummerAndStudiengang($matrikelnummer, $studiensemester_kurzbz, $cancelledStudiengaenge);
+
+				if (isError($cancelledPrestudentsRes))
+					return $cancelledPrestudentsRes;
+
+				if (hasData($cancelledPrestudentsRes))
+				{
+					$cancelledPrestudents = getData($cancelledPrestudentsRes);
+
+					// insert for each cancelled prestudent
+					foreach ($cancelledPrestudents as $prestudent)
+					{
+						$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
+							array(
+								'prestudent_id' => $prestudent->prestudent_id,
+								'studiensemester_kurzbz' => $studiensemester_kurzbz,
+								'meldedatum' => date('Y-m-d'),
+								'storniert' => true
+							)
+						);
+
+						if (isError($studiumSaveResult)) // TODO phrases
+							return error("Studiumdaten erfolgreich storniert, Fehler beim Speichern in der Synctabelle in FHC");
+					}
+				}
 
 				$infos[] = "Studiumdaten erfolgreich storniert"; // TODO phrases
 
@@ -1558,8 +1586,9 @@ class DVUHManagementLib
 	 * Checks if paid on another university, and nullifys Buchung if yes.
 	 * @param int $person_id
 	 * @param string $dvuh_studiensemester
-	 * @param array $buchungen contains Buchung to nullify
-	 * @param array $infos for adding log infos
+	 * @param string $matrikelnummer
+	 * @param array $buchungen contains Buchungen to nullify
+	 * @param array $warnings
 	 * @return object success or error with boolean (paid or not)
 	 */
 	private function _checkIfPaidOtherUnivAndNullify($person_id, $dvuh_studiensemester, $matrikelnummer, $buchungen, &$warnings)
@@ -1580,7 +1609,7 @@ class DVUHManagementLib
 				$alreadyPaidStr = 'Bereits an anderer Bildungseinrichtung bezahlt.';
 				foreach ($buchungen as $buchung)
 				{
-					$isSent = false;
+					$isSentToSap = false;
 					$buchungsnr = $buchung->buchungsnr;
 
 					// For ÖH-payments paid on other BE, check if already sent to SAP, add warning if yes
@@ -1593,8 +1622,8 @@ class DVUHManagementLib
 
 						if (hasData($sentToSap))
 						{
-							$isSent = getData($sentToSap)[0];
-							if ($isSent === true)
+							$isSentToSap = getData($sentToSap)[0];
+							if ($isSentToSap === true)
 							{
 								$warnings[] = createError(
 									"Buchung $buchungsnr ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde",
@@ -1604,10 +1633,10 @@ class DVUHManagementLib
 							}
 						}
 
-						// check for nullify flag
+						// check for nullify flag to see if no nullification is needed
 						$nullifyFlag = $this->_ci->config->item('fhc_dvuh_sync_nullify_buchungen_paid_other_univ');
 
-						if ($buchung->bezahlt == '0' && $isSent === false && $nullifyFlag === true)
+						if ($buchung->bezahlt == '0' && $isSentToSap === false && $nullifyFlag === true)
 						{
 							// set ÖH-Buchungen to 0 since they don't need to be paid anymore
 							$nullifyResult = $this->_ci->fhcmanagementlib->nullifyBuchung($buchung);

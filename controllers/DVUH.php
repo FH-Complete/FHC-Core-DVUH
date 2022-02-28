@@ -246,6 +246,9 @@ class DVUH extends Auth_Controller
 		$this->outputJson($json);
 	}
 
+	/**
+	 * Gets data needed for rendering of the GUI menu.
+	 */
 	public function getDvuhMenuData()
 	{
 		$menuData = array(

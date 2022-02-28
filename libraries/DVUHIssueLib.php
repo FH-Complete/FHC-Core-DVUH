@@ -3,8 +3,10 @@
 /**
  * Functionality for parsing DVUH XML
  */
-class DVUHErrorLib
+class DVUHIssueLib
 {
+	const APP = 'dvuh';
+
 	public function __construct()
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
@@ -13,7 +15,7 @@ class DVUHErrorLib
 		$this->_ci->load->library(
 			'IssuesLib',
 			array(
-				'app' => 'dvuh',
+				'app' => self::APP,
 				'insertvon' => 'dvuhsync',
 				'fallbackFehlercode' => 'DVUH_ERROR'
 			)
@@ -21,10 +23,11 @@ class DVUHErrorLib
 
 		// load models
 		$this->_ci->load->model('crm/prestudent_model', 'PrestudentModel');
+		$this->_ci->load->model('system/Fehler_model', 'FehlerModel');
 	}
 
 	/**
-	 * Initializes correct adding of an issue.
+	 * Initializes adding of an issue.
 	 * @param object $errorObj containing info for writing the issue.
 	 * @param int $person_id person for which issue occured.
 	 * @param int $prestudent_id prestudent for which issue occured, will be resolved to oe_kurzbz.
@@ -62,7 +65,23 @@ class DVUHErrorLib
 
 			if (isset($code->issue_fehler_kurzbz)) // custom, self-defined error
 			{
-				return $this->_ci->issueslib->addFhcIssue($code->issue_fehler_kurzbz, $person_id, $oe_kurzbz, $code->issue_fehlertext_params);
+				$addIssueRes = $this->_ci->issueslib->addFhcIssue(
+					$code->issue_fehler_kurzbz,
+					$person_id,
+					$oe_kurzbz,
+					$code->issue_fehlertext_params,
+					$code->issue_resolution_params
+				);
+
+				// if error when adding issue, add person Id, prestudent Id to error text
+				if (isError($addIssueRes))
+				{
+					$errorText = getError($addIssueRes);
+					$errorText .= ', fehler kurzbz: '.$code->issue_fehler_kurzbz;
+					if (isset($person_id)) $errorText .= ', person Id: '.$person_id;
+					if (isset($prestudent_id)) $errorText .= ', prestudent Id: '.$prestudent_id;
+					return error($errorText);
+				}
 			}
 			elseif (!isEmptyArray($code)) // external error from DVUH is an array
 			{
@@ -73,18 +92,39 @@ class DVUHErrorLib
 				{
 					if (isset($error->fehlernummer)) // has fehlernummer if external error
 					{
+						// get external fehlercode (unique for each app)
+						$this->_ci->FehlerModel->addSelect('fehlercode');
+						$fehlerRes = $this->_ci->FehlerModel->loadWhere(
+							array(
+								'fehlercode_extern' => $error->fehlernummer,
+								'app' => self::APP
+							)
+						);
+
+						if (isError($fehlerRes))
+							return $fehlerRes;
+
+						// check if there is a predefined custom error for the external issue
+						if (!hasData($fehlerRes))
+						{
+							if ($force_predefined_for_external)
+								return success("External issue not added because it is not defined in FHC"); // TODO phrases
+						}
+
 						$extIssueRes = $this->_ci->issueslib->addExternalIssue(
 							$error->fehlernummer,
 							$error->fehlertextKomplett,
 							$person_id,
-							$oe_kurzbz,
-							null,
-							$force_predefined_for_external
+							$oe_kurzbz
 						);
 
 						if (isError($extIssueRes))
 						{
-							$issuesErrorArr[] = getError($extIssueRes);
+							$errorText = getError($extIssueRes);
+							$errorText .= ', fehler code extern: '.$error->fehlernummer;
+							if (isset($person_id)) $errorText .= ', person Id: '.$person_id;
+							if (isset($prestudent_id)) $errorText .= ', prestudent Id: '.$prestudent_id;
+							$issuesErrorArr[] = $errorText;
 						}
 					}
 				}

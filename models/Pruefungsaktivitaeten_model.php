@@ -99,16 +99,16 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 				foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
 				{
 					// save ects to post to variable
-					$toPost[$prestudent_id]['ects_angerechnet'] = $pruefungsaktivitaeten->ects_angerechnet;
+					$toPost[$prestudent_id]['ects_angerechnet'] = 0;
 					$toPost[$prestudent_id]['ects_erworben'] = $pruefungsaktivitaeten->ects_erworben;
 
 					// only send Pruefungsaktivitaeten if there are ects
-					if ($pruefungsaktivitaeten->ects_angerechnet == 0 && $pruefungsaktivitaeten->ects_erworben == 0)
+					if (/*$pruefungsaktivitaeten->ects_angerechnet == 0 && */$pruefungsaktivitaeten->ects_erworben == 0)
 						continue;
 
 					// format ects
 					$ectsSums = new stdClass();
-					$ectsSums->ects_angerechnet = number_format($pruefungsaktivitaeten->ects_angerechnet, 1);
+					//$ectsSums->ects_angerechnet = number_format($pruefungsaktivitaeten->ects_angerechnet, 1);
 					$ectsSums->ects_erworben = number_format($pruefungsaktivitaeten->ects_erworben, 1);
 
 					$studiumpruefungen[$prestudent_id]['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;

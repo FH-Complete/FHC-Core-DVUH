@@ -19,7 +19,7 @@ class DVUHManagement extends JQW_Controller
 		parent::__construct();
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHErrorLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 		$this->_logInfos = $this->config->item('fhc_dvuh_log_infos');
@@ -579,7 +579,7 @@ class DVUHManagement extends JQW_Controller
 	 */
 	private function _addDVUHIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
-		$issueRes = $this->dvuherrorlib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined_for_external);
+		$issueRes = $this->dvuhissuelib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined_for_external);
 
 		if (isError($issueRes))
 		{
