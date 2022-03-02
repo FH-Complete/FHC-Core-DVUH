@@ -235,6 +235,16 @@ class JQMSchedulerLib
 							LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
 							WHERE ps.bismelden = TRUE
 							AND stg.melderelevant = TRUE
+						  	AND NOT ( /* if Abgewiesener last status and matr_nr NULL - rejected before study start, do not send to DVUH */
+								EXISTS (
+									SELECT 1 FROM public.tbl_prestudentstatus
+									WHERE prestudent_id = ps.prestudent_id
+									AND status_kurzbz = 'Abgewiesener'
+									ORDER BY datum DESC, tbl_prestudentstatus.insertamum DESC NULLS LAST
+									LIMIT 1
+								)
+								AND pers.matr_nr IS NULL
+						  	)
 							AND pss.studiensemester_kurzbz IN ?";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_CHARGE]))
@@ -441,7 +451,7 @@ class JQMSchedulerLib
 					) prestudents
 					JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
 					WHERE max_studiumdaten_meldedatum IS NULL /* either not sent to DVUH or data modified since last send */
-					OR prestudent_status_datum = NOW() /* if prestudent status gets active today */
+					OR prestudent_status_datum = CURRENT_DATE /* if prestudent status gets active today */
 					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
 					OR pss_insertamum >= max_studiumdaten_meldedatum OR ps_insertamum >= max_studiumdaten_meldedatum
 					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
@@ -540,15 +550,15 @@ class JQMSchedulerLib
 						prestudenten.studiensemester_kurzbz = anzahl_ects.studiensemester_kurzbz	
 					GROUP BY prestudenten.studiensemester_kurzbz, person_id, prestudenten.prestudent_id
 				) summen_ects
-				WHERE (summe_ects_angerechnet <> /* different ects sums sent last time */
+				WHERE (/*summe_ects_angerechnet <> 
 							(SELECT COALESCE(SUM(last_ects_ar), 0)
 								FROM (SELECT ects_angerechnet as last_ects_ar
 								FROM sync.tbl_dvuh_pruefungsaktivitaeten
 								WHERE prestudent_id = summen_ects.prestudent_id
 								AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
 								ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_ar
-							)
-							OR summe_ects_erworben <>
+							) OR */
+							summe_ects_erworben <> /* different ects sums sent last time */
 							(SELECT COALESCE(SUM(last_ects_er), 0)
 								FROM (SELECT ects_erworben as last_ects_er
 								FROM sync.tbl_dvuh_pruefungsaktivitaeten

@@ -43,7 +43,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SP_W_0003', 'offeneBuchungen', NULL, 'Es gibt noch offene Buchungen', 'warning', 'dvuh'),
 ('DVUH_SS_W_0001', 'zgvFehlt', NULL, 'ZGV fehlt', 'warning', 'dvuh'),
 ('DVUH_SS_W_0002', 'zgvDatumFehlt', NULL, 'ZGV Datum fehlt', 'warning', 'dvuh'),
-('DVUH_SS_W_0003', 'zgvMasterFehlt', NULL, 'Zgv Master fehlt', 'warning', 'dvuh'),
+('DVUH_SS_W_0003', 'zgvMasterFehlt', NULL, 'ZGV Master fehlt', 'warning', 'dvuh'),
 ('DVUH_SS_W_0004', 'zgvMasterDatumFehlt', NULL, 'ZGV Masterdatum fehlt', 'warning', 'dvuh'),
 ('DVUH_SS_W_0005', 'berufstaetigkeitcodeFehlt', NULL, 'Berufstätigkeitcode fehlt', 'warning', 'dvuh'),
 /* DVUH Warnings */

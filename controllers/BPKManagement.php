@@ -7,6 +7,8 @@ if (! defined('BASEPATH')) exit('No direct script access allowed');
  */
 class BPKManagement extends Auth_Controller
 {
+	private $_uid; // contains the UID of the logged user
+
 	/**
 	 * Constructor
 	 */
@@ -40,6 +42,7 @@ class BPKManagement extends Auth_Controller
 			)
 		);
 
+		$this->_setAuthUID(); // sets property uid
 		$this->setControllerId(); // sets the controller id
 	}
 
@@ -58,7 +61,6 @@ class BPKManagement extends Auth_Controller
 
 	/**
 	 * Show details page
-	 * @param $person_id
 	 */
 	public function showDetails()
 	{
@@ -75,8 +77,6 @@ class BPKManagement extends Auth_Controller
 
 		if (!hasData($personData))
 			show_error('Person nicht gefunden');
-
-		$data[self::FHC_CONTROLLER_ID] = $this->getControllerId();
 
 		$this->load->view('extensions/FHC-Core-DVUH/BPKDetails.php', getData($personData));
 	}
@@ -140,7 +140,8 @@ class BPKManagement extends Auth_Controller
 				$person_id,
 				array(
 					'bpk' => $bpk,
-					'updateamum' => date('Y-m-d H:i:s')
+					'updateamum' => date('Y-m-d H:i:s'),
+					'updatevon' => $this->_uid
 				)
 			);
 		}
@@ -193,6 +194,16 @@ class BPKManagement extends Auth_Controller
 
 	// -----------------------------------------------------------------------------------------------------------------
 	// Private methods
+
+	/**
+	 * Retrieve the UID of the logged user and checks if it is valid
+	 */
+	private function _setAuthUID()
+	{
+		$this->_uid = getAuthUID();
+
+		if (!$this->_uid) show_error('User authentification failed');
+	}
 
 	/**
 	 *  Define the navigation menu for the showDetails page

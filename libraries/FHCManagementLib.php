@@ -20,6 +20,9 @@ class FHCManagementLib
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+
+		// load libraries
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -32,7 +35,7 @@ class FHCManagementLib
 	 * @param array $status_kurzbz
 	 * @return object success with prestudents or error
 	 */
-	public function getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz)
+	public function getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz = null)
 	{
 		$params = array(
 			$person_id,
@@ -60,6 +63,68 @@ class FHCManagementLib
 		return $this->_dbModel->execReadOnlyQuery(
 			$prstQry,
 			$params
+		);
+	}
+
+	/**
+	 * Gets prestudents of certain Studiengänge for person with certain matrikelnummer.
+	 * @param string $matr_nr
+	 * @param string $studiensemester_kurzbz
+	 * @param array $studiengang_kz_arr
+	 * @return object success with prestudents or error
+	 */
+	public function getPrestudentsByMatrikelnummerAndStudiengang($matr_nr, $studiensemester_kurzbz, $studiengang_kz_arr)
+	{
+		$params = array(
+			$matr_nr,
+			$studiensemester_kurzbz
+		);
+
+		$prstQry = "SELECT DISTINCT prestudent_id
+					FROM public.tbl_prestudent ps
+					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
+					JOIN public.tbl_person pers USING(person_id)
+					WHERE matr_nr = ?
+					AND pss.studiensemester_kurzbz = ?";
+
+		if (isset($studiengang_kz_arr) && is_array($studiengang_kz_arr))
+		{
+			$prstQry .= " AND ps.studiengang_kz IN ?";
+			$params[] = $studiengang_kz_arr;
+		}
+
+		return $this->_dbModel->execReadOnlyQuery(
+			$prstQry,
+			$params
+		);
+	}
+
+	/**
+	 * Gets non-paid Buchungen of a person, i.e. no other Buchung has it as buchungsnr_verweis.
+	 * @param int $person_id
+	 * @param string $studiensemester_kurzbz
+	 * @param array $buchungstypen limit to only certain types
+	 * @return mixed
+	 */
+	public function getUnpaidBuchungen($person_id, $studiensemester_kurzbz, $buchungstypen)
+	{
+		return $this->_dbModel->execReadOnlyQuery("
+								SELECT buchungsnr
+								FROM public.tbl_konto
+								WHERE person_id = ?
+								  AND studiensemester_kurzbz = ?
+								  AND buchungsnr_verweis IS NULL
+								  AND betrag < 0
+								  AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
+								  					WHERE kto.person_id = tbl_konto.person_id
+								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
+								      				LIMIT 1)
+								  AND buchungstyp_kurzbz IN ?
+								  ORDER BY buchungsdatum, buchungsnr
+								  LIMIT 1",
+			array(
+				$person_id, $studiensemester_kurzbz, $buchungstypen
+			)
 		);
 	}
 
@@ -161,6 +226,9 @@ class FHCManagementLib
 	 */
 	public function saveBpkInFhc($person_id, $bpk)
 	{
+		if (!$this->_ci->dvuhsynclib->checkBpk($bpk))
+			return error("Invalid bPK");
+
 		return $this->_ci->PersonModel->update(
 			array(
 				'person_id' => $person_id

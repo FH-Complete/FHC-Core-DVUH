@@ -178,6 +178,7 @@ var DVUHMenu = {
 				break;
 			case 'postErnpmeldung':
 
+				// get dropdown values for nations
 				var nationsDropdownValues = {};
 				for (var idx in DVUHMenu.fhcData.nations)
 				{
@@ -215,6 +216,7 @@ var DVUHMenu = {
 				break;
 			case 'postStudiumStorno':
 
+				// get dropdown values for studiengang
 				var stgDropdownValues = {};
 				for (var idx in DVUHMenu.fhcData.stg)
 				{
@@ -222,10 +224,25 @@ var DVUHMenu = {
 					stgDropdownValues[stg.studiengang_kz] = stg.studiengang_kz + " ("+stg.studiengang_text+")";
 				}
 
+				var matr_nr = null
+				var semester = null
+				var studiengang_kz = null
+
+				// prefill input values if coming from external site
+				if (typeof params !== 'undefined')
+				{
+					if (params.hasOwnProperty('matr_nr'))
+						matr_nr = params.matr_nr;
+					if (params.hasOwnProperty('studiensemester_kurzbz')) // convert sutdiensemester to FHC before the prefill
+						semester = params.studiensemester_kurzbz.substring(2, 7) + params.studiensemester_kurzbz.substring(0, 1);
+					if (params.hasOwnProperty('studiengang_kz'))
+						studiengang_kz = params.studiengang_kz;
+				}
+
 				html = '<h4>Studiumsdaten stornieren</h4>'; // TODO phrases
-				html += DVUHMenu._getMatrikelnummerRow()
-					+ DVUHMenu._getSemesterRow() // TODO - stg maybe dropdown?
-					+ DVUHMenu._getDropdownHtml('studiengang_kz', 'Studiengangskennzahl', stgDropdownValues, "null", 'optional, für einzelne Studien', true)
+				html += DVUHMenu._getMatrikelnummerRow(matr_nr)
+					+ DVUHMenu._getSemesterRow(semester)
+					+ DVUHMenu._getDropdownHtml('studiengang_kz', 'Studiengangskennzahl', stgDropdownValues, studiengang_kz, 'optional, für einzelne Studien', true)
 				method = 'post';
 				writePreviewButton = true;
 				break;
@@ -423,19 +440,19 @@ var DVUHMenu = {
 	},
 
 	/* additional "private" methods */
-	_getMatrikelnummerRow: function()
+	_getMatrikelnummerRow: function(value)
 	{
-		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', '', 8)
+		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', '', 8, value)
 	},
 	_getStudienjahrRow: function()
 	{
 		return DVUHMenu._getTextfieldHtml('studienjahr', 'Studienjahr', 'zB 2016 (für WS2016 und SS2017)', 4);
 	},
-	_getSemesterRow: function()
+	_getSemesterRow: function(value)
 	{
-		return DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'z.B. 2016S für Sommer-, 2016W für Wintersemester 2016', 5)
+		return DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'z.B. 2016S für Sommer-, 2016W für Wintersemester 2016', 5, value)
 	},
-	_getTextfieldHtml: function(name, title, hint, maxlength)
+	_getTextfieldHtml: function(name, title, hint, maxlength, value)
 	{
 		if (!hint)
 			hint = '';
@@ -446,7 +463,9 @@ var DVUHMenu = {
 		return '<div class="form-group">' +
 					'<label class="col-lg-2 control-label" for="'+name+'">'+title+'</label>'+
 					'<div class="col-lg-5">'+
-						'<input class="form-control" id="'+name+'" name="'+name+'" type="text" size="30" maxlength="'+maxlength+'">'+
+						'<input class="form-control" id="'+name+'" name="'+name+'" type="text" size="30" maxlength="'+maxlength+'"'+
+							(value ? ' value="'+value+'"' : '') +
+						'>'+
 					'</div>'+
 					'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
 				'</div>';

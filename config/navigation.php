@@ -29,5 +29,10 @@ $config['navigation_menu']['extensions/FHC-Core-DVUH/*'] = array(
 		'link' => site_url('extensions/FHC-Core-DVUH/FeedOverview/index'),
 		'description' => 'Feedübersicht',
 		'icon' => 'rss'
+	),
+	'storno' => array(
+		'link' => site_url('extensions/FHC-Core-DVUH/StornoOverview/index'),
+		'description' => 'Stornoübersicht',
+		'icon' => 'history'
 	)
 );

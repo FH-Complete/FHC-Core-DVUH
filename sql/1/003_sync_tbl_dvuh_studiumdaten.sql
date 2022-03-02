@@ -45,3 +45,8 @@ DO $$
 
 GRANT SELECT,INSERT,DELETE,UPDATE ON TABLE sync.tbl_dvuh_studiumdaten TO vilesci;
 GRANT SELECT ON TABLE sync.tbl_dvuh_studiumdaten TO web;
+
+DO $$
+    BEGIN
+        ALTER TABLE sync.tbl_dvuh_studiumdaten ADD COLUMN storniert boolean NOT NULL DEFAULT false;
+    END $$;
