@@ -675,8 +675,8 @@ class DVUHSyncLib
 			}
 		}
 
-		// get ects sums of Noten which are aktiv, offiziell, positiv, both lehre and non-lehre
-		$zeugnisNotenResult = $this->_ci->ZeugnisnoteModel->getByPerson($person_id, $studiensemester, true, null, true, true);
+		// get ects sums of Noten which are aktiv, both lehre and non-lehre, offiziell, positiv, have zeugnis = true
+		$zeugnisNotenResult = $this->_ci->ZeugnisnoteModel->getByPerson($person_id, $studiensemester, true, null, true, true, true);
 
 		if (isError($zeugnisNotenResult))
 			return $zeugnisNotenResult;
