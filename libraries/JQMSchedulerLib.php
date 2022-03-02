@@ -537,7 +537,7 @@ class JQMSchedulerLib
 					LEFT JOIN (
 						SELECT prestudent_id,
 							   zgnisnote.studiensemester_kurzbz,
-							   CASE WHEN note.note IN ? THEN ects ELSE 0 END     AS ects_angerechnet,
+							   CASE WHEN note.note IN ? THEN ects ELSE 0 END AS ects_angerechnet,
 							   CASE WHEN note.note NOT IN ? THEN ects ELSE 0 END AS ects_erworben
 						FROM public.tbl_student
 						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote USING (student_uid)
@@ -546,6 +546,7 @@ class JQMSchedulerLib
 						WHERE note.aktiv
 						AND note.offiziell
 						AND note.positiv
+						AND lv.zeugnis
 					) anzahl_ects ON prestudenten.prestudent_id = anzahl_ects.prestudent_id AND
 						prestudenten.studiensemester_kurzbz = anzahl_ects.studiensemester_kurzbz	
 					GROUP BY prestudenten.studiensemester_kurzbz, person_id, prestudenten.prestudent_id
