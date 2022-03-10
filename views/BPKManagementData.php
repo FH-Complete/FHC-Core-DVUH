@@ -67,9 +67,9 @@ $filterWidgetArray = array(
 	}
 );
 
-$filterWidgetArray['app'] = 'core';
+$filterWidgetArray['app'] = 'dvuh';
 $filterWidgetArray['datasetName'] = 'overview';
-$filterWidgetArray['filterKurzbz'] = 'BPKWartung';
+$filterWidgetArray['filterKurzbz'] = 'BPKWartungDVUH';
 $filterWidgetArray['filter_id'] = $this->input->get('filter_id');
 
 echo $this->widgetlib->widget('FilterWidget', $filterWidgetArray);

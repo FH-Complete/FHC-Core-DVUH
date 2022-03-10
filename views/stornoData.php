@@ -60,8 +60,8 @@ $filterWidgetArray = array(
 	}
 );
 
-$filterWidgetArray['app'] = 'core';
-$filterWidgetArray['datasetName'] = 'overview';
+$filterWidgetArray['app'] = 'dvuh';
+$filterWidgetArray['datasetName'] = 'storno';
 $filterWidgetArray['filterKurzbz'] = 'DVUHStorno';
 $filterWidgetArray['filter_id'] = $this->input->get('filter_id');
 
