@@ -36,7 +36,7 @@ $filterWidgetArray = array(
 		ucfirst($this->p->t('person', 'vorname')) ,
 		ucfirst($this->p->t('person', 'nachname')),
 		ucfirst($this->p->t('person', 'matrikelnummer')),
-		ucfirst($this->p->t('lehre', 'studiengangskennzahl')),
+		ucfirst($this->p->t('lehre', 'studiengangskennzahlLehre')),
 		ucfirst($this->p->t('lehre', 'studiengang')),
 		ucfirst($this->p->t('lehre', 'studiensemester'))
 	),
@@ -44,11 +44,10 @@ $filterWidgetArray = array(
 
 		/* NOTE: Dont use $this here for PHP Version compatibility */
 		$datasetRaw->{'Storno'} = sprintf(
-			'<a href="%s&matr_nr=%s&studiensemester_kurzbz=%s&studiengang_kz=%s" target="_blank">Storno</a>',
+			'<a href="%s&prestudent_id=%s&studiensemester_kurzbz=%s" target="_blank">Storno</a>',
 			site_url('extensions/FHC-Core-DVUH/DVUH#page=postStudiumStorno'),
-			$datasetRaw->{'matrikelnummer'},
-			$datasetRaw->{'studiensemester'},
-			$datasetRaw->{'studiengangskennzahl'}
+			$datasetRaw->{'prestudent_id'},
+			$datasetRaw->{'studiensemester'}
 		);
 
 		if ($datasetRaw->{'matrikelnummer'} == null)

@@ -143,7 +143,7 @@ class DVUHSyncLib
 
 			// university mail
 			$this->_ci->BenutzerModel->addSelect('uid');
-			$this->_ci->BenutzerModel->addOrder('insertamum', 'DESC');
+			$this->_ci->BenutzerModel->addOrder('insertamum', 'DESC'); // TODO: really? benutzer aktiv?
 			$uids = $this->_ci->BenutzerModel->loadWhere(array('person_id' => $person_id));
 
 			if (hasData($uids))
@@ -1006,10 +1006,11 @@ class DVUHSyncLib
 		else
 			return error("Kein korrektes Semester angegeben");
 
+		// get Mobilitäten of the semester, no bis dates in future
 		$ioResult = $this->_dbModel->execReadOnlyQuery(
 					"SELECT *
 					FROM bis.tbl_bisio WHERE student_uid=?
-					AND bis >= ? AND von <= ?;",
+					AND (bis >= ? OR bis IS NULL) AND von <= ?;",
 					array($prestudentstatus->student_uid, $semester->start, $semester->ende)
 		);
 

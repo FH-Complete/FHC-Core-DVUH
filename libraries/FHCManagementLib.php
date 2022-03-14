@@ -67,39 +67,6 @@ class FHCManagementLib
 	}
 
 	/**
-	 * Gets prestudents of certain Studiengänge for person with certain matrikelnummer.
-	 * @param string $matr_nr
-	 * @param string $studiensemester_kurzbz
-	 * @param array $studiengang_kz_arr
-	 * @return object success with prestudents or error
-	 */
-	public function getPrestudentsByMatrikelnummerAndStudiengang($matr_nr, $studiensemester_kurzbz, $studiengang_kz_arr)
-	{
-		$params = array(
-			$matr_nr,
-			$studiensemester_kurzbz
-		);
-
-		$prstQry = "SELECT DISTINCT prestudent_id
-					FROM public.tbl_prestudent ps
-					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
-					JOIN public.tbl_person pers USING(person_id)
-					WHERE matr_nr = ?
-					AND pss.studiensemester_kurzbz = ?";
-
-		if (isset($studiengang_kz_arr) && is_array($studiengang_kz_arr))
-		{
-			$prstQry .= " AND ps.studiengang_kz IN ?";
-			$params[] = $studiengang_kz_arr;
-		}
-
-		return $this->_dbModel->execReadOnlyQuery(
-			$prstQry,
-			$params
-		);
-	}
-
-	/**
 	 * Gets non-paid Buchungen of a person, i.e. no other Buchung has it as buchungsnr_verweis.
 	 * @param int $person_id
 	 * @param string $studiensemester_kurzbz

@@ -271,27 +271,7 @@ class DVUH extends Auth_Controller
 			exit;
 		}
 
-		$this->load->model('organisation/Studiengang_model', 'StudiengangModel');
-
-		$stgTextFieldName = $language == 'German' ? 'bezeichnung' : 'english';
-
-		$this->StudiengangModel->addSelect("studiengang_kz, $stgTextFieldName AS studiengang_text");
-		$this->StudiengangModel->addOrder('studiengang_kz');
-		$stgRes = $this->StudiengangModel->loadWhere(
-			array(
-				'aktiv' => true,
-				'melderelevant' => true
-			)
-		);
-
-		if (isError($stgRes))
-		{
-			$this->outputJsonError(getError($stgRes));
-			exit;
-		}
-
 		$menuData['nations'] = getData($nationRes);
-		$menuData['stg'] = getData($stgRes);
 
 		$this->outputJsonSuccess($menuData);
 	}
@@ -440,11 +420,10 @@ class DVUH extends Auth_Controller
 		$data = $this->input->post('data');
 		$preview = $this->input->post('preview');
 
-		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
-		$studiengang_kz = isset($data['studiengang_kz']) ? $data['studiengang_kz'] : null;
+		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
 
-		$json = $this->dvuhmanagementlib->cancelStudyData($matrikelnummer, $semester, $studiengang_kz, $preview);
+		$json = $this->dvuhmanagementlib->cancelStudyData($prestudent_id, $semester, $preview);
 
 		$this->outputJson($json);
 	}

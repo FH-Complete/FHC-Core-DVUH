@@ -217,32 +217,28 @@ var DVUHMenu = {
 			case 'postStudiumStorno':
 
 				// get dropdown values for studiengang
-				var stgDropdownValues = {};
+/*				var stgDropdownValues = {};
 				for (var idx in DVUHMenu.fhcData.stg)
 				{
 					var stg = DVUHMenu.fhcData.stg[idx];
 					stgDropdownValues[stg.studiengang_kz] = stg.studiengang_kz + " ("+stg.studiengang_text+")";
-				}
+				}*/
 
-				var matr_nr = null
 				var semester = null
-				var studiengang_kz = null
+				var prestudent_id = null
 
 				// prefill input values if coming from external site
 				if (typeof params !== 'undefined')
 				{
-					if (params.hasOwnProperty('matr_nr'))
-						matr_nr = params.matr_nr;
 					if (params.hasOwnProperty('studiensemester_kurzbz')) // convert sutdiensemester to FHC before the prefill
 						semester = params.studiensemester_kurzbz.substring(2, 7) + params.studiensemester_kurzbz.substring(0, 1);
-					if (params.hasOwnProperty('studiengang_kz'))
-						studiengang_kz = params.studiengang_kz;
+					if (params.hasOwnProperty('prestudent_id'))
+						prestudent_id = params.prestudent_id;
 				}
 
 				html = '<h4>Studiumsdaten stornieren</h4>'; // TODO phrases
-				html += DVUHMenu._getMatrikelnummerRow(matr_nr)
+				html += DVUHMenu._getTextfieldHtml('prestudent_id', 'PrestudentID', null, null, prestudent_id)
 					+ DVUHMenu._getSemesterRow(semester)
-					+ DVUHMenu._getDropdownHtml('studiengang_kz', 'Studiengangskennzahl', stgDropdownValues, studiengang_kz, 'optional, für einzelne Studien', true)
 				method = 'post';
 				writePreviewButton = true;
 				break;

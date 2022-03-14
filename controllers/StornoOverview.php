@@ -20,7 +20,6 @@ class StornoOverview extends Auth_Controller
 
 		// load libraries
 		$this->load->library('WidgetLib');
-		$this->load->library('NavigationLib', array('navigation_page' => 'extensions/FHC-Core-DVUH/StornoOverview'));
 
 		// load configs
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHSync');

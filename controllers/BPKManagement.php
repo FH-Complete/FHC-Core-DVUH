@@ -32,7 +32,6 @@ class BPKManagement extends Auth_Controller
 
 		// Loads libraries
 		$this->load->library('WidgetLib');
-		$this->load->library('NavigationLib', array('navigation_page' => 'extensions/FHC-Core-DVUH/BPKManagement'));
 		$this->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
 
 		$this->loadPhrases(
