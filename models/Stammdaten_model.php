@@ -101,7 +101,7 @@ class Stammdaten_model extends DVUHClientModel
 			$result = error('Semester nicht gesetzt');
 		else
 		{
-			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id);
+			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id, $semester);
 
 			if (isError($stammdatenDataResult))
 				$result = $stammdatenDataResult;

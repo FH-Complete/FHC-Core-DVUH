@@ -50,13 +50,16 @@ class DVUHSyncLib
 	 * @param $person_id
 	 * @return object success with studentinfo or error
 	 */
-	public function getStammdatenData($person_id)
+	public function getStammdatenData($person_id, $semester)
 	{
 		$stammdaten = $this->_ci->PersonModel->getPersonStammdaten($person_id);
 
 		if (hasData($stammdaten))
 		{
 			$stammdaten = getData($stammdaten);
+
+			// studiensemester e.g. for university mails
+			$studiensemester_kurzbz = $this->convertSemesterToFHC($semester);
 
 			$adressen = array();
 			$emailliste = array();
@@ -142,9 +145,7 @@ class DVUHSyncLib
 			}
 
 			// university mail
-			$this->_ci->BenutzerModel->addSelect('uid');
-			$this->_ci->BenutzerModel->addOrder('insertamum', 'DESC'); // TODO: really? benutzer aktiv?
-			$uids = $this->_ci->BenutzerModel->loadWhere(array('person_id' => $person_id));
+			$uids = $this->_ci->fhcmanagementlib->getUids($person_id, $studiensemester_kurzbz);
 
 			if (hasData($uids))
 			{

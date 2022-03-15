@@ -67,6 +67,32 @@ class FHCManagementLib
 	}
 
 	/**
+	 * Gets uids for a person with prestudent in a certain semester.
+	 * @param int $person_id
+	 * @param string $studiensemester_kurzbz
+	 * @return object success or error
+	 */
+	public function getUids($person_id, $studiensemester_kurzbz)
+	{
+		return $this->_dbModel->execReadOnlyQuery("
+								SELECT student_uid AS uid FROM (
+									SELECT student_uid, max(ben.insertamum) AS insertamum
+								    FROM public.tbl_benutzer ben
+								    JOIN public.tbl_student stud ON ben.uid = stud.student_uid
+									JOIN public.tbl_prestudent USING (prestudent_id)
+									JOIN public.tbl_prestudentstatus USING (prestudent_id)
+									WHERE ben.person_id = ?
+									AND studiensemester_kurzbz = ?
+									GROUP BY student_uid
+								) uids
+								ORDER BY insertamum DESC",
+			array(
+				$person_id, $studiensemester_kurzbz
+			)
+		);
+	}
+
+	/**
 	 * Gets non-paid Buchungen of a person, i.e. no other Buchung has it as buchungsnr_verweis.
 	 * @param int $person_id
 	 * @param string $studiensemester_kurzbz

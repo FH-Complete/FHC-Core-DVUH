@@ -9,7 +9,7 @@ class DVUHManagementLib
 	const STATUS_PAID_OTHER_UNIV = '8'; // payment status if paid on another university, for check
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
-	const STORNO_MELDESTATUS = 'O';
+	const STORNO_MELDESTATUS = 'O'; // Meldestatus code for Storno
 
 	private $_ci; // code igniter instance
 	private $_be; // Bildungseinrichtung code
