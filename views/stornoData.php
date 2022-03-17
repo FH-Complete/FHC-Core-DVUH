@@ -18,9 +18,11 @@ $filterWidgetArray = array(
 			WHERE NOT EXISTS ( /* ... but no valid prestudent status*/
 				SELECT 1
 				FROM public.tbl_prestudentstatus
+				JOIN public.tbl_prestudent USING (prestudent_id)
 				WHERE prestudent_id = ps.prestudent_id
 				AND status_kurzbz IN '.$VALID_STATUS_KURZBZ.'
 				AND studiensemester_kurzbz = std_daten.studiensemester_kurzbz
+				AND bismelden
 			)
 			ORDER BY prestudent_id, meldedatum DESC, std_daten.insertamum DESC NULLS LAST, studiumdaten_id DESC
 		) prestudents
