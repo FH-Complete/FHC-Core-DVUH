@@ -18,9 +18,11 @@ $filterWidgetArray = array(
 			WHERE NOT EXISTS ( /* ... but no valid prestudent status*/
 				SELECT 1
 				FROM public.tbl_prestudentstatus
+				JOIN public.tbl_prestudent USING (prestudent_id)
 				WHERE prestudent_id = ps.prestudent_id
 				AND status_kurzbz IN '.$VALID_STATUS_KURZBZ.'
 				AND studiensemester_kurzbz = std_daten.studiensemester_kurzbz
+				AND bismelden
 			)
 			ORDER BY prestudent_id, meldedatum DESC, std_daten.insertamum DESC NULLS LAST, studiumdaten_id DESC
 		) prestudents
@@ -36,7 +38,7 @@ $filterWidgetArray = array(
 		ucfirst($this->p->t('person', 'vorname')) ,
 		ucfirst($this->p->t('person', 'nachname')),
 		ucfirst($this->p->t('person', 'matrikelnummer')),
-		ucfirst($this->p->t('lehre', 'studiengangskennzahl')),
+		ucfirst($this->p->t('lehre', 'studiengangskennzahlLehre')),
 		ucfirst($this->p->t('lehre', 'studiengang')),
 		ucfirst($this->p->t('lehre', 'studiensemester'))
 	),
@@ -44,11 +46,10 @@ $filterWidgetArray = array(
 
 		/* NOTE: Dont use $this here for PHP Version compatibility */
 		$datasetRaw->{'Storno'} = sprintf(
-			'<a href="%s&matr_nr=%s&studiensemester_kurzbz=%s&studiengang_kz=%s" target="_blank">Storno</a>',
+			'<a href="%s&prestudent_id=%s&studiensemester_kurzbz=%s" target="_blank">Storno</a>',
 			site_url('extensions/FHC-Core-DVUH/DVUH#page=postStudiumStorno'),
-			$datasetRaw->{'matrikelnummer'},
-			$datasetRaw->{'studiensemester'},
-			$datasetRaw->{'studiengangskennzahl'}
+			$datasetRaw->{'prestudent_id'},
+			$datasetRaw->{'studiensemester'}
 		);
 
 		if ($datasetRaw->{'matrikelnummer'} == null)
@@ -60,8 +61,8 @@ $filterWidgetArray = array(
 	}
 );
 
-$filterWidgetArray['app'] = 'core';
-$filterWidgetArray['datasetName'] = 'overview';
+$filterWidgetArray['app'] = 'dvuh';
+$filterWidgetArray['datasetName'] = 'storno';
 $filterWidgetArray['filterKurzbz'] = 'DVUHStorno';
 $filterWidgetArray['filter_id'] = $this->input->get('filter_id');
 

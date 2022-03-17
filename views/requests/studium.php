@@ -109,6 +109,12 @@
 
 			if (isset($studiengang['mobilitaet']))
 			{
+				// if not array and has von index, only single mobilitaet, put it in array.
+				if (isset($studiengang['mobilitaet']['von']))
+				{
+					$studiengang['mobilitaet'] = array($studiengang['mobilitaet']);
+				}
+
 				foreach ($studiengang['mobilitaet'] as $mobilitaet)
 				{
 					echo "\t\t\t\<mobilitaet>";
@@ -132,6 +138,10 @@
 					echo "\t\t\t\t<programm>" . $mobilitaet['programm'] . "</programm>\n";
 					echo "\t\t\t\t<staat>" . $mobilitaet['staat'] . "</staat>\n";
 					echo "\t\t\t\t<von>" . $mobilitaet['von'] . "</von>\n";
+
+					// if only one zweck without array, put it in array
+					if (!is_array($mobilitaet['zweck']) && is_numeric($mobilitaet['zweck']))
+						$mobilitaet['zweck'] = array($mobilitaet['zweck']);
 
 					foreach ($mobilitaet['zweck'] as $zweck)
 					{

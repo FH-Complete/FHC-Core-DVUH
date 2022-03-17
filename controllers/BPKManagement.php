@@ -29,8 +29,11 @@ class BPKManagement extends Auth_Controller
 		$this->load->model('crm/akte_model', 'AkteModel');
 		$this->load->model('person/person_model', 'PersonModel');
 
-		$this->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
+
+		// Loads libraries
 		$this->load->library('WidgetLib');
+		$this->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
+
 		$this->loadPhrases(
 			array(
 				'global',
@@ -54,8 +57,6 @@ class BPKManagement extends Auth_Controller
 	 */
 	public function index()
 	{
-		$this->_setNavigationMenuIndex(); // define the navigation menu for this page
-
 		$this->load->view('extensions/FHC-Core-DVUH/BPKManagement.php');
 	}
 
@@ -65,6 +66,7 @@ class BPKManagement extends Auth_Controller
 	public function showDetails()
 	{
 		$this->_setNavigationMenuShowDetails();
+
 		$person_id = $this->input->get('person_id');
 
 		if (!is_numeric($person_id))
@@ -81,6 +83,9 @@ class BPKManagement extends Auth_Controller
 		$this->load->view('extensions/FHC-Core-DVUH/BPKDetails.php', getData($personData));
 	}
 
+	/**
+	 * Initiates bpk check for name combinations of a person.
+	 */
 	public function checkBpkCombinations()
 	{
 		$bpkCombRes = null;
@@ -94,6 +99,9 @@ class BPKManagement extends Auth_Controller
 		$this->outputJson($bpkCombRes);
 	}
 
+	/**
+	 * Gets all name combinations to check for a person,
+	 */
 	public function getAllNameCombinations()
 	{
 		$person_id = $this->input->get('person_id');
@@ -213,33 +221,6 @@ class BPKManagement extends Auth_Controller
 		$this->load->library('NavigationLib', array('navigation_page' => 'extensions/FHC-Core-DVUH/BPKManagement/showDetails'));
 
 		$link = site_url('extensions/FHC-Core-DVUH/BPKManagement');
-
-		$this->navigationlib->setSessionMenu(
-			array(
-				'back' => $this->navigationlib->oneLevel(
-					'Zurück',	// description
-					$link,			// link
-					array(),		// children
-					'angle-left',	// icon
-					true,			// expand
-					null, 			// subscriptDescription
-					null, 			// subscriptLinkClass
-					null, 			// subscriptLinkValue
-					'', 			// target
-					1 				// sort
-				)
-			)
-		);
-	}
-
-	/**
-	 *  Define the navigation menu for the BPK Management page
-	 */
-	private function _setNavigationMenuIndex()
-	{
-		$this->load->library('NavigationLib', array('navigation_page' => 'extensions/FHC-Core-DVUH/BPKManagement'));
-
-		$link = site_url();
 
 		$this->navigationlib->setSessionMenu(
 			array(

@@ -67,35 +67,28 @@ class FHCManagementLib
 	}
 
 	/**
-	 * Gets prestudents of certain Studiengänge for person with certain matrikelnummer.
-	 * @param string $matr_nr
+	 * Gets uids for a person with prestudent in a certain semester.
+	 * @param int $person_id
 	 * @param string $studiensemester_kurzbz
-	 * @param array $studiengang_kz_arr
-	 * @return object success with prestudents or error
+	 * @return object success or error
 	 */
-	public function getPrestudentsByMatrikelnummerAndStudiengang($matr_nr, $studiensemester_kurzbz, $studiengang_kz_arr)
+	public function getUids($person_id, $studiensemester_kurzbz)
 	{
-		$params = array(
-			$matr_nr,
-			$studiensemester_kurzbz
-		);
-
-		$prstQry = "SELECT DISTINCT prestudent_id
-					FROM public.tbl_prestudent ps
-					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
-					JOIN public.tbl_person pers USING(person_id)
-					WHERE matr_nr = ?
-					AND pss.studiensemester_kurzbz = ?";
-
-		if (isset($studiengang_kz_arr) && is_array($studiengang_kz_arr))
-		{
-			$prstQry .= " AND ps.studiengang_kz IN ?";
-			$params[] = $studiengang_kz_arr;
-		}
-
-		return $this->_dbModel->execReadOnlyQuery(
-			$prstQry,
-			$params
+		return $this->_dbModel->execReadOnlyQuery("
+								SELECT student_uid AS uid FROM (
+									SELECT student_uid, max(ben.insertamum) AS insertamum
+								    FROM public.tbl_benutzer ben
+								    JOIN public.tbl_student stud ON ben.uid = stud.student_uid
+									JOIN public.tbl_prestudent USING (prestudent_id)
+									JOIN public.tbl_prestudentstatus USING (prestudent_id)
+									WHERE ben.person_id = ?
+									AND studiensemester_kurzbz = ?
+									GROUP BY student_uid
+								) uids
+								ORDER BY insertamum DESC",
+			array(
+				$person_id, $studiensemester_kurzbz
+			)
 		);
 	}
 

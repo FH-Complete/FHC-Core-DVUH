@@ -9,7 +9,7 @@ class DVUHManagementLib
 	const STATUS_PAID_OTHER_UNIV = '8'; // payment status if paid on another university, for check
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
-	const STORNO_MELDESTATUS = 'O';
+	const STORNO_MELDESTATUS = 'O'; // Meldestatus code for Storno
 
 	private $_ci; // code igniter instance
 	private $_be; // Bildungseinrichtung code
@@ -1358,20 +1358,42 @@ class DVUHManagementLib
 	 * @param bool $preview
 	 * @return object error or success
 	 */
-	public function cancelStudyData($matrikelnummer, $semester, $studiengang_kz = null, $preview = false)
+	public function cancelStudyData($prestudent_id, $semester, $preview = false)
 	{
 		$result = null;
 		$infos = array();
 
-		if (!isset($matrikelnummer))
+		if (!isset($prestudent_id))
 		{
-			return error("Matrikelnummer muss angegeben werden"); // TODO phrase
+			return error("Prestudent Id muss angegeben werden"); // TODO phrase
 		}
 
 		if (!isset($semester))
 		{
 			return error("Semester muss angegeben werden"); // TODO phrase
 		}
+
+		// get matrikel number and studiengang from prestudent
+		$this->_ci->PersonModel->addSelect("matr_nr, studiengang_kz");
+		$this->_ci->PersonModel->addJoin("public.tbl_prestudent", "person_id");
+		$studentRes = $this->_ci->PersonModel->loadWhere(
+			array(
+				'prestudent_id' => $prestudent_id
+			)
+		);
+
+		if (isError($studentRes))
+			return $studentRes;
+
+		if (!hasData($studentRes))
+		{
+			$infos[] = 'keine Studien in FHC gefunden';// TODO phrases
+			return $this->_getResponseArr(null, $infos);
+		}
+
+		$studentData = getData($studentRes)[0];
+		$matrikelnummer = $studentData->matr_nr;
+		$studiengang_kz = $studentData->studiengang_kz;
 
 		// get xml of study data in DVUH
 		$studyData = $this->_ci->StudiumModel->get($this->_be, $matrikelnummer, $semester);
@@ -1390,7 +1412,6 @@ class DVUHManagementLib
 			{
 				$studiengaenge = array();
 				$lehrgaenge = array();
-				$cancelledStudiengaenge = array();
 
 				$studienData = getData($studienRes);
 
@@ -1406,7 +1427,6 @@ class DVUHManagementLib
 				);
 
 				// default send method post for all Studiengänge of person
-				$sendMethodName = 'postManually';
 				$studiengangIdName = 'stgkz';
 				$lehrgangIdName = 'lehrgangsnr';
 
@@ -1428,22 +1448,14 @@ class DVUHManagementLib
 						return error("Studium Id fehlt"); //TODO phrases
 
 					$dvuh_stgkz = substr($studium->{$studiumIdName}, -1 * DVUHSyncLib::DVUH_STGKZ_LENGTH);
-					$fhc_stgkz = ($isLehrgang ? '-' : '') . ltrim($dvuh_stgkz);
+					$fhc_stgkz_in_dvuh_format = $this->_ci->dvuhsynclib->convertStudiengangskennzahlToDVUH($studiengang_kz);
 
-					// if studiengang passed, use put method to cancel only one Studiengang
-					if (isset($studiengang_kz))
-					{
-						// use put if update only one studium
-						$sendMethodName = 'putManually';
+					// only send Studiengang requested by prestudent id
+ 					if ($dvuh_stgkz != $fhc_stgkz_in_dvuh_format)
+						continue;
 
-						// only send one studiengang if studiengang_kz passed
-						if ($studiengang_kz != $fhc_stgkz)
-							continue;
-					}
-
-					// add storno data
+					// add storno data to data received from dvuh
 					$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
-					//$studium->studstatuscode = $studium->studstatuscode == $kodex_studstatuscode_array['Absolvent'] ? $kodex_studstatuscode_array['Absolvent'] : $kodex_studstatuscode_array['Abbrecher'];
 					$studium->meldestatus = self::STORNO_MELDESTATUS;
 
 					// convert object data to assoc array
@@ -1457,9 +1469,6 @@ class DVUHManagementLib
 					{
 						$studiengaenge[] = $stdArr;
 					}
-
-					// save sent studiengang_kz for saving in sync table
-					$cancelledStudiengaenge[] = $fhc_stgkz;
 				}
 
 				$params['studiengaenge'] = $studiengaenge;
@@ -1480,38 +1489,25 @@ class DVUHManagementLib
 				}
 
 				// send study data with modified storno data
-				$studiumPostRes = $this->_ci->StudiumModel->{$sendMethodName}($params);
+				$studiumPostRes = $this->_ci->StudiumModel->putManually($params);
 
 				if (isError($studiumPostRes))
 					return $studiumPostRes;
 
 				// insert into sync table to record that data was cancelled
 				$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($semester);
-				$cancelledPrestudentsRes = $this->_ci->fhcmanagementlib->getPrestudentsByMatrikelnummerAndStudiengang($matrikelnummer, $studiensemester_kurzbz, $cancelledStudiengaenge);
 
-				if (isError($cancelledPrestudentsRes))
-					return $cancelledPrestudentsRes;
+				$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
+					array(
+						'prestudent_id' => $prestudent_id,
+						'studiensemester_kurzbz' => $studiensemester_kurzbz,
+						'meldedatum' => date('Y-m-d'),
+						'storniert' => true
+					)
+				);
 
-				if (hasData($cancelledPrestudentsRes))
-				{
-					$cancelledPrestudents = getData($cancelledPrestudentsRes);
-
-					// insert for each cancelled prestudent
-					foreach ($cancelledPrestudents as $prestudent)
-					{
-						$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
-							array(
-								'prestudent_id' => $prestudent->prestudent_id,
-								'studiensemester_kurzbz' => $studiensemester_kurzbz,
-								'meldedatum' => date('Y-m-d'),
-								'storniert' => true
-							)
-						);
-
-						if (isError($studiumSaveResult)) // TODO phrases
-							return error("Studiumdaten erfolgreich storniert, Fehler beim Speichern in der Synctabelle in FHC");
-					}
-				}
+				if (isError($studiumSaveResult)) // TODO phrases
+					return error("Studiumdaten erfolgreich storniert, Fehler beim Speichern in der Synctabelle in FHC");
 
 				$infos[] = "Studiumdaten erfolgreich storniert"; // TODO phrases
 
