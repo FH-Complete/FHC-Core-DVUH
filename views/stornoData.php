@@ -5,11 +5,16 @@ $STUDIENGANG_BEZEICHNUNG = $LANGUAGE === 'German' ? 'bezeichnung' : 'english';
 
 $filterWidgetArray = array(
 	'query' => '
-		SELECT prestudent_id, person_id, vorname, nachname, matrikelnummer, studiengangskennzahl, studiengang, studiensemester FROM
+		SELECT prestudent_id, person_id, vorname, nachname, matrikelnummer, studiengangskennzahl, studiengang, studiensemester, last_status, bismelden FROM
 		(
 			SELECT DISTINCT ON (prestudent_id) ps.prestudent_id, pers.person_id, vorname, nachname, matr_nr as matrikelnummer,
 			                                   storniert, studiengang_kz as studiengangskennzahl, stg.'.$STUDIENGANG_BEZEICHNUNG.' as studiengang,
-											   std_daten.studiensemester_kurzbz as studiensemester, sem.start as sem_start
+											   std_daten.studiensemester_kurzbz as studiensemester, sem.start as sem_start, ps.bismelden,
+											   (SELECT status_kurzbz
+												FROM public.tbl_prestudentstatus
+												WHERE prestudent_id = ps.prestudent_id
+												ORDER BY datum DESC, insertamum DESC
+												LIMIT 1) AS last_status
 			FROM public.tbl_prestudent ps
 			JOIN public.tbl_studiengang stg USING (studiengang_kz)
 			JOIN public.tbl_person pers USING (person_id)
@@ -40,7 +45,9 @@ $filterWidgetArray = array(
 		ucfirst($this->p->t('person', 'matrikelnummer')),
 		ucfirst($this->p->t('lehre', 'studiengangskennzahlLehre')),
 		ucfirst($this->p->t('lehre', 'studiengang')),
-		ucfirst($this->p->t('lehre', 'studiensemester'))
+		ucfirst($this->p->t('lehre', 'studiensemester')),
+		ucfirst($this->p->t('global', 'letzterStatus')),
+		'Bismelden'
 	),
 	'formatRow' => function($datasetRaw) {
 
@@ -55,6 +62,15 @@ $filterWidgetArray = array(
 		if ($datasetRaw->{'matrikelnummer'} == null)
 		{
 			$datasetRaw->{'matrikelnummer'} = '-';
+		}
+
+		if ($datasetRaw->{'bismelden'} == 'true')
+		{
+			$datasetRaw->{'bismelden'} = ucfirst($this->p->t('ui', 'ja'));
+		}
+		else
+		{
+			$datasetRaw->{'bismelden'} = ucfirst($this->p->t('ui', 'nein'));
 		}
 
 		return $datasetRaw;
