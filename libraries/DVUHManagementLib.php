@@ -1324,8 +1324,8 @@ class DVUHManagementLib
 
 				$infomsg = "EKZanfrage ausgeführt";
 
-				if (isset($parsedObj->returntext[0]))
-					$infomsg .= ", " . $parsedObj->returntext[0];
+				if (isset($parsedObj->returntext[0]->text))
+					$infomsg .= ", " . $parsedObj->returntext[0]->text;
 
 				if (isset($parsedObj->ekz[0]))
 					$infomsg .= ", EKZ: " . $parsedObj->ekz[0];
