@@ -337,8 +337,7 @@ class JQMSchedulerLib
 						AND kto.betrag > 0
 						AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
 										WHERE buchungsnr = kto.buchungsnr
-										AND betrag > 0
-										LIMIT 1)
+										AND betrag > 0)
 						AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
 						AND kto.studiensemester_kurzbz IN ?";
 

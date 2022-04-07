@@ -628,8 +628,7 @@ class DVUHManagementLib
 								      			AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
 								  AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
 												WHERE buchungsnr = tbl_konto.buchungsnr
-												AND betrag > 0
-												LIMIT 1)
+												AND betrag > 0)
 								  AND buchungstyp_kurzbz IN ?
 								  ORDER BY buchungsdatum, buchungsnr",
 			array(
@@ -1325,8 +1324,8 @@ class DVUHManagementLib
 
 				$infomsg = "EKZanfrage ausgeführt";
 
-				if (isset($parsedObj->returntext[0]))
-					$infomsg .= ", " . $parsedObj->returntext[0];
+				if (isset($parsedObj->returntext[0]->text))
+					$infomsg .= ", " . $parsedObj->returntext[0]->text;
 
 				if (isset($parsedObj->ekz[0]))
 					$infomsg .= ", EKZ: " . $parsedObj->ekz[0];
