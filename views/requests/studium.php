@@ -129,10 +129,10 @@
 					if (isset($mobilitaet['bis']) && $mobilitaet['bis'] != '')
 						echo "\t\t\t\t<bis>" . $mobilitaet['bis'] . "</bis>\n";
 
-					if (isset($mobilitaet['ectsangerechnet']) && $mobilitaet['ectsangerechnet'] != '')
+					if (isset($mobilitaet['ectsangerechnet']) && is_numeric($mobilitaet['ectsangerechnet']))
 						echo "\t\t\t\t<ectsangerechnet>" . $mobilitaet['ectsangerechnet'] . "</ectsangerechnet>\n";
 
-					if (isset($mobilitaet['ectserworben']) && $mobilitaet['ectserworben'] != '')
+					if (isset($mobilitaet['ectserworben']) && is_numeric($mobilitaet['ectserworben']))
 						echo "\t\t\t\t<ectserworben>" . $mobilitaet['ectserworben'] . "</ectserworben>\n";
 
 					echo "\t\t\t\t<programm>" . $mobilitaet['programm'] . "</programm>\n";
