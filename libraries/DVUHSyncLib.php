@@ -1260,30 +1260,12 @@ class DVUHSyncLib
 	 */
 	private function _getStatuscode($status_kurzbz)
 	{
-		if ($status_kurzbz == "Student" || $status_kurzbz == "Outgoing"
-			|| $status_kurzbz == "Incoming" || $status_kurzbz == "Praktikant"
-			|| $status_kurzbz == "Diplomand")
-		{
-			$studstatuscode = 1;
-		}
-		elseif ($status_kurzbz == "Unterbrecher" )
-		{
-			$studstatuscode = 2;
-		}
-		elseif ($status_kurzbz == "Absolvent" )
-		{
-			$studstatuscode = 3;
-		}
-		elseif ($status_kurzbz == "Abbrecher" )
-		{
-			$studstatuscode = 4;
-		}
-		else
-		{
-			return error("Kein Statuscode gefunden!");
-		}
+		$studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 
-		return success($studstatuscode);
+		if (!isset($studstatuscode_array[$status_kurzbz]))
+			return error("Kein Statuscode gefunden!");
+
+		return success($studstatuscode_array[$status_kurzbz]);
 	}
 
 	/**

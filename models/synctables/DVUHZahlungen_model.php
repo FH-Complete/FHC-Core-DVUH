@@ -20,7 +20,7 @@ class DVUHZahlungen_model extends DB_Model
 	public function getLastCharge($buchungsnr)
 	{
 		return $this->execQuery(
-								"SELECT betrag
+								"SELECT betrag, buchungsnr
 								FROM sync.tbl_dvuh_zahlungen
 								WHERE buchungsnr = ?
 								AND betrag < 0

@@ -23,6 +23,9 @@ class FHCManagementLib
 
 		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+
+		// load configs
+		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -110,8 +113,7 @@ class FHCManagementLib
 								  AND betrag < 0
 								  AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
 								  					WHERE kto.person_id = tbl_konto.person_id
-								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
-								      				LIMIT 1)
+								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr)
 								  AND buchungstyp_kurzbz IN ?
 								  ORDER BY buchungsdatum, buchungsnr
 								  LIMIT 1",
@@ -160,42 +162,54 @@ class FHCManagementLib
 	 */
 	public function resetInactiveMatrikelnummer($person_id, $studiensemester_kurzbz)
 	{
+		$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
+		$matrikelnr_status_kurzbz = $status_kurzbz[JQMSchedulerLib::JOB_TYPE_REQUEST_MATRIKELNUMMER];
+		$active_status_kurzbz_array = $this->_ci->config->item('fhc_dvuh_active_student_status_kurzbz');
+
 		// check if person has old non-activated Matrikelnummer which needs to be overwritten by a new one
 		$personForResetQry = "SELECT 1 FROM
-							public.tbl_person pers
-							JOIN public.tbl_prestudent ps USING (person_id)
-							JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
-							JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
-							WHERE pers.matr_nr IS NOT NULL AND pers.matr_aktiv = FALSE
-							AND person_id = ?
-							AND pss.studiensemester_kurzbz = ?
-							AND pss.status_kurzbz IN ('Aufgenommener', 'Student', 'Incoming', 'Diplomand')
-							AND SUBSTRING(matr_nr, 2, 2) < ( /* old Matrikelnummer, older than current first prestudentstatus */
+								public.tbl_person pers
+								JOIN public.tbl_prestudent ps USING (person_id)
+								JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+								JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
+								WHERE pers.matr_nr IS NOT NULL AND pers.matr_aktiv = FALSE
+								AND person_id = ?
+								AND pss.studiensemester_kurzbz = ?
+								AND pss.status_kurzbz IN ?
+								AND SUBSTRING(matr_nr, 2, 2) < ( /* old Matrikelnummer, older than current first prestudentstatus */
 									SELECT SUBSTRING(studiensemester_kurzbz, 5, 2) 
 									FROM public.tbl_prestudent
 									JOIN public.tbl_prestudentstatus USING (prestudent_id)
 									WHERE prestudent_id = ps.prestudent_id
 									ORDER BY datum
 									LIMIT 1
-							)
-							/* check for two digits of year works only for 100 years */
-							AND SUBSTRING(studiensemester_kurzbz, 3, 4)::integer BETWEEN 2000 AND 2099
-							AND NOT EXISTS ( /* no active prestudents in past */
-								SELECT 1 FROM public.tbl_prestudent
-								JOIN public.tbl_prestudentstatus ps_past USING (prestudent_id)
-								JOIN public.tbl_studiensemester sem_past USING (studiensemester_kurzbz)
-								WHERE status_kurzbz IN ('Student', 'Incoming', 'Diplomand')
-								AND tbl_prestudent.person_id = pers.person_id
-								AND prestudent_id <> ps.prestudent_id
-								AND (datum::date < pss.datum::date OR sem_past.start::date < sem.start::date)
-							)";
+								)
+								/* check for two digits of year works only for 100 years */
+								AND SUBSTRING(studiensemester_kurzbz, 3, 4)::integer BETWEEN 2000 AND 2099
+								AND NOT EXISTS ( /* no active prestudents in past */
+									SELECT 1 FROM public.tbl_prestudent
+									JOIN public.tbl_prestudentstatus ps_past USING (prestudent_id)
+									JOIN public.tbl_studiensemester sem_past USING (studiensemester_kurzbz)
+									WHERE status_kurzbz IN ?
+									AND tbl_prestudent.person_id = pers.person_id
+									AND prestudent_id <> ps.prestudent_id
+									AND (ps_past.datum::date < pss.datum::date OR sem_past.start::date < sem.start::date)
+								)";
 
-		$personForResetRes = $this->_dbModel->execReadOnlyQuery($personForResetQry, array($person_id, $studiensemester_kurzbz));
+		$personForResetRes = $this->_dbModel->execReadOnlyQuery(
+			$personForResetQry,
+			array(
+				$person_id,
+				$studiensemester_kurzbz,
+				$matrikelnr_status_kurzbz,
+				$active_status_kurzbz_array
+			)
+		);
 
 		if (isError($personForResetRes))
 			return $personForResetRes;
 
-		// set null if criteria for old Matrikelnr is fulfilled
+		// set null if Matrikelnr is old
 		if (hasData($personForResetRes))
 		{
 			return $this->_ci->PersonModel->update(

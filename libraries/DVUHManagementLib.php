@@ -613,24 +613,28 @@ class DVUHManagementLib
 
 		// get paid Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
-								SELECT matr_nr, buchungsnr, buchungsdatum, betrag, buchungsnr_verweis, 
-								       zahlungsreferenz, buchungstyp_kurzbz, studiensemester_kurzbz, matr_nr,
-								       sum(betrag) OVER (PARTITION BY buchungsnr_verweis) AS summe_buchungen
-								FROM public.tbl_konto
-								JOIN public.tbl_person USING (person_id)
-								WHERE person_id = ?
-								  AND studiensemester_kurzbz = ?
-								  AND buchungsnr_verweis IS NOT NULL
-								  AND betrag > 0
-								  AND EXISTS (SELECT 1 FROM public.tbl_prestudent
-								      			JOIN public.tbl_prestudentstatus USING (prestudent_id)
-								      			WHERE tbl_prestudent.person_id = tbl_konto.person_id
-								      			AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
-								  AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
-												WHERE buchungsnr = tbl_konto.buchungsnr
-												AND betrag > 0)
-								  AND buchungstyp_kurzbz IN ?
-								  ORDER BY buchungsdatum, buchungsnr",
+								SELECT *, sum(betrag) OVER (PARTITION BY buchungsnr_verweis) AS summe_zahlungen FROM
+								(
+								    /* Use either amount of payment, or amount of charge if payment higher than charge */
+									SELECT matr_nr, zlg.buchungsnr, zlg.buchungsdatum, zlg.buchungsnr_verweis, zlg.zahlungsreferenz, zlg.buchungstyp_kurzbz,
+										   CASE WHEN zlg.betrag > abs(vorschr.betrag) THEN abs(vorschr.betrag) ELSE zlg.betrag END AS betrag,
+										   zlg.studiensemester_kurzbz, matr_nr
+									FROM public.tbl_konto zlg
+									JOIN public.tbl_person USING (person_id)
+									JOIN public.tbl_konto vorschr ON zlg.buchungsnr_verweis = vorschr.buchungsnr /* must have a charge */
+									WHERE zlg.person_id = ?
+									AND zlg.studiensemester_kurzbz = ?
+									AND zlg.betrag > 0
+									AND EXISTS (SELECT 1 FROM public.tbl_prestudent
+													JOIN public.tbl_prestudentstatus USING (prestudent_id)
+													WHERE tbl_prestudent.person_id = zlg.person_id
+													AND tbl_prestudentstatus.studiensemester_kurzbz = zlg.studiensemester_kurzbz)
+									AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
+													WHERE buchungsnr = zlg.buchungsnr
+													AND betrag > 0)
+									AND zlg.buchungstyp_kurzbz IN ?
+								) zahlungen
+								ORDER BY buchungsdatum, buchungsnr",
 			array(
 				$person_id,
 				$studiensemester_kurzbz,
@@ -670,18 +674,20 @@ class DVUHManagementLib
 				$buchungsnr = $buchung->buchungsnr;
 
 				// check: all Buchungen to be paid must have been sent to DVUH as Vorschreibung in Stammdatenmeldung
-				$charge = $this->_ci->DVUHZahlungenModel->getLastCharge(
+				$chargeRes = $this->_ci->DVUHZahlungenModel->getLastCharge(
 					$buchung->buchungsnr_verweis
 				);
 
-				if (hasData($charge))
+				if (hasData($chargeRes))
 				{
-					if (abs(getData($charge)[0]->betrag) != $buchung->summe_buchungen)
+					$charge = getData($chargeRes)[0];
+
+					if (abs($charge->betrag) != $buchung->summe_zahlungen)
 					{
 						return createError(
-							"Buchung: $buchungsnr: Zahlungsbetrag abweichend von Vorschreibungsbetrag",
+							"Buchung: ".$charge->buchungsnr.": Zahlungsbetrag abweichend von Vorschreibungsbetrag",
 							'zlgUngleichVorschreibung',
-							array($buchungsnr), // text params
+							array($charge->buchungsnr), // text params
 							array('buchungsnr_verweis' => $buchung->buchungsnr_verweis) // resolution params
 						);
 					}
