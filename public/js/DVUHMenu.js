@@ -178,6 +178,14 @@ var DVUHMenu = {
 				break;
 			case 'postErnpmeldung':
 
+				var person_id = null
+				// prefill input values if coming from external site
+				if (typeof params !== 'undefined')
+				{
+					if (params.hasOwnProperty('person_id'))
+						person_id = params.person_id;
+				}
+
 				// get dropdown values for nations
 				var nationsDropdownValues = {};
 				for (var idx in DVUHMenu.fhcData.nations)
@@ -190,7 +198,7 @@ var DVUHMenu = {
 				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
 					'wenn für die Person keine bPK ermittelt werden kann.<br />Beim Punkt "bPK ermitteln" sollte dementsprechend keine bPK zurückgegeben werden. ' +
 					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein bPK vorhanden.</b><br /><br />';
-				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID', null, null, person_id)
 					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
 					+ DVUHMenu._getDropdownHtml('ausstellland', 'Ausstellland', nationsDropdownValues, "D", '1-3 Stellen Codex (zb D für Deutschland)')

@@ -209,8 +209,8 @@ $this->load->view(
 										</table>
 										<?php if (isEmptyString($stammdaten->bpk)): ?>
 											<div class="text-right">
-												<a href="https://resources.portal.at/appcall_registration?portal=PAT&appid=STB" target="_blank">
-													<i class="fa fa-external-link"></i>&nbsp;Zum ERNP-Meldungsportal
+												<a href="<?php echo site_url('extensions/FHC-Core-DVUH/DVUH#page=postErnpmeldung&person_id='.$stammdaten->person_id); ?>" target="_blank">
+													<i class="fa fa-external-link"></i>&nbsp;Zur ERNP-Meldung
 												</a>
 												<br />
 												<br />
