@@ -46,7 +46,7 @@ class FHCManagementLib
 		);
 
 		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, stg.studiengang_kz, stg.erhalter_kz,
-                                   pers.matr_nr, stud.matrikelnr AS personenkennzeichen
+						pers.matr_nr, stud.matrikelnr AS personenkennzeichen
 					FROM public.tbl_prestudent ps
 					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
 					JOIN public.tbl_person pers USING(person_id)
@@ -77,18 +77,18 @@ class FHCManagementLib
 	 */
 	public function getUids($person_id, $studiensemester_kurzbz)
 	{
-		return $this->_dbModel->execReadOnlyQuery("
-								SELECT student_uid AS uid FROM (
-									SELECT student_uid, max(ben.insertamum) AS insertamum
-								    FROM public.tbl_benutzer ben
-								    JOIN public.tbl_student stud ON ben.uid = stud.student_uid
-									JOIN public.tbl_prestudent USING (prestudent_id)
-									JOIN public.tbl_prestudentstatus USING (prestudent_id)
-									WHERE ben.person_id = ?
-									AND studiensemester_kurzbz = ?
-									GROUP BY student_uid
-								) uids
-								ORDER BY insertamum DESC",
+		return $this->_dbModel->execReadOnlyQuery(
+			"SELECT student_uid AS uid FROM (
+				SELECT student_uid, max(ben.insertamum) AS insertamum
+				FROM public.tbl_benutzer ben
+				JOIN public.tbl_student stud ON ben.uid = stud.student_uid
+				JOIN public.tbl_prestudent USING (prestudent_id)
+				JOIN public.tbl_prestudentstatus USING (prestudent_id)
+				WHERE ben.person_id = ?
+				AND studiensemester_kurzbz = ?
+				GROUP BY student_uid
+			) uids
+			ORDER BY insertamum DESC",
 			array(
 				$person_id, $studiensemester_kurzbz
 			)
@@ -104,19 +104,19 @@ class FHCManagementLib
 	 */
 	public function getUnpaidBuchungen($person_id, $studiensemester_kurzbz, $buchungstypen)
 	{
-		return $this->_dbModel->execReadOnlyQuery("
-								SELECT buchungsnr
-								FROM public.tbl_konto
-								WHERE person_id = ?
-								  AND studiensemester_kurzbz = ?
-								  AND buchungsnr_verweis IS NULL
-								  AND betrag < 0
-								  AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
-								  					WHERE kto.person_id = tbl_konto.person_id
-								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr)
-								  AND buchungstyp_kurzbz IN ?
-								  ORDER BY buchungsdatum, buchungsnr
-								  LIMIT 1",
+		return $this->_dbModel->execReadOnlyQuery(
+			"SELECT buchungsnr
+				FROM public.tbl_konto
+				WHERE person_id = ?
+				AND studiensemester_kurzbz = ?
+				AND buchungsnr_verweis IS NULL
+				AND betrag < 0
+				AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
+				WHERE kto.person_id = tbl_konto.person_id
+				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr)
+				AND buchungstyp_kurzbz IN ?
+				ORDER BY buchungsdatum, buchungsnr
+				LIMIT 1",
 			array(
 				$person_id, $studiensemester_kurzbz, $buchungstypen
 			)
@@ -268,7 +268,8 @@ class FHCManagementLib
 
 		if (hasData($buchungNullify))
 		{
-			$gegenbuchungNullify = $this->_ci->KontoModel->insert(array(
+			$gegenbuchungNullify = $this->_ci->KontoModel->insert(
+				array(
 					'person_id' => $buchung->person_id,
 					'studiengang_kz' => $buchung->studiengang_kz,
 					'studiensemester_kurzbz' => $buchung->studiensemester_kurzbz,

@@ -269,32 +269,33 @@ class DVUHSyncLib
 			$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
 
 			// Meldung pro Student, Studium und Semester
-			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz, stg.studiengang_kz, stg.typ AS studiengang_typ,
-				       stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
-				       pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester,
-				       tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
-				       tbl_student.matrikelnr AS personenkennzeichen, ps.zgv_code, ps.zgvdatum, ps.zgvnation, ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation,
-				       ps.gsstudientyp_kurzbz,
-				       (SELECT datum FROM public.tbl_prestudentstatus
+			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz,
+						stg.studiengang_kz, stg.typ AS studiengang_typ,
+						stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
+						pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester,
+						tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
+						tbl_student.matrikelnr AS personenkennzeichen, ps.zgv_code, ps.zgvdatum, ps.zgvnation,
+						ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation, ps.gsstudientyp_kurzbz,
+						(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
 							ORDER BY datum ASC LIMIT 1) AS beginndatum,	
-				       (SELECT datum FROM public.tbl_prestudentstatus
+						(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
     						AND tbl_prestudentstatus.studiensemester_kurzbz = pss.studiensemester_kurzbz
 							AND status_kurzbz IN ('Absolvent', 'Abbrecher')
-				       		AND datum <= NOW()
+							AND datum <= NOW()
 							ORDER BY datum DESC LIMIT 1) AS beendigungsdatum
-				  FROM public.tbl_prestudent ps
-				  JOIN public.tbl_student using(prestudent_id)
-				  JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
-				  LEFT JOIN lehre.tbl_studienplan USING(studienplan_id)
-				  LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-				  LEFT JOIN bis.tbl_lgartcode ON (stg.lgartcode = tbl_lgartcode.lgartcode)
-				 WHERE ps.bismelden = TRUE
-				   AND stg.melderelevant = TRUE
-				   AND ps.person_id = ? 
-				   AND pss.studiensemester_kurzbz = ?";
+					FROM public.tbl_prestudent ps
+					JOIN public.tbl_student using(prestudent_id)
+					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
+					LEFT JOIN lehre.tbl_studienplan USING(studienplan_id)
+					LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
+					LEFT JOIN bis.tbl_lgartcode ON (stg.lgartcode = tbl_lgartcode.lgartcode)
+					WHERE ps.bismelden = TRUE
+					AND stg.melderelevant = TRUE
+					AND ps.person_id = ? 
+					AND pss.studiensemester_kurzbz = ?";
 
 			$params = array(
 				$person_id,
@@ -377,9 +378,8 @@ class DVUHSyncLib
 					$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
 
 					$kodex_studientyp_array = array();
-					$gsstudientypResult = $this->_dbModel->execReadOnlyQuery("
-							SELECT * FROM bis.tbl_gsstudientyp
-						"
+					$gsstudientypResult = $this->_dbModel->execReadOnlyQuery(
+						"SELECT * FROM bis.tbl_gsstudientyp"
 					);
 
 					if (isError($gsstudientypResult))
@@ -418,7 +418,6 @@ class DVUHSyncLib
 					}
 
 					// zgv master
-					$zugangsberechtigungMa = null;
 					$zugangsberechtigungMAResult = $this->_getZgvMaster($prestudentstatus, $gebdatum, $isIncoming, $isAusserordentlich);
 
 					if (isset($zugangsberechtigungMAResult) && isError($zugangsberechtigungMAResult))
@@ -645,7 +644,11 @@ class DVUHSyncLib
 		$prestudentEcts = array();
 
 		//get all valid prestudents of person
-		$prestudentsRes = $this->_ci->fhcmanagementlib->getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
+		$prestudentsRes = $this->_ci->fhcmanagementlib->getPrestudentsOfPerson(
+			$person_id,
+			$studiensemester,
+			$status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]
+		);
 
 		if (isError($prestudentsRes))
 			return $prestudentsRes;
@@ -712,7 +715,7 @@ class DVUHSyncLib
 		if (!preg_match("/^\d{4}(S|W)$/", $semester))
 			return $semester;
 
-		return mb_substr($semester, -1).'S'.mb_substr($semester, 0,4);
+		return mb_substr($semester, -1).'S'.mb_substr($semester, 0, 4);
 	}
 
 	/**
@@ -725,7 +728,7 @@ class DVUHSyncLib
 		if (!preg_match("/^(S|W)S\d{4}$/", $semester))
 			return $semester;
 
-		return mb_substr($semester, 2, strlen($semester) - 2).mb_substr($semester, 0,1);
+		return mb_substr($semester, 2, strlen($semester) - 2).mb_substr($semester, 0, 1);
 	}
 
 	/**
@@ -856,7 +859,7 @@ class DVUHSyncLib
 	 */
 	public function checkIfAusserordentlich($personenkennzeichen)
 	{
-		return mb_substr($personenkennzeichen,3,1) == '9';
+		return mb_substr($personenkennzeichen, 3, 1) == '9';
 	}
 
 	/**
@@ -885,12 +888,13 @@ class DVUHSyncLib
 			: $prestudentstatus->ausbildungssemester;
 
 		// ausbildungssemester for Diplomanden
-		$diplomandResult = $this->_dbModel->execReadOnlyQuery("SELECT
-								count(*) AS dipl
-							FROM public.tbl_prestudentstatus
-							WHERE prestudent_id=?
-							  AND status_kurzbz='Diplomand'
-							  AND (tbl_prestudentstatus.datum<=now())",
+		$diplomandResult = $this->_dbModel->execReadOnlyQuery(
+			"SELECT
+				count(*) AS dipl
+				FROM public.tbl_prestudentstatus
+				WHERE prestudent_id=?
+				AND status_kurzbz='Diplomand'
+				AND (tbl_prestudentstatus.datum<=now())",
 			array(
 				$prestudentstatus->prestudent_id
 			)
@@ -1009,10 +1013,10 @@ class DVUHSyncLib
 
 		// get Mobilitäten of the semester, no bis dates in future
 		$ioResult = $this->_dbModel->execReadOnlyQuery(
-					"SELECT *
-					FROM bis.tbl_bisio WHERE student_uid=?
-					AND (bis >= ? OR bis IS NULL) AND von <= ?;",
-					array($prestudentstatus->student_uid, $semester->start, $semester->ende)
+			"SELECT *
+			FROM bis.tbl_bisio WHERE student_uid=?
+			AND (bis >= ? OR bis IS NULL) AND von <= ?;",
+			array($prestudentstatus->student_uid, $semester->start, $semester->ende)
 		);
 
 		$mobilitaeten = array();

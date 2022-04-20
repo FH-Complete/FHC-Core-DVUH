@@ -20,12 +20,12 @@ class DVUHZahlungen_model extends DB_Model
 	public function getLastCharge($buchungsnr)
 	{
 		return $this->execQuery(
-								"SELECT betrag, buchungsnr
-								FROM sync.tbl_dvuh_zahlungen
-								WHERE buchungsnr = ?
-								AND betrag < 0
-								ORDER BY buchungsdatum DESC, insertamum DESC NULLS LAST, zahlung_id DESC
-								LIMIT 1",
+			"SELECT betrag, buchungsnr
+			FROM sync.tbl_dvuh_zahlungen
+			WHERE buchungsnr = ?
+			AND betrag < 0
+			ORDER BY buchungsdatum DESC, insertamum DESC NULLS LAST, zahlung_id DESC
+			LIMIT 1",
 			array(
 				$buchungsnr
 			)

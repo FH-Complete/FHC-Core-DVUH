@@ -64,16 +64,16 @@ $this->load->view(
 										<table class="table">
 											<?php if (!empty($stammdaten->titelpre)): ?>
 												<tr>
-													<td><strong><?php echo  ucfirst($this->p->t('person','titelpre')) ?></strong></td>
+													<td><strong><?php echo  ucfirst($this->p->t('person', 'titelpre')) ?></strong></td>
 													<td><?php echo $stammdaten->titelpre ?></td>
 												</tr>
 											<?php endif; ?>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','vorname')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'vorname')) ?></strong></td>
 												<td><?php echo $stammdaten->vorname ?></td>
 											</tr>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','nachname')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'nachname')) ?></strong></td>
 												<td>
 													<?php echo $stammdaten->nachname ?></td>
 											</tr>
@@ -84,50 +84,51 @@ $this->load->view(
 											</tr>
 											<?php if (!empty($stammdaten->titelpost)): ?>
 												<tr>
-													<td><strong><?php echo  ucfirst($this->p->t('person','titelpost')) ?></strong></td>
+													<td><strong><?php echo  ucfirst($this->p->t('person', 'titelpost')) ?></strong></td>
 													<td><?php echo $stammdaten->titelpost ?></td>
 												</tr>
 											<?php endif; ?>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','geburtsdatum')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'geburtsdatum')) ?></strong></td>
 												<td>
 													<?php echo date_format(date_create($stammdaten->gebdatum), 'd.m.Y') ?></td>
 											</tr>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','matrikelnummer')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'matrikelnummer')) ?></strong></td>
 												<td>
 													<?php echo $stammdaten->matr_nr ?></td>
 											</tr>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','svnr')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'svnr')) ?></strong></td>
 												<td>
 													<?php echo $stammdaten->svnr ?></td>
 											</tr>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','ersatzkennzeichen')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'ersatzkennzeichen')) ?></strong></td>
 												<td>
 													<?php echo $stammdaten->ersatzkennzeichen ?></td>
 											</tr>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','staatsbuergerschaft')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'staatsbuergerschaft')) ?></strong></td>
 												<td>
 													<?php echo $stammdaten->staatsbuergerschaft ?></td>
 											</tr>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','geburtsnation')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'geburtsnation')) ?></strong></td>
 												<td>
 													<?php echo $stammdaten->geburtsnation ?></td>
 											</tr>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','geschlecht')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'geschlecht')) ?></strong></td>
 												<td>
 													<?php echo $stammdaten->geschlecht ?></td>
 											</tr>
 											<tr>
-												<td><strong><?php echo  ucfirst($this->p->t('person','bpk')) ?></strong></td>
+												<td><strong><?php echo  ucfirst($this->p->t('person', 'bpk')) ?></strong></td>
 												<td>
 													<span id="bpkField">
-														<span id="bpkFieldValue"><?php echo $stammdaten->bpk ?></span>&nbsp;<i class="fa fa-edit" id="editBpk" title="bPK bearbeiten"></i>
+														<span id="bpkFieldValue"><?php echo $stammdaten->bpk ?></span>&nbsp;
+														<i class="fa fa-edit" id="editBpk" title="bPK bearbeiten"></i>
 													</span>
 												</td>
 											</tr>
@@ -197,7 +198,15 @@ $this->load->view(
 														}
 												?>
 												<tr>
-													<td><a href="outputAkteContent/<?php echo $dokument->akte_id ?>"><?php echo isEmptyString($dokument->titel) ? $dokument->akte_bezeichnung : $dokument->titel ?></a></td>
+													<td>
+														<a href="outputAkteContent/<?php echo $dokument->akte_id ?>">
+															<?php
+															echo isEmptyString($dokument->titel)
+																? $dokument->akte_bezeichnung
+																: $dokument->titel
+															?>
+														</a>
+													</td>
 													<td><?php echo $dokument->dokument_bezeichnung_mehrsprachig[0] ?></td>
 													<td><?php echo date_format(date_create($dokument->erstelltam), 'd.m.Y') ?></td>
 													<td><?php echo $dokument->nation ?></td>
@@ -209,7 +218,11 @@ $this->load->view(
 										</table>
 										<?php if (isEmptyString($stammdaten->bpk)): ?>
 											<div class="text-right">
-												<a href="<?php echo site_url('extensions/FHC-Core-DVUH/DVUH#page=postErnpmeldung&person_id='.$stammdaten->person_id); ?>" target="_blank">
+												<a href="<?php
+													echo site_url(
+														'extensions/FHC-Core-DVUH/DVUH#page=postErnpmeldung&person_id='.$stammdaten->person_id
+													);
+													?>" target="_blank">
 													<i class="fa fa-external-link"></i>&nbsp;Zur ERNP-Meldung
 												</a>
 												<br />
@@ -270,7 +283,9 @@ $this->load->view(
 										<button class="btn btn-default" id="startBpkCheck">bPK-Prüfung starten</button>
 									</div>
 									<div class="col-lg-5 text-right">
-										<a href="<?php echo site_url('extensions/FHC-Core-DVUH/DVUH#page=getBpk&person_id='.$stammdaten->person_id); ?>" target="_blank">
+										<a href="<?php
+											echo site_url('extensions/FHC-Core-DVUH/DVUH#page=getBpk&person_id='.$stammdaten->person_id);
+											?>" target="_blank">
 											<i class="fa fa-external-link"></i>&nbsp;Zur manuellen bPK-Prüfung
 										</a>
 									</div>
