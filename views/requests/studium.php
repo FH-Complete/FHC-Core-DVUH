@@ -43,6 +43,7 @@
 				echo "\t\t\t\t<voraussetzung>".$lehrgang['zugangsberechtigung']['voraussetzung']."</voraussetzung>\n";
 				echo "\t\t\t</zugangsberechtigung>\n";
 			}
+
 			if (isset($lehrgang['zugangsberechtigungMA']))
 			{
 				echo "\t\t\t<zugangsberechtigungMA>\n";
@@ -120,6 +121,10 @@
 					echo "\t\t\t\<mobilitaet>";
 					if (isset($mobilitaet['aufenthaltfoerderungcode']))
 					{
+						// if only one aufenthaltfoerderungcode without array, put it in array
+						if (!is_array($mobilitaet['aufenthaltfoerderungcode']))
+							$mobilitaet['aufenthaltfoerderungcode'] = array($mobilitaet['aufenthaltfoerderungcode']);
+
 						foreach ($mobilitaet['aufenthaltfoerderungcode'] as $foerderungscode)
 						{
 							echo "\t\t\t\t<aufenthaltfoerderungcode>". $foerderungscode . "</aufenthaltfoerderungcode>\n";
