@@ -55,7 +55,7 @@ class Studium_model extends DVUHClientModel
 	/**
 	 * Send Studium data to DVUH. If only person_id is passed, data of all prestudents is included in the request.
 	 * Prestudent_id can be additionally passed to send data for only one prestudent.
-	 * The API will attempt to delete all previously sent studentsif only one is sent.
+	 * The API will attempt to delete all previously sent students if only one is sent.
 	 * @param string $be
 	 * @param int $person_id
 	 * @param string $semester

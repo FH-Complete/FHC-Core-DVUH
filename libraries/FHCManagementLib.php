@@ -45,7 +45,8 @@ class FHCManagementLib
 			$studiensemester
 		);
 
-		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, stg.studiengang_kz, stg.erhalter_kz,
+		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id,
+						stg.studiengang_kz, stg.erhalter_kz,
 						pers.matr_nr, stud.matrikelnr AS personenkennzeichen
 					FROM public.tbl_prestudent ps
 					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)

@@ -429,7 +429,7 @@ class DVUHManagementLib
 
 					$dvuh_buchungstyp = 'oehbeitrag';
 				}
-				elseif ((in_array($buchung->buchungstyp_kurzbz, $buchungstypen['studiengebuehr'])))
+				elseif (in_array($buchung->buchungstyp_kurzbz, $buchungstypen['studiengebuehr']))
 					$dvuh_buchungstyp = 'studiengebuehr';
 
 				if (!isset($vorschreibung[$dvuh_buchungstyp]))
@@ -442,7 +442,7 @@ class DVUHManagementLib
 					if (!isset($vorschreibung['sonderbeitrag']))
 						$vorschreibung['sonderbeitrag'] = 0;
 
-					$vorschreibung['sonderbeitrag'] += (float) $versicherungBeitragAmount;
+					$vorschreibung['sonderbeitrag'] += (float)$versicherungBeitragAmount;
 					$valutadatum = date('Y-m-d', strtotime($buchung->buchungsdatum . ' + ' . $valutadatum_days . ' days'));
 					$vorschreibung['valutadatum'] = $valutadatum;
 					$vorschreibung['valutadatumnachfrist'] = // Nachfrist is also taken into account by DVUH for Bezahlstatus
@@ -1436,9 +1436,8 @@ class DVUHManagementLib
 
 	/**
 	 * Cancels study data in DVUH.
-	 * @param string $matrikelnummer
+	 * @param int $prestudent_id
 	 * @param string $semester
-	 * @param int $studiengang_kz if passed, only study data for this studiengang is cancelled
 	 * @param bool $preview
 	 * @return object error or success
 	 */
@@ -1458,8 +1457,10 @@ class DVUHManagementLib
 		}
 
 		// get matrikel number and studiengang from prestudent
-		$this->_ci->PersonModel->addSelect("matr_nr, studiengang_kz");
+		$this->_ci->PersonModel->addSelect("matr_nr, matrikelnr AS personenkennzeichen, stg.studiengang_kz, stg.melde_studiengang_kz, erhalter_kz");
 		$this->_ci->PersonModel->addJoin("public.tbl_prestudent", "person_id");
+		$this->_ci->PersonModel->addJoin("public.tbl_studiengang stg", "studiengang_kz");
+		$this->_ci->PersonModel->addJoin("public.tbl_student stud", "prestudent_id");
 		$studentRes = $this->_ci->PersonModel->loadWhere(
 			array(
 				'prestudent_id' => $prestudent_id
@@ -1477,7 +1478,19 @@ class DVUHManagementLib
 
 		$studentData = getData($studentRes)[0];
 		$matrikelnummer = $studentData->matr_nr;
-		$studiengang_kz = $studentData->studiengang_kz;
+
+		// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
+		$isAusserordentlich = $this->_ci->dvuhsynclib->checkIfAusserordentlich($studentData->personenkennzeichen);
+
+		// studiengang kz
+		$meldeStudiengangRes = $this->_ci->dvuhsynclib->getMeldeStudiengangKz($studentData->studiengang_kz, $studentData->erhalter_kz, $isAusserordentlich);
+
+		if (isError($meldeStudiengangRes))
+			return $meldeStudiengangRes;
+
+		$fhc_stgkz_in_dvuh_format = null;
+		if (hasData($meldeStudiengangRes))
+			$fhc_stgkz_in_dvuh_format = getData($meldeStudiengangRes);
 
 		// get xml of study data in DVUH
 		$studyData = $this->_ci->StudiumModel->get($this->_be, $matrikelnummer, $semester);
@@ -1486,7 +1499,7 @@ class DVUHManagementLib
 		{
 			$xmlstr = getData($studyData);
 
-			// parse the received data
+			// parse the received data, extract studiengang and lehrgang xml
 			$studienRes = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('studiengang', 'lehrgang'));
 
 			if (isError($studienRes))
@@ -1501,6 +1514,7 @@ class DVUHManagementLib
 
 				$studien = array_merge($studienData->studiengang, $studienData->lehrgang);
 
+				// student data params to send to DVUH
 				$params = array(
 					"uuid" => getUUID(),
 					"studierendenkey" => array(
@@ -1531,10 +1545,10 @@ class DVUHManagementLib
 					if (!isset($studiumIdName))
 						return error("Studium Id fehlt"); //TODO phrases
 
-					$dvuh_stgkz = substr($studium->{$studiumIdName}, -1 * DVUHSyncLib::DVUH_STGKZ_LENGTH);
-					$fhc_stgkz_in_dvuh_format = $this->_ci->dvuhsynclib->convertStudiengangskennzahlToDVUH($studiengang_kz);
+					// compare studiengang kz received from DVUH vs studiengang kz got from FHC
+					$dvuh_stgkz = $studium->{$studiumIdName};
 
-					// only send Studiengang requested by prestudent id
+					// only send Studiengang of requested prestudent id
  					if ($dvuh_stgkz != $fhc_stgkz_in_dvuh_format)
 						continue;
 
@@ -1833,7 +1847,7 @@ class DVUHManagementLib
 	 * @param array $infos array with info strings
 	 * @param array $warnings array with warning strings
 	 * @param bool $getWarningsFromResult if true, parse the result for warnings and include them in response
-	 * @param array $warningCodesToExcludeFromIssues
+	 * @param array $warningCodesToExcludeFromIssues array with fehlercodes which are not considered issues
 	 * @return object response object with result, infos and warnings
 	 */
 	private function _getResponseArr(

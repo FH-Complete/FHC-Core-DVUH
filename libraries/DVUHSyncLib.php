@@ -30,6 +30,7 @@ class DVUHSyncLib
 		$this->_ci->load->model('crm/prestudent_model', 'PrestudentModel');
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 		$this->_ci->load->model('organisation/Studienplan_model', 'StudienplanModel');
+		$this->_ci->load->model('organisation/Studiengang_model', 'StudiengangModel');
 		$this->_ci->load->model('codex/Orgform_model', 'OrgformModel');
 		$this->_ci->load->model('codex/Zweck_model', 'ZweckModel');
 		$this->_ci->load->model('codex/Aufenthaltfoerderung_model', 'AufenthaltfoerderungModel');
@@ -271,15 +272,15 @@ class DVUHSyncLib
 			// Meldung pro Student, Studium und Semester
 			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz,
 						stg.studiengang_kz, stg.typ AS studiengang_typ,
-						stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform, 
-						pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester,
+						stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform,
+						pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester, stg.lgartcode,
 						tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
 						tbl_student.matrikelnr AS personenkennzeichen, ps.zgv_code, ps.zgvdatum, ps.zgvnation,
 						ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation, ps.gsstudientyp_kurzbz,
 						(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
-							ORDER BY datum ASC LIMIT 1) AS beginndatum,	
+							ORDER BY datum ASC LIMIT 1) AS beginndatum,
 						(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
     						AND tbl_prestudentstatus.studiensemester_kurzbz = pss.studiensemester_kurzbz
@@ -359,20 +360,22 @@ class DVUHSyncLib
 
 					// booleans isIncoming, isAusserordentlich, isLehrgang
 					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
+
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
 					$isAusserordentlich = $this->checkIfAusserordentlich($prestudentstatus->personenkennzeichen);
 
-					// lehrgang - either typ l or studiengang_kz < 0, but not ausserordentlich
-					$isLehrgang = !$isAusserordentlich && ($prestudentstatus->studiengang_typ == 'l' || $studiengang_kz < 0);
+					// Lehrgang - if Lehrgangsart is set, but not ausserordentlich
+					$isLehrgang = !$isAusserordentlich && isset($prestudentstatus->lgartcode);
 
 					// studiengang kz
-					$erhalter_kz = $this->convertErhalterkennzahlToDVUH($prestudentstatus->erhalter_kz);
+					$meldeStudiengangRes = $this->getMeldeStudiengangKz($studiengang_kz, $prestudentstatus->erhalter_kz, $isAusserordentlich);
 
-					// if ausserordentlich, students are sent with special studiengang_kz
-					if ($isAusserordentlich)
-						$studiengang_kz = $this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $erhalter_kz);
+					if (isError($meldeStudiengangRes))
+						return $meldeStudiengangRes;
 
-					$dvuh_stgkz = $erhalter_kz . $this->convertStudiengangskennzahlToDVUH($studiengang_kz);
+					$melde_studiengang_kz = null;
+					if (hasData($meldeStudiengangRes))
+						$melde_studiengang_kz = getData($meldeStudiengangRes);
 
 					// studtyp - if extern, certain data should not be sent to DVUH
 					$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
@@ -446,7 +449,7 @@ class DVUHSyncLib
 					if ($isLehrgang)
 					{
 						$lehrgang = array(
-							'lehrgangsnr' => $dvuh_stgkz,
+							'lehrgangsnr' => $melde_studiengang_kz,
 							'perskz' => $perskz
 						);
 
@@ -571,7 +574,7 @@ class DVUHSyncLib
 							'disloziert' => 'N', // J,N,j,n
 							'bmwfwfoerderrelevant' => $bmffoerderrelevant,
 							'perskz' => $perskz,
-							'stgkz' => $dvuh_stgkz, // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
+							'stgkz' => $melde_studiengang_kz // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
 						);
 
 						foreach ($studiengang as $idx => $item)
@@ -661,19 +664,20 @@ class DVUHSyncLib
 			{
 				// convert erhalter kz and studiengangskennzahl to DVUH format
 				$isAusserordentlich = isset($prestudent->personenkennzeichen) && $this->checkIfAusserordentlich($prestudent->personenkennzeichen);
-				$studiengang_kz = $prestudent->studiengang_kz;
-				$dvuh_erhalter_kz = $this->convertErhalterkennzahlToDVUH($prestudent->erhalter_kz);
 
-				// if ausserordentlich, students are sent with special studiengang_kz
-				if ($isAusserordentlich)
-					$studiengang_kz = $this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $dvuh_erhalter_kz);
+				$meldeStudiengangRes = $this->getMeldeStudiengangKz($prestudent->studiengang_kz, $prestudent->erhalter_kz, $isAusserordentlich);
 
-				$dvuh_stgkz = $dvuh_erhalter_kz . $this->convertStudiengangskennzahlToDVUH($studiengang_kz);
+				if (isError($meldeStudiengangRes))
+					return $meldeStudiengangRes;
+
+				$melde_studiengang_kz = null;
+				if (hasData($meldeStudiengangRes))
+					$melde_studiengang_kz = getData($meldeStudiengangRes);
 
 				$prestudentEctsObj = new stdClass();
 				$prestudentEctsObj->ects_erworben = 0.0;
 				$prestudentEctsObj->ects_angerechnet = 0.0;
-				$prestudentEctsObj->dvuh_stgkz = $dvuh_stgkz;
+				$prestudentEctsObj->dvuh_stgkz = $melde_studiengang_kz;
 				$prestudentEctsObj->matr_nr = $prestudent->matr_nr;
 				$prestudentEcts[$prestudent->prestudent_id] = $prestudentEctsObj;
 			}
@@ -703,6 +707,56 @@ class DVUHSyncLib
 		}
 
 		return success($prestudentEcts);
+	}
+
+	/**
+	 * Gets Studiengangskennzahl for reporting to DVUH.
+	 * @param int $studiengang_kz the inofficial identifier
+	 * @param int $erhalter_kz number of Erhalter instiution
+	 * @param bool $isAusserordentlich wether student to report is ausserordentlich
+	 * @return object
+	 */
+	public function getMeldeStudiengangKz($studiengang_kz, $erhalter_kz, $isAusserordentlich = false)
+	{
+		$dvuh_erhalter_kz = $this->convertErhalterkennzahlToDVUH($erhalter_kz);
+
+		// if ausserordentlich, special studiengang kz
+		if ($isAusserordentlich === true)
+			return success($dvuh_erhalter_kz.$this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $dvuh_erhalter_kz));
+
+		// load stg to get melde_studiengang_kz
+		$this->_ci->StudiengangModel->addSelect('melde_studiengang_kz, lgartcode');
+		$studiengangRes = $this->_ci->StudiengangModel->load($studiengang_kz);
+
+		if (hasData($studiengangRes))
+		{
+			$studiengangData = getData($studiengangRes)[0];
+			$melde_studiengang_kz = $studiengangData->melde_studiengang_kz;
+
+			// if lgartcode exists, studiengang is lehrgang - add erhalter_kz
+			if (!is_numeric($studiengangData->lgartcode))
+			{
+				$dvuh_erhalter_kz = $this->convertErhalterkennzahlToDVUH($erhalter_kz);
+				$melde_studiengang_kz = $dvuh_erhalter_kz.$melde_studiengang_kz;
+			}
+
+			// check studiengang kz for validity
+			if (!$this->checkStudiengangkz($melde_studiengang_kz))
+			{
+				return createError( // TODO phrase?
+					"Ungültige Meldestudiengangskennzahl für Studiengang $studiengang_kz,"
+					." gültiges Format: (3 Stellen für Erhalter wenn Lehrgang) [4 Stellen Studiengang]",
+					'ungueltigeMeldeStudiengangskennzahl',
+					array($studiengang_kz),
+					array('studiengang_kz' => $studiengang_kz)
+				);
+			}
+
+			// return covnerted melde studiengang kz
+			return success($melde_studiengang_kz);
+		}
+		else
+			return error("Keinen Studiengang gefunden"); // TODO phrases
 	}
 
 	/**
@@ -755,17 +809,10 @@ class DVUHSyncLib
 	 */
 	public function convertErhalterkennzahlToDVUH($erhalter_kz)
 	{
-		return str_pad($erhalter_kz, self::DVUH_ERHALTER_LENGTH, '0', STR_PAD_LEFT);
-	}
+		if (!is_numeric($erhalter_kz))
+			return $erhalter_kz;
 
-	/**
-	 * Converts Studiengangskennzahl to DVUH format.
-	 * @param string $studiengang_kz
-	 * @return string
-	 */
-	public function convertStudiengangskennzahlToDVUH($studiengang_kz)
-	{
-		return str_pad(str_replace('-', '', $studiengang_kz), self::DVUH_STGKZ_LENGTH, '0', STR_PAD_LEFT);
+		return str_pad($erhalter_kz, self::DVUH_ERHALTER_LENGTH, '0', STR_PAD_LEFT);
 	}
 
 	/**
@@ -777,10 +824,11 @@ class DVUHSyncLib
 	public function convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $erhalter_kz)
 	{
 		$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
-		if (isset($ausserordentlich_prefix) && is_numeric($ausserordentlich_prefix))
-			$studiengang_kz = $ausserordentlich_prefix.$erhalter_kz;
 
-		return $studiengang_kz;
+		if (!is_numeric($ausserordentlich_prefix))
+			return $studiengang_kz;
+
+		return $ausserordentlich_prefix.$erhalter_kz;
 	}
 
 	/**
@@ -860,6 +908,24 @@ class DVUHSyncLib
 	public function checkIfAusserordentlich($personenkennzeichen)
 	{
 		return mb_substr($personenkennzeichen, 3, 1) == '9';
+	}
+
+	/**
+	 * Checks if studiengang kz is valid to report.
+	 * @param int $melde_studiengang_kz
+	 * @return bool true if valid, false otherwise
+	 */
+	public function checkStudiengangkz($melde_studiengang_kz)
+	{
+		$stgkzValid = is_numeric($melde_studiengang_kz);
+
+		// length must be erhalter kz length + studiengang kz length
+		if (strlen((string)$melde_studiengang_kz) !== self::DVUH_ERHALTER_LENGTH + self::DVUH_STGKZ_LENGTH)
+		{
+			$stgkzValid = false;
+		}
+
+		return $stgkzValid;
 	}
 
 	/**
