@@ -49,7 +49,7 @@ $this->load->view('templates/FHC-Header', array(
 			<br />
 			<div id="menuContainer">
 				<div class="row first-row">
-					<div class="col-lg-6">
+					<div class="col-lg-6 panelcolumn">
 						<div class="panel panel-default">
 							<div class="panel-heading">Matrikelnummermanagement</div>
 							<div class="panel-body">
@@ -73,7 +73,7 @@ $this->load->view('templates/FHC-Header', array(
 							</div>
 						</div>
 					</div>
-					<div class="col-lg-6">
+					<div class="col-lg-6 panelcolumn">
 						<div class="panel panel-default">
 							<div class="panel-heading">Stammdatenmanagement</div>
 							<div class="panel-body">
@@ -87,7 +87,7 @@ $this->load->view('templates/FHC-Header', array(
 					</div>
 				</div>
 				<div class="row second-row">
-					<div class="col-lg-3">
+					<div class="col-lg-3 panelcolumn">
 						<div class="panel panel-default">
 							<div class="panel-heading">Zahlungsmanagement</div>
 							<div class="list-unstyled panel-body">
@@ -98,7 +98,7 @@ $this->load->view('templates/FHC-Header', array(
 							</div>
 						</div>
 					</div>
-					<div class="col-lg-3">
+					<div class="col-lg-3 panelcolumn">
 						<div class="panel panel-default">
 							<div class="panel-heading">Prüfungsaktivitätenmanagement</div> <!-- TODO phrases -->
 							<div class="list-unstyled panel-body">
@@ -110,7 +110,7 @@ $this->load->view('templates/FHC-Header', array(
 							</div>
 						</div>
 					</div>
-					<div class="col-lg-6">
+					<div class="col-lg-6 panelcolumn">
 						<div class="panel panel-default mx-auto">
 							<div class="panel-heading">Studiumsdatenmanagement</div>
 							<div class="panel-body">

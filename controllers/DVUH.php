@@ -7,37 +7,42 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
  */
 class DVUH extends Auth_Controller
 {
+	const PERMISSION_TYPE_SEPARATOR = ':';
+
+	private $_permissions = array(
+		'index'=> array('admin:r', 'extension/dvuh_gui_begrenzt:r'),
+		'getMatrikelnummer'=>'admin:r',
+		'getPersonPrefillData'=>'admin:r',
+		'getMatrikelnummerReservierungen'=>'admin:r',
+		'getStammdaten'=>'admin:r',
+		'getKontostaende'=>'admin:r',
+		'getStudium'=>'admin:r',
+		'getFullstudent'=>'admin:r',
+		'getBpk' =>'admin:r',
+		'getBpkByPersonId' =>'admin:r',
+		'getPruefungsaktivitaeten' =>'admin:r',
+		'getDvuhMenuData' => array('admin:r', 'extension/dvuh_gui_begrenzt:r'),
+		'getPermittedActions' => array('admin:r', 'extension/dvuh_gui_begrenzt:r'),
+		'reserveMatrikelnummer'=>'admin:rw',
+		'postMasterData'=>'admin:r',
+		'postCharge'=>'admin:rw',
+		'postStudium'=>'admin:rw',
+		'postPayment'=>'admin:rw',
+		'postMatrikelkorrektur'=>'admin:rw',
+		'postErnpmeldung'=> 'admin:rw',
+		'postPruefungsaktivitaeten'=>'admin:rw',
+		'postEkzanfordern'=> array('admin:rw', 'extension/dvuh_gui_begrenzt:rw'),
+		'postStudiumStorno'=>'admin:rw',
+		'deletePruefungsaktivitaeten'=>'admin:r'
+	);
+
 	/**
 	 * Controller initialization
 	 */
 	public function __construct()
 	{
 		parent::__construct(
-			array(
-				'index'=>'admin:r',
-				'getMatrikelnummer'=>'admin:r',
-				'getPersonPrefillData'=>'admin:r',
-				'getMatrikelnummerReservierungen'=>'admin:r',
-				'getStammdaten'=>'admin:r',
-				'getKontostaende'=>'admin:r',
-				'getStudium'=>'admin:r',
-				'getFullstudent'=>'admin:r',
-				'getBpk' =>'admin:r',
-				'getBpkByPersonId' =>'admin:r',
-				'getPruefungsaktivitaeten' =>'admin:r',
-				'getDvuhMenuData' =>'admin:r',
-				'reserveMatrikelnummer'=>'admin:rw',
-				'postMasterData'=>'admin:rw',
-				'postCharge'=>'admin:rw',
-				'postStudium'=>'admin:rw',
-				'postPayment'=>'admin:rw',
-				'postMatrikelkorrektur'=>'admin:rw',
-				'postErnpmeldung'=>'admin:rw',
-				'postPruefungsaktivitaeten'=>'admin:rw',
-				'postEkzanfordern'=>'admin:rw',
-				'postStudiumStorno'=>'admin:rw',
-				'deletePruefungsaktivitaeten'=>'admin:rw'
-			)
+			$this->_permissions
 		);
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
@@ -252,7 +257,7 @@ class DVUH extends Auth_Controller
 	public function getDvuhMenuData()
 	{
 		$menuData = array(
-			'nations' => array()
+			'permittedMethods' => array()
 		);
 
 		$language = getUserLanguage();
@@ -268,10 +273,11 @@ class DVUH extends Auth_Controller
 		if (isError($nationRes))
 		{
 			$this->outputJsonError(getError($nationRes));
-			exit;
+			return;
 		}
 
-		$menuData['nations'] = getData($nationRes);
+		if (hasData($nationRes))
+			$menuData['nations'] = getData($nationRes);
 
 		$this->outputJsonSuccess($menuData);
 	}
@@ -441,5 +447,53 @@ class DVUH extends Auth_Controller
 		$json = $this->dvuhmanagementlib->deletePruefungsaktivitaeten($person_id, $semester, $prestudent_id);
 
 		$this->outputJson($json);
+	}
+
+	/**
+	 * Gets methods for which logged user has permission
+	 */
+	public function getPermittedActions()
+	{
+		$permittedMethods = array();
+
+		$this->load->library('PermissionLib'); // Load permission library
+
+		// for all methods with their permissions
+		foreach ($this->_permissions as $method => $permissions)
+		{
+			// convert to array if only one permission
+			if (!is_array($permissions))
+				$permissions = array($permissions);
+
+			// for all permissions of this method
+			foreach ($permissions as $permission)
+			{
+				// separate permission name from access type
+				$berechtigung = explode(self::PERMISSION_TYPE_SEPARATOR, $permission);
+
+				// berechtigung must consist of name and access type
+				if (count($berechtigung) != 2)
+				{
+					$this->outputJsonError("Invalid permission array");
+					return;
+				}
+
+				$berechtigung_kurzbz = $berechtigung[0];
+				// convert access type to legacy permission format
+				$berechtigung_art = str_replace(
+					array(PermissionLib::READ_RIGHT, PermissionLib::WRITE_RIGHT),
+					array(PermissionLib::SELECT_RIGHT, PermissionLib::REPLACE_RIGHT),
+					$berechtigung[1]
+				);
+
+				// return method name if user is authorized
+				if (!in_array($method, $permittedMethods) && $this->permissionlib->isBerechtigt($berechtigung_kurzbz, $berechtigung_art))
+				{
+					$permittedMethods[] = $method;
+				}
+			}
+		}
+
+		$this->outputJsonSuccess($permittedMethods);
 	}
 }

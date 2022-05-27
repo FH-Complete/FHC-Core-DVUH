@@ -2,42 +2,48 @@
  * javascript file for displaying DVUH actions menu and executing DVUH calls
  */
 
-$(document).ready(function()
-	{
-		// show / hide menu
-		$("#toggleMenu").click(
-			function()
-			{
-				var visible = $("#menuContainer").is(":visible");
-				DVUHMenu._toggleMenu(visible);
-			}
-		);
+$(document).ready(function() {
 
-		// print form when clicking on menu entry
-		$(".dvuhMenu li").click(
-			function()
-			{
-				var id = $(this).prop('id');
-				DVUHMenu.printFormWithFhcData(id);
-			}
-		);
-
-		// scroll to top button
-		DVUHMenu._setScrollToTop();
-
-		// get hash params from url and show appropriate form (if coming from external site)
-		var hash = window.location.hash.substr(1);
-
-		var result = hash.split('&').reduce(function (res, item) {
-			var parts = item.split('=');
-			res[parts[0]] = parts[1];
-			return res;
-		}, {});
-
-		if (result.page && result.page.length > 0)
+		var callback = function()
 		{
-			DVUHMenu.printFormWithFhcData(result.page, result);
+			// show / hide menu
+			$("#toggleMenu").click(
+				function()
+				{
+					var visible = $("#menuContainer").is(":visible");
+					DVUHMenu._toggleMenu(visible);
+				}
+			);
+
+			// print form when clicking on menu entry
+			$(".dvuhMenu li").click(
+				function()
+				{
+					var id = $(this).prop('id');
+					DVUHMenu.printFormWithFhcData(id);
+				}
+			);
+
+			// scroll to top button
+			DVUHMenu._setScrollToTop();
+
+			// get hash params from url and show appropriate form (if coming from external site)
+			var hash = window.location.hash.substr(1);
+
+			var result = hash.split('&').reduce(function(res, item)
+			{
+				var parts = item.split('=');
+				res[parts[0]] = parts[1];
+				return res;
+			}, {});
+
+			if (result.page && result.page.length > 0)
+			{
+				DVUHMenu.printFormWithFhcData(result.page, result);
+			}
 		}
+
+		DVUHMenu.getPermittedActions(callback);
 	}
 );
 
@@ -418,6 +424,35 @@ var DVUHMenu = {
 	},
 
 	/* ajax calls */
+	getPermittedActions: function(callback)
+	{
+		FHC_AjaxClient.ajaxCallGet(
+			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/getPermittedActions',
+			null,
+			{
+				successCallback: function(data)
+				{
+					// TODO phrases
+					// if success
+					if (FHC_AjaxClient.isSuccess(data))
+					{
+						// save the permissions
+						DVUHMenu.permissions = FHC_AjaxClient.getData(data);
+						// show only menu entries for which user has permission
+						DVUHMenu._hideNonPermittedMenuActions();
+						// execute callback for setting remaining GUI functionality
+						callback();
+					}
+					else
+						FHC_DialogLib.alertError("Fehler bei Holen der Berechtigungen");
+				},
+				errorCallback: function(jqXHR, textStatus, errorThrown)
+				{
+					FHC_DialogLib.alertError("Fehler bei Holen der Berechtigungen");
+				}
+			}
+		);
+	},
 	getDvuhMenuData: function(callback)
 	{
 		FHC_AjaxClient.ajaxCallGet(
@@ -444,6 +479,22 @@ var DVUHMenu = {
 	},
 
 	/* additional "private" methods */
+	_hideNonPermittedMenuActions: function()
+	{
+		// hide all entries
+		$("ul.dvuhMenu li").hide();
+		$("#menuContainer .panelcolumn,.menucolumn").hide();
+
+		// show only those with permissions
+		for (var i = 0; i < DVUHMenu.permissions.length; i++) {
+			var permission = DVUHMenu.permissions[i];
+			if ($("#"+permission).length) {
+				$("#"+permission).show();
+				$("#"+permission).parents('.panelcolumn').first().show();
+				$("#"+permission).parents('.menucolumn').first().show();
+			}
+		}
+	},
 	_getMatrikelnummerRow: function(value)
 	{
 		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', '', 8, value)
