@@ -10,7 +10,7 @@ class DVUH extends Auth_Controller
 	const PERMISSION_TYPE_SEPARATOR = ':';
 
 	private $_permissions = array(
-		'index'=> array('admin:r', 'extension/dvuh_gui_begrenzt:r'),
+		'index'=> array('admin:r', 'extension/dvuh_gui_ekz_anfordern:r'),
 		'getMatrikelnummer'=>'admin:r',
 		'getPersonPrefillData'=>'admin:r',
 		'getMatrikelnummerReservierungen'=>'admin:r',
@@ -21,8 +21,8 @@ class DVUH extends Auth_Controller
 		'getBpk' =>'admin:r',
 		'getBpkByPersonId' =>'admin:r',
 		'getPruefungsaktivitaeten' =>'admin:r',
-		'getDvuhMenuData' => array('admin:r', 'extension/dvuh_gui_begrenzt:r'),
-		'getPermittedActions' => array('admin:r', 'extension/dvuh_gui_begrenzt:r'),
+		'getDvuhMenuData' => array('admin:r', 'extension/dvuh_gui_ekz_anfordern:r'),
+		'getPermittedActions' => array('admin:r', 'extension/dvuh_gui_ekz_anfordern:r'),
 		'reserveMatrikelnummer'=>'admin:rw',
 		'postMasterData'=>'admin:r',
 		'postCharge'=>'admin:rw',
@@ -31,7 +31,7 @@ class DVUH extends Auth_Controller
 		'postMatrikelkorrektur'=>'admin:rw',
 		'postErnpmeldung'=> 'admin:rw',
 		'postPruefungsaktivitaeten'=>'admin:rw',
-		'postEkzanfordern'=> array('admin:rw', 'extension/dvuh_gui_begrenzt:rw'),
+		'postEkzanfordern'=> array('admin:rw', 'extension/dvuh_gui_ekz_anfordern:rw'),
 		'postStudiumStorno'=>'admin:rw',
 		'deletePruefungsaktivitaeten'=>'admin:r'
 	);
