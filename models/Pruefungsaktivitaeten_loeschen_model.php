@@ -58,17 +58,25 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 				);
 
 				// studiengang kz
-				$dvuh_erhalter_kz = $this->dvuhsynclib->convertErhalterkennzahlToDVUH($prestudent->erhalter_kz);
 				$isAusserordentlich = isset($prestudent->personenkennzeichen) && $this->dvuhsynclib->checkIfAusserordentlich($prestudent->personenkennzeichen);
+				$meldeStudiengangRes = $this->dvuhsynclib->getMeldeStudiengangKz($prestudent->studiengang_kz, $prestudent->erhalter_kz, $isAusserordentlich);
 
-				// special stg kz if ausserordentlich
-				$dvuh_stgkz = $isAusserordentlich
-					? $this->dvuhsynclib->convertStudiengangskennzahlToDVUHAusserordentlich($prestudent->studiengang_kz, $dvuh_erhalter_kz)
-					: $this->dvuhsynclib->convertStudiengangskennzahlToDVUH($prestudent->studiengang_kz);
+				if (isError($meldeStudiengangRes))
+					return $meldeStudiengangRes;
+
+				$melde_studiengang_kz = null;
+				if (hasData($meldeStudiengangRes))
+					$melde_studiengang_kz = getData($meldeStudiengangRes);
+
+				// delete Prüfungsaktivitaeten endpoint needs only 4 digits studiengang kz - chop off erhalter kz
+				if (strlen($melde_studiengang_kz) == DVUHSyncLib::DVUH_ERHALTER_LENGTH + DVUHSyncLib::DVUH_STGKZ_LENGTH)
+				{
+					$melde_studiengang_kz = substr($melde_studiengang_kz, -1 * DVUHSyncLib::DVUH_STGKZ_LENGTH);
+				}
 
 				$params['matrikelnummer'] = $prestudent->matr_nr;
 				$params['semester'] = $dvuh_studiensemester;
-				$params['studienkennung'] = $dvuh_stgkz;
+				$params['studienkennung'] = $melde_studiengang_kz;
 
 				$callRes = $this->_call('POST', $params);
 

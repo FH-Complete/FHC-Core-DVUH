@@ -121,9 +121,7 @@ class JQMSchedulerLib
 
 		$dbModel = new DB_Model();
 
-		$stToSyncResult = $dbModel->execReadOnlyQuery(
-			$qry, $params
-		);
+		$stToSyncResult = $dbModel->execReadOnlyQuery($qry, $params);
 
 		// If error occurred while retrieving students from database then return the error
 		if (isError($stToSyncResult)) return $stToSyncResult;
@@ -183,9 +181,7 @@ class JQMSchedulerLib
 
 		$dbModel = new DB_Model();
 
-		$stToSyncResult = $dbModel->execReadOnlyQuery(
-			$qry, $params
-		);
+		$stToSyncResult = $dbModel->execReadOnlyQuery($qry, $params);
 
 		// If error occurred while retrieving students from database then return the error
 		if (isError($stToSyncResult)) return $stToSyncResult;
@@ -221,31 +217,33 @@ class JQMSchedulerLib
 		// get students not sent to DVUH yet
 		$qry = "SELECT person_id, studiensemester_kurzbz FROM (
 					SELECT DISTINCT persons.person_id, persons.studiensemester_kurzbz, sem.start FROM (
-						SELECT pers.person_id, pss.studiensemester_kurzbz, max(stammd.meldedatum) AS max_meldedatum, max(zlg.buchungsdatum) AS max_zlg_buchungsdatum,
-						   pers.insertamum AS person_insertamum, pers.updateamum AS person_updateamum,
-						   kto.insertamum AS kto_insertamum, kto.updateamum AS kto_updateamum, kto.buchungsnr
+						SELECT pers.person_id, pss.studiensemester_kurzbz,
+							max(stammd.meldedatum) AS max_meldedatum, max(zlg.buchungsdatum) AS max_zlg_buchungsdatum,
+							pers.insertamum AS person_insertamum, pers.updateamum AS person_updateamum,
+							kto.insertamum AS kto_insertamum, kto.updateamum AS kto_updateamum, kto.buchungsnr
 						FROM public.tbl_person pers
-							JOIN public.tbl_prestudent ps USING (person_id)
-							JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
-							LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-							LEFT JOIN public.tbl_konto kto ON pers.person_id = kto.person_id AND kto.buchungstyp_kurzbz IN ?
-															AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz AND kto.buchungsnr_verweis IS NULL
-															AND kto.betrag <= 0
-							LEFT JOIN sync.tbl_dvuh_stammdaten stammd ON pss.studiensemester_kurzbz = stammd.studiensemester_kurzbz AND pers.person_id = stammd.person_id
-							LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
-							WHERE ps.bismelden = TRUE
-							AND stg.melderelevant = TRUE
-						  	AND NOT ( /* if Abgewiesener last status and matr_nr NULL - rejected before study start, do not send to DVUH */
-								EXISTS (
-									SELECT 1 FROM public.tbl_prestudentstatus
-									WHERE prestudent_id = ps.prestudent_id
-									AND status_kurzbz = 'Abgewiesener'
-									ORDER BY datum DESC, tbl_prestudentstatus.insertamum DESC NULLS LAST
-									LIMIT 1
-								)
-								AND pers.matr_nr IS NULL
-						  	)
-							AND pss.studiensemester_kurzbz IN ?";
+						JOIN public.tbl_prestudent ps USING (person_id)
+						JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+						LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
+						LEFT JOIN public.tbl_konto kto ON pers.person_id = kto.person_id AND kto.buchungstyp_kurzbz IN ?
+														AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz AND kto.buchungsnr_verweis IS NULL
+														AND kto.betrag <= 0
+						LEFT JOIN sync.tbl_dvuh_stammdaten stammd ON
+							pss.studiensemester_kurzbz = stammd.studiensemester_kurzbz AND pers.person_id = stammd.person_id
+						LEFT JOIN sync.tbl_dvuh_zahlungen zlg ON kto.buchungsnr = zlg.buchungsnr
+						WHERE ps.bismelden = TRUE
+						AND stg.melderelevant = TRUE
+						AND NOT ( /* if Abgewiesener last status and matr_nr NULL - rejected before study start, do not send to DVUH */
+							EXISTS (
+								SELECT 1 FROM public.tbl_prestudentstatus
+								WHERE prestudent_id = ps.prestudent_id
+								AND status_kurzbz = 'Abgewiesener'
+								ORDER BY datum DESC, tbl_prestudentstatus.insertamum DESC NULLS LAST
+								LIMIT 1
+							)
+							AND pers.matr_nr IS NULL
+						)
+						AND pss.studiensemester_kurzbz IN ?";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_CHARGE]))
 		{
@@ -327,7 +325,8 @@ class JQMSchedulerLib
 					FROM public.tbl_person pers
 						JOIN public.tbl_konto kto USING (person_id)
 						JOIN public.tbl_prestudent ps USING (person_id)
-						JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
+						JOIN public.tbl_prestudentstatus pss ON
+							ps.prestudent_id = pss.prestudent_id AND pss.studiensemester_kurzbz = kto.studiensemester_kurzbz
 						LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 						JOIN public.tbl_studiensemester sem ON kto.studiensemester_kurzbz = sem.studiensemester_kurzbz
 					WHERE ps.bismelden = TRUE
@@ -400,14 +399,18 @@ class JQMSchedulerLib
 					SELECT DISTINCT prestudents.prestudent_id, prestudents.studiensemester_kurzbz, sem.start, ist_abbrecher
 					FROM (
 							SELECT ps.prestudent_id, pss.studiensemester_kurzbz,
-									ps.insertamum AS ps_insertamum, pss.insertamum AS pss_insertamum, mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum, 
-									ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum, mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
-									max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum, bisio.bis AS bisio_endedatum,
+									ps.insertamum AS ps_insertamum, pss.insertamum AS pss_insertamum,
+									mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum, 
+									ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum,
+									mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
+									max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum,
+									bisio.bis AS bisio_endedatum,
 									CASE
 										WHEN EXISTS (SELECT 1
 											FROM public.tbl_prestudentstatus
 											WHERE prestudent_id = ps.prestudent_id
-											AND status_kurzbz = 'Abbrecher') /* Abbrecher have lower priority, active prestudents should be sent first to avoid Matrikelnr lock */
+											/* Abbrecher have lower priority, active prestudents should be sent first to avoid Matrikelnr lock */
+											AND status_kurzbz = 'Abbrecher')
 										THEN 1
 										ELSE 0
 									END AS ist_abbrecher
@@ -449,9 +452,10 @@ class JQMSchedulerLib
 							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum, bisio.bis, pss.datum
 					) prestudents
 					JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
-					WHERE max_studiumdaten_meldedatum IS NULL /* either not sent to DVUH or data modified since last send */
+					WHERE max_studiumdaten_meldedatum IS NULL /* not sent to DVUH */
 					OR prestudent_status_datum = CURRENT_DATE /* if prestudent status gets active today */
 					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
+					/* data modified since last send */
 					OR pss_insertamum >= max_studiumdaten_meldedatum OR ps_insertamum >= max_studiumdaten_meldedatum
 					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
 					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum

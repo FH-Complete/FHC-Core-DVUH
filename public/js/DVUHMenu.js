@@ -2,42 +2,48 @@
  * javascript file for displaying DVUH actions menu and executing DVUH calls
  */
 
-$(document).ready(function()
-	{
-		// show / hide menu
-		$("#toggleMenu").click(
-			function()
-			{
-				var visible = $("#menuContainer").is(":visible");
-				DVUHMenu._toggleMenu(visible);
-			}
-		);
+$(document).ready(function() {
 
-		// print form when clicking on menu entry
-		$(".dvuhMenu li").click(
-			function()
-			{
-				var id = $(this).prop('id');
-				DVUHMenu.printFormWithFhcData(id);
-			}
-		);
-
-		// scroll to top button
-		DVUHMenu._setScrollToTop();
-
-		// get hash params from url and show appropriate form (if coming from external site)
-		var hash = window.location.hash.substr(1);
-
-		var result = hash.split('&').reduce(function (res, item) {
-			var parts = item.split('=');
-			res[parts[0]] = parts[1];
-			return res;
-		}, {});
-
-		if (result.page && result.page.length > 0)
+		var callback = function()
 		{
-			DVUHMenu.printFormWithFhcData(result.page, result);
+			// show / hide menu
+			$("#toggleMenu").click(
+				function()
+				{
+					var visible = $("#menuContainer").is(":visible");
+					DVUHMenu._toggleMenu(visible);
+				}
+			);
+
+			// print form when clicking on menu entry
+			$(".dvuhMenu li").click(
+				function()
+				{
+					var id = $(this).prop('id');
+					DVUHMenu.printFormWithFhcData(id);
+				}
+			);
+
+			// scroll to top button
+			DVUHMenu._setScrollToTop();
+
+			// get hash params from url and show appropriate form (if coming from external site)
+			var hash = window.location.hash.substr(1);
+
+			var result = hash.split('&').reduce(function(res, item)
+			{
+				var parts = item.split('=');
+				res[parts[0]] = parts[1];
+				return res;
+			}, {});
+
+			if (result.page && result.page.length > 0)
+			{
+				DVUHMenu.printFormWithFhcData(result.page, result);
+			}
 		}
+
+		DVUHMenu.getPermittedActions(callback);
 	}
 );
 
@@ -178,6 +184,14 @@ var DVUHMenu = {
 				break;
 			case 'postErnpmeldung':
 
+				var person_id = null
+				// prefill input values if coming from external site
+				if (typeof params !== 'undefined')
+				{
+					if (params.hasOwnProperty('person_id'))
+						person_id = params.person_id;
+				}
+
 				// get dropdown values for nations
 				var nationsDropdownValues = {};
 				for (var idx in DVUHMenu.fhcData.nations)
@@ -190,7 +204,7 @@ var DVUHMenu = {
 				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
 					'wenn für die Person keine bPK ermittelt werden kann.<br />Beim Punkt "bPK ermitteln" sollte dementsprechend keine bPK zurückgegeben werden. ' +
 					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein bPK vorhanden.</b><br /><br />';
-				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID', null, null, person_id)
 					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
 					+ DVUHMenu._getDropdownHtml('ausstellland', 'Ausstellland', nationsDropdownValues, "D", '1-3 Stellen Codex (zb D für Deutschland)')
@@ -410,6 +424,35 @@ var DVUHMenu = {
 	},
 
 	/* ajax calls */
+	getPermittedActions: function(callback)
+	{
+		FHC_AjaxClient.ajaxCallGet(
+			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/getPermittedActions',
+			null,
+			{
+				successCallback: function(data)
+				{
+					// TODO phrases
+					// if success
+					if (FHC_AjaxClient.isSuccess(data))
+					{
+						// save the permissions
+						DVUHMenu.permissions = FHC_AjaxClient.getData(data);
+						// show only menu entries for which user has permission
+						DVUHMenu._hideNonPermittedMenuActions();
+						// execute callback for setting remaining GUI functionality
+						callback();
+					}
+					else
+						FHC_DialogLib.alertError("Fehler bei Holen der Berechtigungen");
+				},
+				errorCallback: function(jqXHR, textStatus, errorThrown)
+				{
+					FHC_DialogLib.alertError("Fehler bei Holen der Berechtigungen");
+				}
+			}
+		);
+	},
 	getDvuhMenuData: function(callback)
 	{
 		FHC_AjaxClient.ajaxCallGet(
@@ -436,6 +479,22 @@ var DVUHMenu = {
 	},
 
 	/* additional "private" methods */
+	_hideNonPermittedMenuActions: function()
+	{
+		// hide all entries
+		$("ul.dvuhMenu li").hide();
+		$("#menuContainer .panelcolumn,.menucolumn").hide();
+
+		// show only those with permissions
+		for (var i = 0; i < DVUHMenu.permissions.length; i++) {
+			var permission = DVUHMenu.permissions[i];
+			if ($("#"+permission).length) {
+				$("#"+permission).show();
+				$("#"+permission).parents('.panelcolumn').first().show();
+				$("#"+permission).parents('.menucolumn').first().show();
+			}
+		}
+	},
 	_getMatrikelnummerRow: function(value)
 	{
 		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', '', 8, value)

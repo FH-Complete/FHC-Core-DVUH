@@ -26,6 +26,9 @@ $config['fhc_dvuh_status_kurzbz'] = array(
 	'DVUHSendPruefungsaktivitaeten' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 );
 
+// All status_kurzbz which an active student can have
+$config['fhc_dvuh_active_student_status_kurzbz'] = array('Student', 'Incoming', 'Diplomand');
+
 // buchungstypen to be considered when sending payments to DVUH
 $config['fhc_dvuh_buchungstyp'] = array(
 	'oehbeitrag' => array('OEH'),
@@ -47,6 +50,10 @@ $config['fhc_dvuh_sync_ausserordentlich_prefix'] = 9;
 // StudStatusCode e.g. for gemeinsame Studien Statuscode
 $config['fhc_dvuh_sync_student_statuscode'] = array(
 	'Student' => 1,
+	'Incoming' => 1,
+	'Praktikant' => 1,
+	'Outgoing' => 1,
+	'Diplomand' => 1,
 	'Unterbrecher' => 2,
 	'Absolvent' => 3,
 	'Abbrecher' => 4

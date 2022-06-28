@@ -99,15 +99,15 @@ class DVUHManagementLib
 			$infos[] = "Alte, inaktive Matrikelnummer gelöscht für Person $person_id";
 
 		// request Matrikelnr only for persons with prestudent in given Semester and no matrikelnr
-		$personResult = $this->_dbModel->execReadOnlyQuery("
-								SELECT tbl_person.*
-								FROM public.tbl_person
-								JOIN public.tbl_prestudent USING (person_id)
-								JOIN public.tbl_prestudentstatus USING (prestudent_id)
-								WHERE person_id = ?
-									AND studiensemester_kurzbz = ?
-									AND tbl_person.matr_nr IS NULL	
-								LIMIT 1",
+		$personResult = $this->_dbModel->execReadOnlyQuery(
+			"SELECT tbl_person.*
+				FROM public.tbl_person
+				JOIN public.tbl_prestudent USING (person_id)
+				JOIN public.tbl_prestudentstatus USING (prestudent_id)
+				WHERE person_id = ?
+				AND studiensemester_kurzbz = ?
+				AND tbl_person.matr_nr IS NULL	
+				LIMIT 1",
 			array(
 				$person_id, $studiensemester_kurzbz
 			)
@@ -133,7 +133,10 @@ class DVUHManagementLib
 			}
 			elseif (hasData($matrPruefungResult))
 			{
-				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($matrPruefungResult), array('statuscode', 'statusmeldung', 'matrikelnummer'));
+				$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(
+					getData($matrPruefungResult),
+					array('statuscode', 'statusmeldung', 'matrikelnummer')
+				);
 
 				if (isError($parsedObj))
 					return $parsedObj;
@@ -155,7 +158,8 @@ class DVUHManagementLib
 					 *
 					 * Code 4: Zur Matrikelnummer liegt eine aktive Meldung im aktuellen Semester vor, Matrikelnummer in Evidenz halten
 					 *
-					 * Code 5: Zur Matrikelnummer liegt ausschließlich eine Meldung in einen vergangenen Semester vor, es kam daher nie zur Zulassung.Eine neue Matrikelnummer aus dem eigenen Kontigent kann vergeben werden.
+					 * Code 5: Zur Matrikelnummer liegt ausschließlich eine Meldung in einen vergangenen Semester vor, es kam daher nie zur Zulassung.
+					 * Eine neue Matrikelnummer aus dem eigenen Kontigent kann vergeben werden.
 					 *
 					 * Code 6: Mehr als eine Matrikelnummer wurde gefunden. Der Datenverbund kann keine eindeutige Matrikelnummer feststellen.
 					 */
@@ -203,7 +207,8 @@ class DVUHManagementLib
 										$reservedMatrnrStr = $reservedMatrnr->matrikelnummer[0];
 
 										// save matrnr in (intermediary) FHC table
-										$fhcAddMatrikelnummerreservierung = $this->_ci->DVUHMatrikelnummerreservierungModel->addMatrikelnummerreservierung($reservedMatrnrStr, $sj);
+										$fhcAddMatrikelnummerreservierung =
+											$this->_ci->DVUHMatrikelnummerreservierungModel->addMatrikelnummerreservierung($reservedMatrnrStr, $sj);
 
 										if (isError($fhcAddMatrikelnummerreservierung))
 											return $fhcAddMatrikelnummerreservierung;
@@ -219,7 +224,13 @@ class DVUHManagementLib
 								return error("Keine Matrikelnummer zum Zuweisen gefunden");
 
 							// send Matrikelnummer to DVUH and update in FHC person
-							$sendUpdateMatrRes = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $reservedMatrnrStr, false, $infos);
+							$sendUpdateMatrRes = $this->_sendAndUpdateMatrikelnummer(
+								$person_id,
+								$studiensemester_kurzbz,
+								$reservedMatrnrStr,
+								false, // Matrikelnr inactive
+								$infos
+							);
 
 							if (isError($sendUpdateMatrRes))
 								return $sendUpdateMatrRes;
@@ -257,7 +268,13 @@ class DVUHManagementLib
 					{
 						if (is_numeric($matrikelnummer))
 						{
-							$sendUpdateMatrRes = $this->_sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, true, $infos);
+							$sendUpdateMatrRes = $this->_sendAndUpdateMatrikelnummer(
+								$person_id,
+								$studiensemester_kurzbz,
+								$matrikelnummer,
+								true, // Matrikelnr active
+								$infos
+							);
 
 							if (isError($sendUpdateMatrRes))
 								return $sendUpdateMatrRes;
@@ -327,34 +344,34 @@ class DVUHManagementLib
 		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
 		// get Buchungen
-		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
-								SELECT person_id, studiengang_kz, buchungsdatum, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
-								       studiensemester_kurzbz, buchungstext, buchungsdatum,
-										(SELECT count(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
-								  					WHERE kto.person_id = tbl_konto.person_id
-								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr) AS bezahlt
-								FROM public.tbl_konto
-								WHERE person_id = ?
-								  AND studiensemester_kurzbz = ?
-								  AND buchungsnr_verweis IS NULL
-								  AND betrag <= 0
-								  /*AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto /* no Gegenbuchung yet */
-								  					WHERE kto.person_id = tbl_konto.person_id
-								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
-								      				LIMIT 1)*/
+		$buchungenResult = $this->_dbModel->execReadOnlyQuery(
+			"SELECT person_id, studiengang_kz, buchungsdatum, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
+				   studiensemester_kurzbz, buchungstext, buchungsdatum,
+					(SELECT count(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
+								WHERE kto.person_id = tbl_konto.person_id
+								AND kto.buchungsnr_verweis = tbl_konto.buchungsnr) AS bezahlt
+			FROM public.tbl_konto
+			WHERE person_id = ?
+			AND studiensemester_kurzbz = ?
+			AND buchungsnr_verweis IS NULL
+			AND betrag <= 0
+			  /*AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto /* no Gegenbuchung yet */
+								WHERE kto.person_id = tbl_konto.person_id
+								AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
+								LIMIT 1)*/
 /*								  AND NOT EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
-									WHERE buchungsnr = (SELECT kto.buchungsnr FROM public.tbl_konto kto
-								  					WHERE kto.person_id = tbl_konto.person_id
-								      				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
-								      				LIMIT 1)
-									AND betrag > 0
-									LIMIT 1)*/
-								  AND EXISTS (SELECT 1 FROM public.tbl_prestudent
-								      			JOIN public.tbl_prestudentstatus USING (prestudent_id)
-								      			WHERE tbl_prestudent.person_id = tbl_konto.person_id
-								      			AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
-								  AND buchungstyp_kurzbz IN ?
-								  ORDER BY buchungsdatum, buchungsnr",
+				WHERE buchungsnr = (SELECT kto.buchungsnr FROM public.tbl_konto kto
+								WHERE kto.person_id = tbl_konto.person_id
+								AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
+								LIMIT 1)
+				AND betrag > 0
+				LIMIT 1)*/
+			AND EXISTS (SELECT 1 FROM public.tbl_prestudent
+							JOIN public.tbl_prestudentstatus USING (prestudent_id)
+							WHERE tbl_prestudent.person_id = tbl_konto.person_id
+							AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
+			AND buchungstyp_kurzbz IN ?
+			ORDER BY buchungsdatum, buchungsnr",
 			array(
 				$person_id,
 				$studiensemester_kurzbz,
@@ -402,7 +419,8 @@ class DVUHManagementLib
 					else
 					{
 						return createError(
-							"Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester $studiensemester_kurzbz spezifiziert, Buchung " . $buchung->buchungsnr,
+							"Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester $studiensemester_kurzbz spezifiziert,"
+							."Buchung " . $buchung->buchungsnr,
 							'oehbeitragNichtSpezifiziert',
 							array($studiensemester_kurzbz, $buchung->buchungsnr),
 							array('studiensemester_kurzbz' => $studiensemester_kurzbz)
@@ -411,7 +429,7 @@ class DVUHManagementLib
 
 					$dvuh_buchungstyp = 'oehbeitrag';
 				}
-				elseif ((in_array($buchung->buchungstyp_kurzbz, $buchungstypen['studiengebuehr'])))
+				elseif (in_array($buchung->buchungstyp_kurzbz, $buchungstypen['studiengebuehr']))
 					$dvuh_buchungstyp = 'studiengebuehr';
 
 				if (!isset($vorschreibung[$dvuh_buchungstyp]))
@@ -424,7 +442,7 @@ class DVUHManagementLib
 					if (!isset($vorschreibung['sonderbeitrag']))
 						$vorschreibung['sonderbeitrag'] = 0;
 
-					$vorschreibung['sonderbeitrag'] += (float) $versicherungBeitragAmount;
+					$vorschreibung['sonderbeitrag'] += (float)$versicherungBeitragAmount;
 					$valutadatum = date('Y-m-d', strtotime($buchung->buchungsdatum . ' + ' . $valutadatum_days . ' days'));
 					$vorschreibung['valutadatum'] = $valutadatum;
 					$vorschreibung['valutadatumnachfrist'] = // Nachfrist is also taken into account by DVUH for Bezahlstatus
@@ -437,8 +455,8 @@ class DVUHManagementLib
 						$vorgeschrBeitrag = number_format(-1 * $beitragAmount, 2, ',', '.');
 						$festgesBeitrag = number_format($studierendenBeitragAmount, 2, ',', '.');
 						$warnings[] = createError(
-							"Vorgeschriebener Beitrag $vorgeschrBeitrag nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, "
-										. "$festgesBeitrag, überein",
+							"Vorgeschriebener Beitrag $vorgeschrBeitrag nach Abzug der Versicherung stimmt nicht mit"
+							." festgesetztem Betrag für Semester, $festgesBeitrag, überein",
 							'vorgeschrBetragUngleichFestgesetzt',
 							array($vorgeschrBeitrag, $festgesBeitrag),
 							array('buchungsnr' => $buchung->buchungsnr, 'studiensemester_kurzbz' => $studiensemester_kurzbz)
@@ -463,8 +481,18 @@ class DVUHManagementLib
 
 		if ($preview)
 		{
-			$postData = $this->_ci->StammdatenModel->retrievePostData($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
-				$sonderbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
+			$postData = $this->_ci->StammdatenModel->retrievePostData(
+				$this->_be,
+				$person_id,
+				$dvuh_studiensemester,
+				$matrikelnummer,
+				$oehbeitrag,
+				$sonderbeitrag,
+				$studiengebuehr,
+				$valutadatum,
+				$valutadatumnachfrist,
+				$studiengebuehrnachfrist
+			);
 
 			if (isError($postData))
 				return $postData;
@@ -473,8 +501,18 @@ class DVUHManagementLib
 		}
 
 		// send Stammdatenmeldung
-		$stammdatenResult = $this->_ci->StammdatenModel->post($this->_be, $person_id, $dvuh_studiensemester, $matrikelnummer, $oehbeitrag,
-			$sonderbeitrag, $studiengebuehr, $valutadatum, $valutadatumnachfrist, $studiengebuehrnachfrist);
+		$stammdatenResult = $this->_ci->StammdatenModel->post(
+			$this->_be,
+			$person_id,
+			$dvuh_studiensemester,
+			$matrikelnummer,
+			$oehbeitrag,
+			$sonderbeitrag,
+			$studiengebuehr,
+			$valutadatum,
+			$valutadatumnachfrist,
+			$studiengebuehrnachfrist
+		);
 
 		if (isError($stammdatenResult))
 			$result = $stammdatenResult;
@@ -579,7 +617,8 @@ class DVUHManagementLib
 					if (hasData($saveBpkRes))
 					{
 						$bpkRes = getData($saveBpkRes);
-						$warningCodesToExcludeFromIssues[] = self::ERRORCODE_BPK_MISSING; // if bpk already added automatically, no need to write issue
+						// if bpk already added automatically, no need to write issue
+						$warningCodesToExcludeFromIssues[] = self::ERRORCODE_BPK_MISSING;
 						$infos[] = "Neue Bpk ($bpkRes) gespeichert für Person mit Id $person_id";
 					}
 				}
@@ -603,7 +642,6 @@ class DVUHManagementLib
 	 */
 	public function sendPayment($person_id, $studiensemester, $preview = false)
 	{
-		$result = null;
 		$infos = array();
 		$zahlungenResArr = array();
 		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
@@ -612,25 +650,29 @@ class DVUHManagementLib
 		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
 
 		// get paid Buchungen
-		$buchungenResult = $this->_dbModel->execReadOnlyQuery("
-								SELECT matr_nr, buchungsnr, buchungsdatum, betrag, buchungsnr_verweis, 
-								       zahlungsreferenz, buchungstyp_kurzbz, studiensemester_kurzbz, matr_nr,
-								       sum(betrag) OVER (PARTITION BY buchungsnr_verweis) AS summe_buchungen
-								FROM public.tbl_konto
-								JOIN public.tbl_person USING (person_id)
-								WHERE person_id = ?
-								  AND studiensemester_kurzbz = ?
-								  AND buchungsnr_verweis IS NOT NULL
-								  AND betrag > 0
-								  AND EXISTS (SELECT 1 FROM public.tbl_prestudent
-								      			JOIN public.tbl_prestudentstatus USING (prestudent_id)
-								      			WHERE tbl_prestudent.person_id = tbl_konto.person_id
-								      			AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
-								  AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
-												WHERE buchungsnr = tbl_konto.buchungsnr
-												AND betrag > 0)
-								  AND buchungstyp_kurzbz IN ?
-								  ORDER BY buchungsdatum, buchungsnr",
+		$buchungenResult = $this->_dbModel->execReadOnlyQuery(
+			"SELECT *, sum(betrag) OVER (PARTITION BY buchungsnr_verweis) AS summe_zahlungen FROM
+			(
+				/* Use either amount of payment, or amount of charge if payment higher than charge */
+				SELECT matr_nr, zlg.buchungsnr, zlg.buchungsdatum, zlg.buchungsnr_verweis, zlg.zahlungsreferenz, zlg.buchungstyp_kurzbz,
+					   CASE WHEN zlg.betrag > abs(vorschr.betrag) THEN abs(vorschr.betrag) ELSE zlg.betrag END AS betrag,
+					   zlg.studiensemester_kurzbz, matr_nr
+				FROM public.tbl_konto zlg
+				JOIN public.tbl_person USING (person_id)
+				JOIN public.tbl_konto vorschr ON zlg.buchungsnr_verweis = vorschr.buchungsnr /* must have a charge */
+				WHERE zlg.person_id = ?
+				AND zlg.studiensemester_kurzbz = ?
+				AND zlg.betrag > 0
+				AND EXISTS (SELECT 1 FROM public.tbl_prestudent
+								JOIN public.tbl_prestudentstatus USING (prestudent_id)
+								WHERE tbl_prestudent.person_id = zlg.person_id
+								AND tbl_prestudentstatus.studiensemester_kurzbz = zlg.studiensemester_kurzbz)
+				AND NOT EXISTS (SELECT 1 from sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
+								WHERE buchungsnr = zlg.buchungsnr
+								AND betrag > 0)
+				AND zlg.buchungstyp_kurzbz IN ?
+			) zahlungen
+			ORDER BY buchungsdatum, buchungsnr",
 			array(
 				$person_id,
 				$studiensemester_kurzbz,
@@ -670,18 +712,20 @@ class DVUHManagementLib
 				$buchungsnr = $buchung->buchungsnr;
 
 				// check: all Buchungen to be paid must have been sent to DVUH as Vorschreibung in Stammdatenmeldung
-				$charge = $this->_ci->DVUHZahlungenModel->getLastCharge(
+				$chargeRes = $this->_ci->DVUHZahlungenModel->getLastCharge(
 					$buchung->buchungsnr_verweis
 				);
 
-				if (hasData($charge))
+				if (hasData($chargeRes))
 				{
-					if (abs(getData($charge)[0]->betrag) != $buchung->summe_buchungen)
+					$charge = getData($chargeRes)[0];
+
+					if (abs($charge->betrag) != $buchung->summe_zahlungen)
 					{
 						return createError(
-							"Buchung: $buchungsnr: Zahlungsbetrag abweichend von Vorschreibungsbetrag",
+							"Buchung: ".$charge->buchungsnr.": Zahlungsbetrag abweichend von Vorschreibungsbetrag",
 							'zlgUngleichVorschreibung',
-							array($buchungsnr), // text params
+							array($charge->buchungsnr), // text params
 							array('buchungsnr_verweis' => $buchung->buchungsnr_verweis) // resolution params
 						);
 					}
@@ -722,8 +766,15 @@ class DVUHManagementLib
 				$resultarr = array();
 				foreach ($paymentsToSend as $payment)
 				{
-					$postData = $this->_ci->ZahlungModel->retrievePostData($this->_be, $payment->matrikelnummer, $payment->semester, $payment->zahlungsart,
-						$payment->centbetrag, $payment->buchungsdatum, $payment->referenznummer);
+					$postData = $this->_ci->ZahlungModel->retrievePostData(
+						$this->_be,
+						$payment->matrikelnummer,
+						$payment->semester,
+						$payment->zahlungsart,
+						$payment->centbetrag,
+						$payment->buchungsdatum,
+						$payment->referenznummer
+					);
 
 					if (isError($postData))
 						return $postData;
@@ -736,8 +787,15 @@ class DVUHManagementLib
 
 			foreach ($paymentsToSend as $payment)
 			{
-				$zahlungResult = $this->_ci->ZahlungModel->post($this->_be, $payment->matrikelnummer, $payment->semester, $payment->zahlungsart,
-					$payment->centbetrag, $payment->buchungsdatum, $payment->referenznummer);
+				$zahlungResult = $this->_ci->ZahlungModel->post(
+					$this->_be,
+					$payment->matrikelnummer,
+					$payment->semester,
+					$payment->zahlungsart,
+					$payment->centbetrag,
+					$payment->buchungsdatum,
+					$payment->referenznummer
+				);
 
 				if (isError($zahlungResult))
 					$zahlungenResArr[] = $zahlungResult;
@@ -764,7 +822,8 @@ class DVUHManagementLib
 						);
 
 						if (isError($zahlungSaveResult))
-							$zahlungenResArr[] = error("Zahlung erfolgreich, Fehler bei Speichern der Zahlung der Buchung " . $payment->buchungstyp . " in FHC");
+							$zahlungenResArr[] = error("Zahlung erfolgreich, Fehler bei Speichern der Zahlung der Buchung "
+								. $payment->buchungstyp . " in FHC");
 						else
 							$zahlungenResArr[] = success($xmlstr);
 					}
@@ -894,25 +953,22 @@ class DVUHManagementLib
 	 */
 	public function requestBpk($person_id)
 	{
-		$result = null;
 		$bpk = null;
 		$infos = array();
 		$warnings = array();
 
 		// request BPK only for persons with no BPK
-		$personResult = $this->_dbModel->execReadOnlyQuery("
-										SELECT
-											DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, strasse, plz	        
-										FROM
-											public.tbl_person
-											LEFT JOIN (SELECT DISTINCT ON (person_id) strasse, plz, person_id
-														FROM public.tbl_adresse
-											    		WHERE heimatadresse = TRUE
-											    		ORDER BY person_id, insertamum DESC NULLS LAST
-											    		) addr USING(person_id)
-										WHERE
-											tbl_person.person_id = ?
-											AND (tbl_person.bpk IS NULL OR tbl_person.bpk = '')",
+		$personResult = $this->_dbModel->execReadOnlyQuery(
+			"SELECT DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, strasse, plz
+				FROM
+				public.tbl_person
+				LEFT JOIN (SELECT DISTINCT ON (person_id) strasse, plz, person_id
+							FROM public.tbl_adresse
+							WHERE heimatadresse = TRUE
+							ORDER BY person_id, insertamum DESC NULLS LAST
+							) addr USING(person_id)
+				WHERE tbl_person.person_id = ?
+				AND (tbl_person.bpk IS NULL OR tbl_person.bpk = '')",
 			array(
 				$person_id
 			)
@@ -1031,8 +1087,10 @@ class DVUHManagementLib
 	 * @param false $preview if true, only data to post and infos are returned
 	 * @return object error or success
 	 */
-	public function sendMatrikelErnpMeldung($person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
-										$ausstellland, $dokumentnr, $dokumenttyp, $preview = false)
+	public function sendMatrikelErnpMeldung(
+		$person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
+		$ausstellland, $dokumentnr, $dokumenttyp, $preview = false
+	)
 	{
 		$infos = array();
 
@@ -1046,8 +1104,16 @@ class DVUHManagementLib
 
 		if ($preview)
 		{
-			$postData = $this->_ci->MatrikelmeldungModel->retrievePostData($this->_be, $person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
-				$ausstellland, $dokumentnr, $dokumenttyp);
+			$postData = $this->_ci->MatrikelmeldungModel->retrievePostData(
+				$this->_be,
+				$person_id,
+				$writeonerror,
+				$ausgabedatum,
+				$ausstellBehoerde,
+				$ausstellland,
+				$dokumentnr,
+				$dokumenttyp
+			);
 
 			if (isError($postData))
 				return $postData;
@@ -1055,8 +1121,16 @@ class DVUHManagementLib
 			return $this->_getResponseArr(getData($postData), $infos);
 		}
 
-		$matrikelmeldungResult = $this->_ci->MatrikelmeldungModel->post($this->_be, $person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
-			$ausstellland, $dokumentnr, $dokumenttyp);
+		$matrikelmeldungResult = $this->_ci->MatrikelmeldungModel->post(
+			$this->_be,
+			$person_id,
+			$writeonerror,
+			$ausgabedatum,
+			$ausstellBehoerde,
+			$ausstellland,
+			$dokumentnr,
+			$dokumenttyp
+		);
 
 		if (isError($matrikelmeldungResult))
 			$result = $matrikelmeldungResult;
@@ -1127,7 +1201,12 @@ class DVUHManagementLib
 
 		$prestudentsToPost = array();
 
-		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post($this->_be, $person_id, $studiensemester_kurzbz, $prestudentsToPost);
+		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post(
+			$this->_be,
+			$person_id,
+			$studiensemester_kurzbz,
+			$prestudentsToPost
+		);
 
 		if (isError($pruefungsaktivitaetenResult))
 			return $pruefungsaktivitaetenResult;
@@ -1153,7 +1232,10 @@ class DVUHManagementLib
 			if ($ects['ects_angerechnet'] == 0 && $ects['ects_erworben'] == 0)
 			{
 				// get last sent ects
-				$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->getLastSentPruefungsaktivitaet($prestudent_id, $studiensemester_kurzbz);
+				$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->getLastSentPruefungsaktivitaet(
+					$prestudent_id,
+					$studiensemester_kurzbz
+				);
 
 				if (hasData($checkPruefungsaktivitaetenRes))
 				{
@@ -1305,7 +1387,10 @@ class DVUHManagementLib
 		{
 			$xmlstr = getData($ekzanfordernResult);
 
-			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid', 'responsecode', 'returncode', 'returntext', 'ekz', 'forcierungskey'));
+			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(
+				$xmlstr,
+				array('uuid', 'responsecode', 'returncode', 'returntext', 'ekz', 'forcierungskey')
+			);
 
 			if (isError($parsedObj))
 				$result = $parsedObj;
@@ -1351,9 +1436,8 @@ class DVUHManagementLib
 
 	/**
 	 * Cancels study data in DVUH.
-	 * @param string $matrikelnummer
+	 * @param int $prestudent_id
 	 * @param string $semester
-	 * @param int $studiengang_kz if passed, only study data for this studiengang is cancelled
 	 * @param bool $preview
 	 * @return object error or success
 	 */
@@ -1373,8 +1457,10 @@ class DVUHManagementLib
 		}
 
 		// get matrikel number and studiengang from prestudent
-		$this->_ci->PersonModel->addSelect("matr_nr, studiengang_kz");
+		$this->_ci->PersonModel->addSelect("matr_nr, matrikelnr AS personenkennzeichen, stg.studiengang_kz, stg.melde_studiengang_kz, erhalter_kz");
 		$this->_ci->PersonModel->addJoin("public.tbl_prestudent", "person_id");
+		$this->_ci->PersonModel->addJoin("public.tbl_studiengang stg", "studiengang_kz");
+		$this->_ci->PersonModel->addJoin("public.tbl_student stud", "prestudent_id");
 		$studentRes = $this->_ci->PersonModel->loadWhere(
 			array(
 				'prestudent_id' => $prestudent_id
@@ -1392,7 +1478,19 @@ class DVUHManagementLib
 
 		$studentData = getData($studentRes)[0];
 		$matrikelnummer = $studentData->matr_nr;
-		$studiengang_kz = $studentData->studiengang_kz;
+
+		// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
+		$isAusserordentlich = $this->_ci->dvuhsynclib->checkIfAusserordentlich($studentData->personenkennzeichen);
+
+		// studiengang kz
+		$meldeStudiengangRes = $this->_ci->dvuhsynclib->getMeldeStudiengangKz($studentData->studiengang_kz, $studentData->erhalter_kz, $isAusserordentlich);
+
+		if (isError($meldeStudiengangRes))
+			return $meldeStudiengangRes;
+
+		$fhc_stgkz_in_dvuh_format = null;
+		if (hasData($meldeStudiengangRes))
+			$fhc_stgkz_in_dvuh_format = getData($meldeStudiengangRes);
 
 		// get xml of study data in DVUH
 		$studyData = $this->_ci->StudiumModel->get($this->_be, $matrikelnummer, $semester);
@@ -1401,7 +1499,7 @@ class DVUHManagementLib
 		{
 			$xmlstr = getData($studyData);
 
-			// parse the received data
+			// parse the received data, extract studiengang and lehrgang xml
 			$studienRes = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('studiengang', 'lehrgang'));
 
 			if (isError($studienRes))
@@ -1416,6 +1514,7 @@ class DVUHManagementLib
 
 				$studien = array_merge($studienData->studiengang, $studienData->lehrgang);
 
+				// student data params to send to DVUH
 				$params = array(
 					"uuid" => getUUID(),
 					"studierendenkey" => array(
@@ -1446,15 +1545,14 @@ class DVUHManagementLib
 					if (!isset($studiumIdName))
 						return error("Studium Id fehlt"); //TODO phrases
 
-					$dvuh_stgkz = substr($studium->{$studiumIdName}, -1 * DVUHSyncLib::DVUH_STGKZ_LENGTH);
-					$fhc_stgkz_in_dvuh_format = $this->_ci->dvuhsynclib->convertStudiengangskennzahlToDVUH($studiengang_kz);
+					// compare studiengang kz received from DVUH vs studiengang kz got from FHC
+					$dvuh_stgkz = $studium->{$studiumIdName};
 
-					// only send Studiengang requested by prestudent id
+					// only send Studiengang of requested prestudent id
  					if ($dvuh_stgkz != $fhc_stgkz_in_dvuh_format)
 						continue;
 
 					// add storno data to data received from dvuh
-					$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 					$studium->meldestatus = self::STORNO_MELDESTATUS;
 
 					// convert object data to assoc array
@@ -1621,7 +1719,8 @@ class DVUHManagementLib
 							if ($isSentToSap === true)
 							{
 								$warnings[] = createError(
-									"Buchung $buchungsnr ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde",
+									"Buchung $buchungsnr ist in SAP gespeichert,"
+									." obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde",
 									'andereBeBezahltSapGesendet',
 									array($buchungsnr)
 								);
@@ -1748,10 +1847,13 @@ class DVUHManagementLib
 	 * @param array $infos array with info strings
 	 * @param array $warnings array with warning strings
 	 * @param bool $getWarningsFromResult if true, parse the result for warnings and include them in response
-	 * @param array $warningCodesToExcludeFromIssues
+	 * @param array $warningCodesToExcludeFromIssues array with fehlercodes which are not considered issues
 	 * @return object response object with result, infos and warnings
 	 */
-	private function _getResponseArr($result, $infos = null, $warnings = null, $getWarningsFromResult = false, $warningCodesToExcludeFromIssues = array())
+	private function _getResponseArr(
+		$result,
+		$infos = null, $warnings = null, $getWarningsFromResult = false, $warningCodesToExcludeFromIssues = array()
+	)
 	{
 		$responseArr = array();
 		$responseArr['infos'] = isset($infos) ? $infos : array();

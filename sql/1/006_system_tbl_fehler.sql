@@ -24,6 +24,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SS_0010', 'outgoingErworbeneEctsFehlen', NULL, 'Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)', 'error', 'dvuh'),
 ('DVUH_SS_0011', 'lehrgangdatenFehlen', NULL, 'Lehrgangdaten fehlen: %s', 'error', 'dvuh'),
 ('DVUH_SS_0012', 'studiumdatenFehlen', NULL, 'Studiumdaten fehlen: %s', 'error', 'dvuh'),
+('DVUH_SS_0013', 'ungueltigeMeldeStudiengangskennzahl', NULL, 'Ungültige Meldestudiengangskennzahl für Studiengang %s, gültiges Format: (3 Stellen für Erhalter wenn Lehrgang) [4 Stellen Studiengang]', 'error', 'dvuh'),
 /* DVUH Errors */
 ('DVUH_ERROR', 'dvuhFehler', NULL, 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
 ('DVUH_SM_MATRNR_STATUS_2', NULL, 'MATRNR_STATUS_2', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, Datenverbund kontaktieren.', 'error', 'dvuh'),
