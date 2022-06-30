@@ -20,6 +20,11 @@ $config['navigation_menu']['extensions/FHC-Core-DVUH/*'] = array(
 		'description' => 'bPK Wartung',
 		'icon' => 'user'
 	),
+	'oehbeitraege' => array(
+		'link' => site_url('extensions/FHC-Core-DVUH/RohdatenOehBeitrag'),
+		'description' => 'Öhbeitragsliste',
+		'icon' => 'list'
+	),
 	'codex' => array(
 		'link' => site_url('extensions/FHC-Core-DVUH/Codex/index'),
 		'description' => 'Codex',
