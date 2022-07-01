@@ -4,20 +4,20 @@
 
 $(document).ready(function()
 	{
-		var defaultDateFrom = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-		var day = RohdatenOehBeitrag._pad(defaultDateFrom.getDate());
-		var month = RohdatenOehBeitrag._pad(defaultDateFrom.getMonth()+1);
-		var year = defaultDateFrom.getFullYear();
-		defaultDateFrom = year + '-' + month + '-' + day;
+		// get default values for from and to dates
+		var defaultDateFrom = DVUHLib.getPastDate(7);
+		var defaultDateTo = DVUHLib.getPastDate(0);
 
+		// set datepickers
 		$("#dateFrom").datepicker({
-			"dateFormat": "yy-mm-dd"
+			"dateFormat": "dd.mm.yy"
 		}).val(defaultDateFrom);
 
 		$("#dateTo").datepicker({
-			"dateFormat": "yy-mm-dd"
-		}).val(defaultDateFrom);
+			"dateFormat": "dd.mm.yy"
+		}).val(defaultDateTo);
 
+		// set event for showing data on site
 		$("#showOehbeitraege").click(
 			function()
 			{
@@ -27,18 +27,17 @@ $(document).ready(function()
 			}
 		);
 
+		// download Oehbeitrag file in window
 		$("#downloadOehbeitraege").click(
 			function()
 			{
 				var dateFrom = $("#dateFrom").val();
 				var dateTo = $("#dateTo").val();
+				var method_call = 'downloadRohdatenOehbeitrag?dateFrom='+encodeURIComponent(dateFrom)+'&dateTo='+encodeURIComponent(dateTo);
 				if (typeof FHC_JS_DATA_STORAGE_OBJECT !== "undefined")
-				{
-					var method_call = 'downloadRohdatenOehbeitrag?dateFrom='+encodeURIComponent(dateFrom)+'&dateTo='+encodeURIComponent(dateTo);
 					window.location = FHC_JS_DATA_STORAGE_OBJECT.app_root + FHC_JS_DATA_STORAGE_OBJECT.ci_router + "/" + FHC_JS_DATA_STORAGE_OBJECT.called_path+"/"+method_call;
-				}
 				else
-					FHC_DialogLib.alertError("FHC_JS_DATA_STORAGE_OBJECT not defined");
+					window.location = './RohdatenOehBeitrag/'+method_call;
 			}
 		);
 	}
@@ -53,7 +52,54 @@ var RohdatenOehBeitrag = {
 			{
 				successCallback: function(data, textStatus, jqXHR)
 				{
-					console.log(data);
+					var oehbeitragText = '';
+					if (FHC_AjaxClient.isError(data))
+						oehbeitragText = '<span class="text-danger">'+FHC_AjaxClient.getError(data)+'</span>';
+					else if (FHC_AjaxClient.hasData(data))
+					{
+						// on success, show Oehbeitragsliste in a table
+						oehbeitragText = FHC_AjaxClient.getData(data);
+
+						var tblString = "<table class='table table-bordered table-condensed' id='oehbeitragslisteTable'>";
+						var lines = oehbeitragText.split('\n');
+
+						// table header
+						var headerVals = lines[0].split(';');
+						var maxValsNumber = headerVals.length;
+
+						tblString += "<thead>";
+						tblString += "<tr>";
+						for (var h = 0; h < maxValsNumber; h++)
+						{
+							tblString += "<th>"+headerVals[h]+"</th>";
+						}
+						tblString += "</tr>";
+						tblString += "</thead>";
+
+						tblString += "<tbody>";
+						// table Body, -1 for last empty line
+						for (var i = 1; i < lines.length - 1; i++)
+						{
+							tblString += "<tr>";
+							var values = lines[i].split(';');
+							for (var j = 0; j < maxValsNumber; j++)
+							{
+								tblString += "<td>"+values[j]+"</td>";
+							}
+							tblString += "</tr>";
+						}
+						tblString += "</tbody>";
+						tblString += "</table>";
+
+						$("#oehbeitragsliste").html(tblString);
+						Tablesort.addTablesorter(
+							// sort by first and third column asc, show filters beggining with 2 Benutzer, exclude fifth column from filter
+							"oehbeitragslisteTable", [[0,1]], ["filter", "zebra"], 2
+						)
+					}
+					else
+						$("#oehbeitragsliste").html("Keine Daten vorhanden");
+
 				},
 				errorCallback: function(jqXHR, textStatus, errorThrown)
 				{
@@ -61,9 +107,5 @@ var RohdatenOehBeitrag = {
 				}
 			}
 		);
-	},
-	_pad: function(number)
-	{
-		return ('00' + number).substr(-2, 2);
 	}
 };

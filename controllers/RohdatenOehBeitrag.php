@@ -22,6 +22,8 @@ class RohdatenOehBeitrag extends Auth_Controller
 			)
 		);
 
+		$this->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
+
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 	}
 
@@ -37,6 +39,17 @@ class RohdatenOehBeitrag extends Auth_Controller
 	//------------------------------------------------------------------------------------------------------------------
 	// GET methods
 
+	/**
+	 * Wrapper function, returns Oehbeitragsliste as json text
+	 */
+	public function showRohdatenOehbeitrag()
+	{
+		$this->outputJson($this->_getRohdatenOehbeitrag());
+	}
+
+	/**
+	 * Wrapper function, returns Oehbeitragsliste as a downloadable csv file
+	 */
 	public function downloadRohdatenOehbeitrag()
 	{
 		$csv = '';
@@ -51,27 +64,22 @@ class RohdatenOehBeitrag extends Auth_Controller
 
 		$this->output
 			->set_status_header(200)
-			->set_content_type('text/plain')
+			->set_content_type('text/csv')
 			->set_header('Content-Disposition: attachement; filename="'.self::FILE_NAME.'"')
 			->set_output($csv)
 			->_display();
 	}
 
-	public function showRohdatenOehbeitrag()
-	{
-		$this->outputJson($this->_getRohdatenOehbeitrag());
-	}
-
-
 	//------------------------------------------------------------------------------------------------------------------
 	// private methods
 
-	public function _getRohdatenOehbeitrag()
+	/**
+	 * Gets the Oehbeitragsliste between two input dates.
+	 */
+	private function _getRohdatenOehbeitrag()
 	{
-		$dateFrom = $this->input->get('dateFrom');
-		$dateTo = $this->input->get('dateTo');
-		// $dateFrom = '2021-01-01';
-		// $dateTo = '2021-12-31';
+		$dateFrom = convertDateToIso($this->input->get('dateFrom'));
+		$dateTo = convertDateToIso($this->input->get('dateTo'));
 
 		$be = $this->config->item('fhc_dvuh_be_code');
 
@@ -80,18 +88,5 @@ class RohdatenOehBeitrag extends Auth_Controller
 		return $this->RohdatenOehBeitragModel->get(
 			$be, $dateFrom, $dateTo
 		);
-
-		if (isError($csvRes))
-			show_error(getError($csvRes));
-
-		if (hasData($csvRes))
-			$csv = getData($csvRes);
-
-		$this->output
-			->set_status_header(200)
-			->set_content_type('text/plain')
-			->set_header('Content-Disposition: attachement; filename="'.self::FILE_NAME.'"')
-			->set_output($csv)
-			->_display();
 	}
 }

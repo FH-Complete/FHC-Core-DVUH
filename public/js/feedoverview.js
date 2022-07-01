@@ -4,14 +4,10 @@
 
 $(document).ready(function()
 	{
-		var defaultErstelltSeit = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-		var day = FeedOverview._pad(defaultErstelltSeit.getDate());
-		var month = FeedOverview._pad(defaultErstelltSeit.getMonth()+1);
-		var year = defaultErstelltSeit.getFullYear();
-		defaultErstelltSeit = year + '-' + month + '-' + day;
+		var defaultErstelltSeit = DVUHLib.getPastDate(7);
 
 		$("#erstelltSeit").datepicker({
-			"dateFormat": "yy-mm-dd"
+			"dateFormat": "dd.mm.yy"
 		}).val(defaultErstelltSeit);
 
 		$("#showfeeds").click(
@@ -93,9 +89,5 @@ var FeedOverview = {
 	_getFeedEntryStr: function(name, value)
 	{
 		return "<tr><td>" + name + "</td><td>" + value + "</td></tr>";
-	},
-	_pad: function(number)
-	{
-		return ('00' + number).substr(-2, 2);
 	}
 };

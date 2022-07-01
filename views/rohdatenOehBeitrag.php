@@ -9,14 +9,15 @@ $this->load->view(
 		'fontawesome' => true,
 		'navigationwidget' => true,
 		'sbadmintemplate' => true,
+		'tablesorter' => true,
 		'dialoglib' => true,
 		'ajaxlib' => true,
+		'customCSSs' => 'public/css/sbadmin2/tablesort_bootstrap.css',
 		'customJSs' => array(
+			'public/js/tablesort/tablesort.js',
+			'public/extensions/FHC-Core-DVUH/js/DVUHLib.js',
 			'public/extensions/FHC-Core-DVUH/js/rohdatenOehBeitrag.js'
-		)/*,
-		'customCSSs' => array(
-			'public/css/sbadmin2/admintemplate_contentonly.css'
-		)*/
+		)
 	)
 );
 ?>
@@ -34,19 +35,22 @@ $this->load->view(
 				</div>
 			</div>
 			<div class="row">
-				<div class="col-xs-12">
-					<div class="form-group form-inline">
+				<div class="col-xs-12 form-inline">
+					<div class="form-group">
 						<label>
 							Datum von:
 						</label>
 						<input type="text" class="form-control" id="dateFrom">
-						&nbsp;
+					</div>
+					&nbsp;
+					<div class="form-group">
 						<label>
 							Datum bis:
 						</label>
 						<input type="text" class="form-control" id="dateTo">
-						&nbsp;
-						&nbsp;
+					</div>
+					&nbsp;
+					<div class="form-group">
 						<button class="btn btn-default" id="showOehbeitraege">Anzeigen</button>
 						<button class="btn btn-default" id="downloadOehbeitraege">Download</button>
 					</div>

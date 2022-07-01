@@ -24,13 +24,13 @@ class RohdatenOehBeitrag_model extends DVUHClientModel
 	 */
 	public function get($be, $dateFrom, $dateTo)
 	{
-		if (isEmptyString($dateFrom))
+		if (!validateDate($dateFrom))
 		{
-			$result = error('Vondatum nicht gesetzt');
+			$result = error('Vondatum ungültig');
 		}
-		elseif (isEmptyString($dateTo))
+		elseif (!validateDate($dateTo))
 		{
-			$result = error('Bisdatum nicht gesetzt');
+			$result = error('Bisdatum ungültig');
 		}
 		else
 		{
