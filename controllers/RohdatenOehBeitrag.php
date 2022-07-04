@@ -66,8 +66,7 @@ class RohdatenOehBeitrag extends Auth_Controller
 			->set_status_header(200)
 			->set_content_type('text/csv')
 			->set_header('Content-Disposition: attachement; filename="'.self::FILE_NAME.'"')
-			->set_output($csv)
-			->_display();
+			->set_output($csv);
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
