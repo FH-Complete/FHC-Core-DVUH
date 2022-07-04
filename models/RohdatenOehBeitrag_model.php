@@ -36,7 +36,8 @@ class RohdatenOehBeitrag_model extends DVUHClientModel
 		{
 			$callParametersArray = array(
 				'dateFrom' => $dateFrom,
-				'dateTo' => $dateTo
+				'dateTo' => $dateTo,
+				'uuid' => getUUID()
 			);
 
 			if (!is_null($be))
