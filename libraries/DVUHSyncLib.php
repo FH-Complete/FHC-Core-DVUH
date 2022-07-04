@@ -459,7 +459,7 @@ class DVUHSyncLib
 								return createError('Lehrgangdaten fehlen: ' . $idx, 'lehrgangdatenFehlen', array($idx));
 						}
 
-						if (isset($zulassungsdatum) && !$isExtern)
+						if (isset($studstatuscode) && !$isExtern)
 							$lehrgang['studstatuscode'] = $studstatuscode;
 
 						if (isset($zulassungsdatum) && !$isExtern)
