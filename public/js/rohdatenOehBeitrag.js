@@ -92,8 +92,8 @@ var RohdatenOehBeitrag = {
 
 						$("#oehbeitragsliste").html(tblString);
 						Tablesort.addTablesorter(
-							// sort by first and third column asc, show filters beggining with 2 Benutzer, exclude fifth column from filter
-							"oehbeitragslisteTable", [[0,1]], ["filter", "zebra"], 2
+							// tablesorter: add filter and zebra widgets show filters beggining with 2 entries
+							"oehbeitragslisteTable", [], ["filter", "zebra"], 2
 						)
 					}
 					else
