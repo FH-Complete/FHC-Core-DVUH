@@ -52,13 +52,12 @@ var RohdatenOehBeitrag = {
 			{
 				successCallback: function(data, textStatus, jqXHR)
 				{
-					var oehbeitragText = '';
 					if (FHC_AjaxClient.isError(data))
-						oehbeitragText = '<span class="text-danger">'+FHC_AjaxClient.getError(data)+'</span>';
+						$("#oehbeitragsliste").html('<br /><span class="text-danger">'+FHC_AjaxClient.getError(data)+'</span>');
 					else if (FHC_AjaxClient.hasData(data))
 					{
 						// on success, show Oehbeitragsliste in a table
-						oehbeitragText = FHC_AjaxClient.getData(data);
+						var oehbeitragText = FHC_AjaxClient.getData(data);
 
 						var tblString = "<table class='table table-bordered table-condensed' id='oehbeitragslisteTable'>";
 						var lines = oehbeitragText.split('\n');
@@ -98,7 +97,7 @@ var RohdatenOehBeitrag = {
 						)
 					}
 					else
-						$("#oehbeitragsliste").html("Keine Daten vorhanden");
+						$("#oehbeitragsliste").html("<br />Keine Daten vorhanden");
 
 				},
 				errorCallback: function(jqXHR, textStatus, errorThrown)
