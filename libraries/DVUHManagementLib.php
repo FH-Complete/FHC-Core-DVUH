@@ -106,7 +106,7 @@ class DVUHManagementLib
 				JOIN public.tbl_prestudentstatus USING (prestudent_id)
 				WHERE person_id = ?
 				AND studiensemester_kurzbz = ?
-				AND tbl_person.matr_nr IS NULL	
+				AND tbl_person.matr_nr IS NULL
 				LIMIT 1",
 			array(
 				$person_id, $studiensemester_kurzbz
@@ -355,17 +355,6 @@ class DVUHManagementLib
 			AND studiensemester_kurzbz = ?
 			AND buchungsnr_verweis IS NULL
 			AND betrag <= 0
-			  /*AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto /* no Gegenbuchung yet */
-								WHERE kto.person_id = tbl_konto.person_id
-								AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
-								LIMIT 1)*/
-/*								  AND NOT EXISTS (SELECT 1 FROM sync.tbl_dvuh_zahlungen /* payment not yet sent to DVUH */
-				WHERE buchungsnr = (SELECT kto.buchungsnr FROM public.tbl_konto kto
-								WHERE kto.person_id = tbl_konto.person_id
-								AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
-								LIMIT 1)
-				AND betrag > 0
-				LIMIT 1)*/
 			AND EXISTS (SELECT 1 FROM public.tbl_prestudent
 							JOIN public.tbl_prestudentstatus USING (prestudent_id)
 							WHERE tbl_prestudent.person_id = tbl_konto.person_id

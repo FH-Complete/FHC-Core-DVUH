@@ -24,6 +24,8 @@ class FeedOverview extends Auth_Controller
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 
 		$this->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
+
+		$this->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -52,7 +54,7 @@ class FeedOverview extends Auth_Controller
 		$be = $this->config->item('fhc_dvuh_be_code');
 		$content = 'true';
 		$markread = 'false';
-		$erstelltSeit = $this->input->get('erstelltSeit');
+		$erstelltSeit = convertDateToIso($this->input->get('erstelltSeit'));
 		$matrikelnummer = $this->input->get('matrikelnummer');
 
 		if (isEmptyString($erstelltSeit))

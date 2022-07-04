@@ -12,11 +12,9 @@ $this->load->view(
 		'dialoglib' => true,
 		'ajaxlib' => true,
 		'customJSs' => array(
+			'public/extensions/FHC-Core-DVUH/js/DVUHLib.js',
 			'public/extensions/FHC-Core-DVUH/js/feedoverview.js'
-		)/*,
-		'customCSSs' => array(
-			'public/css/sbadmin2/admintemplate_contentonly.css'
-		)*/
+		)
 	)
 );
 ?>
@@ -35,19 +33,19 @@ $this->load->view(
 			</div>
 			<div class="row">
 				<div class="col-xs-12">
-                    <div class="form-group">
-                        <label>
-                            Feed erstellt seit:
-                        </label>
-                        <input type="text" id="erstelltSeit">
-                        &nbsp;
-                        <label>
-                            Matrikelnummer:
-                        </label>
-                        <input type="text" id="matrikelnummer">
-                        &nbsp;
-                        <button class="btn btn-default" id="showfeeds">Anzeigen</button>
-                    </div>
+					<div class="form-group form-inline">
+						<label>
+							Feed erstellt seit:
+						</label>
+						<input type="text" class="form-control" id="erstelltSeit">
+						&nbsp;
+						<label>
+							Matrikelnummer:
+						</label>
+						<input type="text" class="form-control" id="matrikelnummer">
+						&nbsp;
+						<button class="btn btn-default" id="showfeeds">Anzeigen</button>
+					</div>
 				</div>
 			</div>
 			<div class="row">
