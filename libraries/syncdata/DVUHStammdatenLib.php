@@ -37,6 +37,7 @@ class DVUHStammdatenLib
 	/**
 	 * Retrieves Stammdaten inkl. contacts for a person, performs checks, prepares data for DVUH.
 	 * @param $person_id
+	 * @param $semester
 	 * @return object success with studentinfo or error
 	 */
 	public function getStammdatenData($person_id, $semester)

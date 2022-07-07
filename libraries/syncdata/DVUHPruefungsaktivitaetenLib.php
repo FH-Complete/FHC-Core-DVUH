@@ -16,8 +16,8 @@ class DVUHPruefungsaktivitaetenLib
 		$this->_ci =& get_instance(); // get code igniter instance
 
 		// load libraries
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 
 		// load models

@@ -22,7 +22,6 @@ class FHCManagementLib
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 
 		// load libraries
-		//$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load configs

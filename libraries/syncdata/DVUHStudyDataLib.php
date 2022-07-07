@@ -20,8 +20,8 @@ class DVUHStudyDataLib extends DVUHWarningLib
 		$this->_dbModel = new DB_Model();
 
 		// load libraries
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 
 		// load models
@@ -74,7 +74,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			$finished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_finished_student_status_kurzbz');
 
 			// Meldung pro Student, Studium und Semester
-			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_idd, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz,
+			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz,
 						stg.studiengang_kz, stg.typ AS studiengang_typ,
 						stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform,
 						pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester, stg.lgartcode,

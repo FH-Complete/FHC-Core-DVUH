@@ -15,7 +15,7 @@ class Stammdaten_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'stammdaten.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHStammdatenLib');
+		//$this->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHStammdatenLib');
 	}
 
 	/**
@@ -60,11 +60,11 @@ class Stammdaten_model extends DVUHClientModel
 	 * @param string $studiengebuehrnachfrist
 	 * @return object  success or error
 	 */
-	public function post($be, $person_id, $semester,
-						 $matrikelnummer = null, $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
-						 $studiengebuehrnachfrist = null)
+	public function post($be, $studentinfo, $semester,
+							$matrikelnummer = null, $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+							$studiengebuehrnachfrist = null)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $semester, $matrikelnummer, $oehbeitrag, $sonderbeitrag, $studiengebuehr, $valutadatum,
+		$postData = $this->retrievePostData($be, $studentinfo, $semester, $matrikelnummer, $oehbeitrag, $sonderbeitrag, $studiengebuehr, $valutadatum,
 			$valutadatumnachfrist, $studiengebuehrnachfrist);
 
 		if (isError($postData))
@@ -78,7 +78,7 @@ class Stammdaten_model extends DVUHClientModel
 	/**
 	 * Retrieve person data needed for sending Stammdaten, as well as needed payment data to send charge with the Stammdaten.
 	 * @param string $be
-	 * @param int $person_id
+	 * @param array $studentinfo
 	 * @param string $semester
 	 * @param string $matrikelnummer
 	 * @param string $oehbeitrag
@@ -89,27 +89,30 @@ class Stammdaten_model extends DVUHClientModel
 	 * @param string $studiengebuehrnachfrist
 	 * @return object success with person data or error
 	 */
-	public function retrievePostData($be, $person_id, $semester, $matrikelnummer = null,
-									  $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
-									  $studiengebuehrnachfrist = null)
+	public function retrievePostData($be, $studentinfo, $semester, $matrikelnummer = null,
+										$oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+										$studiengebuehrnachfrist = null)
 	{
 		$result = null;
 
-		if (isEmptyString($person_id))
-			$result = error('personID nicht gesetzt');
+		if (isEmptyArray($studentinfo))
+			$result = error('Studentinfo nicht gesetzt');
 		elseif (isEmptyString($semester))
 			$result = error('Semester nicht gesetzt');
 		else
 		{
-			$stammdatenDataResult = $this->dvuhstammdatenlib->getStammdatenData($person_id, $semester);
+			// $stammdatenDataResult = $this->dvuhstammdatenlib->getStammdatenData($person_id, $semester);
+			//
+			// if (isError($stammdatenDataResult))
+			// 	$result = $stammdatenDataResult;
+			// elseif (hasData($stammdatenDataResult))
+			// {
+			// 	$stammdatenData = getData($stammdatenDataResult);
 
-			if (isError($stammdatenDataResult))
-				$result = $stammdatenDataResult;
-			elseif (hasData($stammdatenDataResult))
-			{
-				$stammdatenData = getData($stammdatenDataResult);
-
-				$matrikelnummer = isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'];
+				// if (isset($matrikelnummer))
+				// 	$matrikelnummer = !isset($matrikelnummer) && isset($studentinfo['matr_nr'])? $matrikelnummer : $studentinfo['matr_nr'];
+				if (!isset($matrikelnummer) && isset($studentinfo['matr_nr']))
+					$matrikelnummer = $studentinfo['matr_nr'];
 
 				if (isEmptyString($matrikelnummer))
 					$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
@@ -124,7 +127,7 @@ class Stammdaten_model extends DVUHClientModel
 							"be" => $be,
 							"semester" => $semester
 						),
-						"studentinfo" => $stammdatenData['studentinfo']
+						"studentinfo" => $studentinfo
 					);
 
 					$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
@@ -155,9 +158,9 @@ class Stammdaten_model extends DVUHClientModel
 
 					$result = success($postData);
 				}
-			}
-			else
-				$result = error("Keine Stammdaten gefunden");
+			// }
+			// else
+			// 	$result = error("Keine Stammdaten gefunden");
 		}
 
 		return $result;
