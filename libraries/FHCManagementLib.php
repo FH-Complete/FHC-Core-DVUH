@@ -22,7 +22,8 @@ class FHCManagementLib
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 
 		// load libraries
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		//$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -112,7 +113,7 @@ class FHCManagementLib
 				AND studiensemester_kurzbz = ?
 				AND buchungsnr_verweis IS NULL
 				AND betrag < 0
-				AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
+				AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto
 				WHERE kto.person_id = tbl_konto.person_id
 				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr)
 				AND buchungstyp_kurzbz IN ?
@@ -178,7 +179,7 @@ class FHCManagementLib
 								AND pss.studiensemester_kurzbz = ?
 								AND pss.status_kurzbz IN ?
 								AND SUBSTRING(matr_nr, 2, 2) < ( /* old Matrikelnummer, older than current first prestudentstatus */
-									SELECT SUBSTRING(studiensemester_kurzbz, 5, 2) 
+									SELECT SUBSTRING(studiensemester_kurzbz, 5, 2)
 									FROM public.tbl_prestudent
 									JOIN public.tbl_prestudentstatus USING (prestudent_id)
 									WHERE prestudent_id = ps.prestudent_id
@@ -234,7 +235,7 @@ class FHCManagementLib
 	 */
 	public function saveBpkInFhc($person_id, $bpk)
 	{
-		if (!$this->_ci->dvuhsynclib->checkBpk($bpk))
+		if (!$this->_ci->dvuhcheckinglib->checkBpk($bpk))
 			return error("Invalid bPK");
 
 		return $this->_ci->PersonModel->update(

@@ -15,7 +15,7 @@ class DVUH_SC_0010 implements IIssueResolvedChecker
 		$this->_ci =& get_instance(); // get code igniter instance
 
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load bPK of given person
 		$this->_ci->PersonModel->addSelect('bpk');
@@ -27,7 +27,7 @@ class DVUH_SC_0010 implements IIssueResolvedChecker
 		if (hasData($personRes))
 		{
 			// call method for checking bPK
-			$bpkCheck = $this->_ci->dvuhsynclib->checkBpk(getData($personRes)[0]->bpk);
+			$bpkCheck = $this->_ci->dvuhcheckinglib->checkBpk(getData($personRes)[0]->bpk);
 
 			// resolved if bPK valid
 			if ($bpkCheck)

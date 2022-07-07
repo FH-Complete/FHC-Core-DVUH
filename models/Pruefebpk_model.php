@@ -15,7 +15,8 @@ class Pruefebpk_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'pruefebpk.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		// load models
+		$this->load->model('person/Person_model', 'PersonModel');
 	}
 
 	/**

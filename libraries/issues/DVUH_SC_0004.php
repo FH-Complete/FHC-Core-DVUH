@@ -15,7 +15,7 @@ class DVUH_SC_0004 implements IIssueResolvedChecker
 		$this->_ci =& get_instance(); // get code igniter instance
 
 		$this->_ci->load->model('person/Adresse_model', 'AdresseModel');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load the adresse
 		$this->_ci->AdresseModel->addSelect('strasse, plz, gemeinde, nation');
@@ -36,7 +36,7 @@ class DVUH_SC_0004 implements IIssueResolvedChecker
 			$addr['staat'] = $adresseData->nation;
 
 			// call check method
-			$addrCheck = $this->_ci->dvuhsynclib->checkAdresse($addr);
+			$addrCheck = $this->_ci->dvuhcheckinglib->checkAdresse($addr);
 
 			// resolved if adresse valid, if it returns a success
 			if (isSuccess($addrCheck))

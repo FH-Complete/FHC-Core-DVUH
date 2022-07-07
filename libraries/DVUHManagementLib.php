@@ -31,7 +31,7 @@ class DVUHManagementLib
 		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FeedReaderLib');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHStudyDataLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
 
@@ -340,8 +340,8 @@ class DVUHManagementLib
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
-		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
-		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester);
+		$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
+		$dvuh_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($studiensemester);
 
 		// get Buchungen
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery(
@@ -633,7 +633,7 @@ class DVUHManagementLib
 	{
 		$infos = array();
 		$zahlungenResArr = array();
-		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
+		$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
 
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 		$all_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
@@ -738,7 +738,7 @@ class DVUHManagementLib
 				$payment = new stdClass();
 				$payment->be = $this->_be;
 				$payment->matrikelnummer = $buchung->matr_nr;
-				$payment->semester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($buchung->studiensemester_kurzbz);
+				$payment->semester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($buchung->studiensemester_kurzbz);
 				$payment->zahlungsart = '1';
 				$payment->centbetrag = $buchung->betrag * 100;
 				$payment->eurobetrag = number_format($buchung->betrag, 2, '.', '');
@@ -854,8 +854,8 @@ class DVUHManagementLib
 		}
 
 		$result = null;
-		$fhc_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
-		$dvuh_studiensemester = $this->_ci->dvuhsynclib->convertSemesterToDVUH($studiensemester);
+		$fhc_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
+		$dvuh_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($studiensemester);
 
 		if ($preview)
 		{
@@ -873,8 +873,8 @@ class DVUHManagementLib
 		else
 			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
 
-		// get and reset warnings produced by dvuhsynclib
-		$warnings = $this->_ci->dvuhsynclib->readWarnings();
+		// get and reset warnings produced by dvuhstudydatalib
+		$warnings = $this->_ci->dvuhstudydatalib->readWarnings();
 
 		if (isError($studiumResult))
 			$result = $studiumResult;
@@ -968,7 +968,7 @@ class DVUHManagementLib
 			$person = getData($personResult)[0];
 
 			if (!isEmptyString($person->geschlecht))
-				$geschlecht = $this->_ci->dvuhsynclib->convertGeschlechtToDVUH($person->geschlecht);
+				$geschlecht = $this->_ci->dvuhconversionlib->convertGeschlechtToDVUH($person->geschlecht);
 
 			$pruefeBpkResult = $this->_ci->bpkmanagementlib->executeBpkRequest(
 				array(
@@ -1171,7 +1171,7 @@ class DVUHManagementLib
 		// TODO phrases
 		$no_pruefungen_info = 'Keine Pruefungsaktivitäten vorhanden, in DVUH gespeicherte Aktivitäten werden gelöscht, wenn vorhanden';
 
-		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
+		$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
 
 		if ($preview)
 		{
@@ -1306,7 +1306,7 @@ class DVUHManagementLib
 				return error("Daten fehlen: ".ucfirst($requiredField));
 		}
 
-		$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($studiensemester);
+		$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
 
 		$deleteRes = $this->_ci->PruefungsaktivitaetenLoeschenModel->delete($this->_be, $person_id, $studiensemester, $prestudent_id);
 
@@ -1469,10 +1469,10 @@ class DVUHManagementLib
 		$matrikelnummer = $studentData->matr_nr;
 
 		// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
-		$isAusserordentlich = $this->_ci->dvuhsynclib->checkIfAusserordentlich($studentData->personenkennzeichen);
+		$isAusserordentlich = $this->_ci->dvuhcheckinglib->checkIfAusserordentlich($studentData->personenkennzeichen);
 
 		// studiengang kz
-		$meldeStudiengangRes = $this->_ci->dvuhsynclib->getMeldeStudiengangKz($studentData->studiengang_kz, $studentData->erhalter_kz, $isAusserordentlich);
+		$meldeStudiengangRes = $this->_ci->dvuhconversionlib->getMeldeStudiengangKz($studentData->studiengang_kz, $studentData->erhalter_kz, $isAusserordentlich);
 
 		if (isError($meldeStudiengangRes))
 			return $meldeStudiengangRes;
@@ -1581,7 +1581,7 @@ class DVUHManagementLib
 					return $studiumPostRes;
 
 				// insert into sync table to record that data was cancelled
-				$studiensemester_kurzbz = $this->_ci->dvuhsynclib->convertSemesterToFHC($semester);
+				$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($semester);
 
 				$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
 					array(

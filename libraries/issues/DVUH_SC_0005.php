@@ -15,7 +15,7 @@ class DVUH_SC_0005 implements IIssueResolvedChecker
 		$this->_ci =& get_instance(); // get code igniter instance
 
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load ersatzkennzeichen for the given person
 		$this->_ci->PersonModel->addSelect('ersatzkennzeichen');
@@ -27,7 +27,7 @@ class DVUH_SC_0005 implements IIssueResolvedChecker
 		if (hasData($personRes))
 		{
 			// call ersatzkennzeichen check method
-			$ekzCheck = $this->_ci->dvuhsynclib->checkEkz(getData($personRes)[0]->ersatzkennzeichen);
+			$ekzCheck = $this->_ci->dvuhcheckinglib->checkEkz(getData($personRes)[0]->ersatzkennzeichen);
 
 			// if returns true, ekz is valid, issue resolved
 			if ($ekzCheck)

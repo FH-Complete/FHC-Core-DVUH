@@ -17,7 +17,7 @@ class Studium_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'studium.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHStudyDataLib');
 	}
 
 	/**
@@ -128,7 +128,7 @@ class Studium_model extends DVUHClientModel
 	 */
 	public function retrievePostData($be, $person_id, $semester, $prestudent_id)
 	{
-		$studiumDataResult = $this->dvuhsynclib->getStudyData($person_id, $semester, $prestudent_id);
+		$studiumDataResult = $this->dvuhstudydatalib->getStudyData($person_id, $semester, $prestudent_id);
 
 		if (isError($studiumDataResult))
 			$result = $studiumDataResult;

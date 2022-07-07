@@ -15,7 +15,7 @@ class Matrikelpruefung_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'matrikelpruefung.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 	}
 
 	/**
@@ -43,14 +43,14 @@ class Matrikelpruefung_model extends DVUHClientModel
 				'nameUndGebdatumAngeben'
 			);
 		}
-		elseif (!isEmptyString($ekz) && !$this->dvuhsynclib->checkEkz($ekz))
+		elseif (!isEmptyString($ekz) && !$this->dvuhcheckinglib->checkEkz($ekz))
 		{
 			$result = createError(
 				'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
 				'ersatzkennzeichenUngueltig'
 			);
 		}
-		elseif (!isEmptyString($bpk) && !$this->dvuhsynclib->checkBpk($bpk))
+		elseif (!isEmptyString($bpk) && !$this->dvuhcheckinglib->checkBpk($bpk))
 		{
 			$result = createError(
 				'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',

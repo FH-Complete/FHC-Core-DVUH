@@ -15,7 +15,8 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'pruefungsaktivitaeten.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHPruefungsaktivitaetenLib');
 	}
 
 	/**
@@ -83,10 +84,10 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 			$result = error('personID nicht gesetzt');
 		else
 		{
-			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($studiensemester);
+			$dvuh_studiensemester = $this->dvuhconversionlib->convertSemesterToDVUH($studiensemester);
 
 			// get ects sums for Noten of the person
-			$pruefungsaktivitaetenDataResult = $this->dvuhsynclib->getPruefungsaktivitaetenData($person_id, $studiensemester);
+			$pruefungsaktivitaetenDataResult = $this->dvuhpruefungsaktivitaetenlib->getPruefungsaktivitaetenData($person_id, $studiensemester);
 
 			if (isError($pruefungsaktivitaetenDataResult))
 				$result = $pruefungsaktivitaetenDataResult;

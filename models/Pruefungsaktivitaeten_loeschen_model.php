@@ -15,7 +15,8 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'pruefungsaktivitaeten_loeschen.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 	}
 
 	/**
@@ -33,11 +34,15 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 
 		$status_kurzbz = $this->config->item('fhc_dvuh_status_kurzbz');
 
-		$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($semester);
+		$dvuh_studiensemester = $this->dvuhconversionlib->convertSemesterToDVUH($semester);
 
 		// data of Pruefungsaktivitaeten for prestudents of the person
-		$studiensemester_kurzbz = $this->dvuhsynclib->convertSemesterToFHC($semester);
-		$prestudentsDataResult = $this->fhcmanagementlib->getPrestudentsOfPerson($person_id, $studiensemester_kurzbz, $status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]);
+		$studiensemester_kurzbz = $this->dvuhconversionlib->convertSemesterToFHC($semester);
+		$prestudentsDataResult = $this->fhcmanagementlib->getPrestudentsOfPerson(
+			$person_id,
+			$studiensemester_kurzbz,
+			$status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]
+		);
 
 		if (isError($prestudentsDataResult))
 			return $prestudentsDataResult;
@@ -58,8 +63,13 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 				);
 
 				// studiengang kz
-				$isAusserordentlich = isset($prestudent->personenkennzeichen) && $this->dvuhsynclib->checkIfAusserordentlich($prestudent->personenkennzeichen);
-				$meldeStudiengangRes = $this->dvuhsynclib->getMeldeStudiengangKz($prestudent->studiengang_kz, $prestudent->erhalter_kz, $isAusserordentlich);
+				$isAusserordentlich = isset($prestudent->personenkennzeichen)
+					&& $this->dvuhcheckinglib->checkIfAusserordentlich($prestudent->personenkennzeichen);
+				$meldeStudiengangRes = $this->dvuhconversionlib->getMeldeStudiengangKz(
+					$prestudent->studiengang_kz,
+					$prestudent->erhalter_kz,
+					$isAusserordentlich
+				);
 
 				if (isError($meldeStudiengangRes))
 					return $meldeStudiengangRes;
@@ -69,9 +79,9 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 					$melde_studiengang_kz = getData($meldeStudiengangRes);
 
 				// delete Prüfungsaktivitaeten endpoint needs only 4 digits studiengang kz - chop off erhalter kz
-				if (strlen($melde_studiengang_kz) == DVUHSyncLib::DVUH_ERHALTER_LENGTH + DVUHSyncLib::DVUH_STGKZ_LENGTH)
+				if (strlen($melde_studiengang_kz) == DVUHCheckingLib::DVUH_ERHALTER_LENGTH + DVUHCheckingLib::DVUH_STGKZ_LENGTH)
 				{
-					$melde_studiengang_kz = substr($melde_studiengang_kz, -1 * DVUHSyncLib::DVUH_STGKZ_LENGTH);
+					$melde_studiengang_kz = substr($melde_studiengang_kz, -1 * DVUHCheckingLib::DVUH_STGKZ_LENGTH);
 				}
 
 				$params['matrikelnummer'] = $prestudent->matr_nr;

@@ -15,7 +15,7 @@ class Stammdaten_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'stammdaten.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHStammdatenLib');
 	}
 
 	/**
@@ -101,7 +101,7 @@ class Stammdaten_model extends DVUHClientModel
 			$result = error('Semester nicht gesetzt');
 		else
 		{
-			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id, $semester);
+			$stammdatenDataResult = $this->dvuhstammdatenlib->getStammdatenData($person_id, $semester);
 
 			if (isError($stammdatenDataResult))
 				$result = $stammdatenDataResult;
@@ -113,7 +113,7 @@ class Stammdaten_model extends DVUHClientModel
 
 				if (isEmptyString($matrikelnummer))
 					$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
-				elseif (!$this->dvuhsynclib->checkMatrikelnummer($matrikelnummer))
+				elseif (!$this->dvuhcheckinglib->checkMatrikelnummer($matrikelnummer))
 					$result = createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($matrikelnummer));
 				else
 				{
@@ -132,7 +132,7 @@ class Stammdaten_model extends DVUHClientModel
 					$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
 					$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
 
-					// betragstatus 'O' if no oehbeitrag, otherwise Z error from DVUH
+					// beitragstatus 'O' if no oehbeitrag, otherwise Z error from DVUH
 					if ($oehbeitrag == '0' && $sonderbeitrag == '0')
 						$params["studentinfo"]["beitragstatus"] = 'O';
 
