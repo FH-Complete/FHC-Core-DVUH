@@ -366,7 +366,7 @@ class DVUH extends Auth_Controller
 		$dokumentnr = isset($data['dokumentnr']) ? $data['dokumentnr'] : null;
 		$dokumenttyp = isset($data['dokumenttyp']) ? $data['dokumenttyp'] : null;
 
-		$json = $this->dvuhmatrikelnummermanagementlib->sendMatrikelErnpMeldung($person_id, $writeonerror, $ausgabedatum,
+		$json = $this->dvuhmasterdatamanagementlib->sendMatrikelErnpMeldung($person_id, $writeonerror, $ausgabedatum,
 			$ausstellBehoerde, $ausstellland, $dokumentnr, $dokumenttyp, $preview);
 
 		$this->outputJson($json);
