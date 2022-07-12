@@ -105,6 +105,9 @@
 				if (isset($studiengang['gemeinsam']['mobilitaetprogrammcode']))
 					echo "\t\t\t\t<mobilitaetprogrammcode>".$studiengang['gemeinsam']['mobilitaetprogrammcode']."</mobilitaetprogrammcode>\n";
 
+				if (isset($studiengang['gemeinsam']['studienkennunguni']))
+					echo "\t\t\t\t<studienkennunguni>".$studiengang['gemeinsam']['studienkennunguni']."</studienkennunguni>\n";
+
 				echo "\t\t\t</gemeinsam>\n";
 			}
 

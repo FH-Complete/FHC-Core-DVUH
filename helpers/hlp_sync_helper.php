@@ -67,7 +67,7 @@ function dateDiff($datum1, $datum2)
  * @param string $error_text_for_logging error text (NOT The issue error text)
  * @param string $issue_fehler_kurzbz short unique text id of issue
  * @param array $issue_fehlertext_params parameters for replacement of issue error text
- * @param array $issue_resolution_params parameters used for check if issue is resolved
+ * @param array $issue_resolution_params parameters used for check if issue is resolved, associative array
  * @return object the error
  */
 function createError($error_text_for_logging, $issue_fehler_kurzbz, $issue_fehlertext_params = null, $issue_resolution_params = null)
@@ -81,7 +81,7 @@ function createError($error_text_for_logging, $issue_fehler_kurzbz, $issue_fehle
 }
 
 /**
- * Helper function for creating a DVUH external error object.
+ * Helper function for creating a external error object for errors produced by DVUH.
  * @param string $error_text_for_logging
  * @param string $fehlernummer DVUH error number
  * @return object the error

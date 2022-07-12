@@ -302,6 +302,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 						if (isset($gemeinsamResult) && isError($gemeinsamResult))
 							return $gemeinsamResult;
+
 						if (hasData($gemeinsamResult))
 						{
 							$gemeinsam = getData($gemeinsamResult);
@@ -505,6 +506,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			"SELECT
 					mo.*,
 					tbl_gsprogramm.programm_code,
+					tbl_gsprogramm.studienkennung_uni,
 					tbl_firma.partner_code,
 						CASE WHEN EXISTS
 						(SELECT 1 FROM bis.tbl_mobilitaet
@@ -550,6 +552,19 @@ class DVUHStudyDataLib extends DVUHWarningLib
 				'studstatuscode' => $gs_studstatuscode,
 				'studtyp' => $studtyp
 			);
+
+			if (isset($gemeinsamestudien->studienkennung_uni)
+				&& !$this->_ci->dvuhcheckinglib->checkStudienkennunguni($gemeinsamestudien->studienkennung_uni))
+			{
+				return createError(
+					"Studienkennung Uni ungültig, GS Programm Code ".$gemeinsamestudien->programm_code,
+					'studienkennunguniUngueltig',
+					array($gemeinsamestudien->programm_code),
+					array('gsprogramm_id' => $gemeinsamestudien->gsprogramm_id)
+				);
+			}
+
+			$gemeinsamData['studienkennunguni'] = $gemeinsamestudien->studienkennung_uni;
 
 			// set beendigungsdatum only if finished studies
 			if ($gemeinsamestudien->abgeschlossen === true)

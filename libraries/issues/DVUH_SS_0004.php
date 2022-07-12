@@ -26,7 +26,7 @@ class DVUH_SS_0004 implements IIssueResolvedChecker
 
 		if (hasData($studentRes))
 		{
-			// call method for checking if personenkennzeichen and resolve if valid
+			// call method for checking personenkennzeichen and resolve if valid
 			$perskzCheck = $this->_ci->dvuhcheckinglib->checkPersonenkennzeichen(trim(getData($studentRes)[0]->matrikelnr));
 
 			if ($perskzCheck)

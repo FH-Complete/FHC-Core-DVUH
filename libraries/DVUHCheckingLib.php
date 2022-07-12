@@ -124,4 +124,14 @@ class DVUHCheckingLib
 
 		return $stgkzValid;
 	}
+
+	/**
+	 * Checks studienkennunguni for validity.
+	 * @param string $studienkennunguni
+	 * @return bool valid or not
+	 */
+	public function checkStudienkennunguni($studienkennunguni)
+	{
+		return preg_match("/^[AFHLU][UPF][A-Z]([0-9]{3}){1,3}(0[1-6]|[UP][A-W]){0,1}$/", $studienkennunguni) === 1;
+	}
 }
