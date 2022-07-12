@@ -14,8 +14,6 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	{
 		parent::__construct();
 		$this->_url = 'pruefungsaktivitaeten.xml';
-
-		//$this->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHPruefungsaktivitaetenLib');
 	}
 
 	/**
