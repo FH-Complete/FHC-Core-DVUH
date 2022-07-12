@@ -4,7 +4,7 @@ require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncmanagement/DVUHMan
 
 /**
  * Contains logic for interaction of FHC with DVUH.
- * This includes initializing webservice calls for modifiying data in DVUH, and updating data in FHC accordingly.
+ * This includes initializing webservice calls for modifiying Matrikelnummer data in DVUH, and updating data in FHC accordingly.
  */
 class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 {
@@ -33,6 +33,8 @@ class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHMatrikelnummerreservierung_model', 'DVUHMatrikelnummerreservierungModel');
+
+		$this->_dbModel = new DB_Model(); // get db
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -300,7 +302,7 @@ class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 	 */
 	private function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv, &$infos)
 	{
-		$sendMasterDataResult = $this->_ci->DVUHMasterDataManagementLib->sendMasterdata($person_id, $studiensemester_kurzbz, $matrikelnummer);
+		$sendMasterDataResult = $this->_ci->dvuhmasterdatamanagementlib->sendMasterdata($person_id, $studiensemester_kurzbz, $matrikelnummer);
 
 		if (isError($sendMasterDataResult))
 			$result = $sendMasterDataResult;

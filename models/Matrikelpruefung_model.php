@@ -15,7 +15,11 @@ class Matrikelpruefung_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'matrikelpruefung.xml';
 
+		// load libraries
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
+
+		// load helpers
+		$this->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
 	}
 
 	/**

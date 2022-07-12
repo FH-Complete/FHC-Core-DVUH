@@ -17,6 +17,7 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 
 		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHPruefungsaktivitaetenLib');
 
 		// load models
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
@@ -51,10 +52,18 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 		$no_pruefungen_info = 'Keine Pruefungsaktivitäten vorhanden, in DVUH gespeicherte Aktivitäten werden gelöscht, wenn vorhanden';
 
 		$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
+		$dvuh_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($studiensemester);
+
+		$pruefungsaktivitaetenDataResult = $this->_ci->dvuhpruefungsaktivitaetenlib->getPruefungsaktivitaetenData($person_id, $studiensemester_kurzbz);
+
+		if (isError($pruefungsaktivitaetenDataResult))
+			return $pruefungsaktivitaetenDataResult;
+
+		$pruefungsaktivitaetenData = getData($pruefungsaktivitaetenDataResult);
 
 		if ($preview)
 		{
-			$postData = $this->_ci->PruefungsaktivitaetenModel->retrievePostData($this->_be, $person_id, $studiensemester_kurzbz);
+			$postData = $this->_ci->PruefungsaktivitaetenModel->retrievePostData($this->_be, $pruefungsaktivitaetenData, $dvuh_studiensemester);
 
 			if (isError($postData))
 				return $postData;
@@ -67,23 +76,23 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 			return $this->getResponseArr($postData, $infos);
 		}
 
-		$prestudentsToPost = array();
+		//$prestudentsToPost = array();
 
-		$pruefungsaktivitaetenResult = $this->_ci->PruefungsaktivitaetenModel->post(
+		$pruefungsaktivitaetenPostResult = $this->_ci->PruefungsaktivitaetenModel->post(
 			$this->_be,
-			$person_id,
-			$studiensemester_kurzbz,
-			$prestudentsToPost
+			$pruefungsaktivitaetenData,
+			$dvuh_studiensemester
+			//$prestudentsToPost
 		);
 
-		if (isError($pruefungsaktivitaetenResult))
-			return $pruefungsaktivitaetenResult;
+		if (isError($pruefungsaktivitaetenPostResult))
+			return $pruefungsaktivitaetenPostResult;
 
-		$pruefungsaktivitaetenResultData = null;
+		$pruefungsaktivitaetenPostResultData = null;
 
-		if (hasData($pruefungsaktivitaetenResult))
+		if (hasData($pruefungsaktivitaetenPostResult))
 		{
-			$xmlstr = getData($pruefungsaktivitaetenResult);
+			$xmlstr = getData($pruefungsaktivitaetenPostResult);
 
 			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
 
@@ -93,11 +102,20 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 		else
 			$infos[] = $no_pruefungen_info;
 
+			// foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
+			// {
+			// 	// save ects to post to variable
+			// 	$toPost[$prestudent_id]['ects_angerechnet'] = 0;
+			// 	$toPost[$prestudent_id]['ects_erworben'] = $pruefungsaktivitaeten->ects_erworben;
+
 		// check for each prestudent to post if deletion is needed
-		foreach ($prestudentsToPost as $prestudent_id => $ects)
+		foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
 		{
-			// if no ects were sent
-			if ($ects['ects_angerechnet'] == 0 && $ects['ects_erworben'] == 0)
+			$ects_angerechnet = 0;
+			$ects_erworben = $pruefungsaktivitaeten->ects_erworben;
+
+			// if no ects sent to DVUH
+			if ($ects_angerechnet == 0 && $ects_erworben == 0)
 			{
 				// get last sent ects
 				$checkPruefungsaktivitaetenRes = $this->_ci->DVUHPruefungsaktivitaetenModel->getLastSentPruefungsaktivitaet(
@@ -109,7 +127,7 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 				{
 					$checkPruefungsaktivitaeten = getData($checkPruefungsaktivitaetenRes)[0];
 
-					// if there were ects sent before, delete all Pruefungsaktivitaeten for the prestudent
+					// if there were ects sent before, delete all Pruefungsaktivitaeten for the prestudent in DVUH
 					if (isset($checkPruefungsaktivitaeten->ects_angerechnet) || isset($checkPruefungsaktivitaeten->ects_erworben))
 					{
 						$deletePruefunsaktivitaetenRes = $this->deletePruefungsaktivitaeten($person_id, $studiensemester_kurzbz, $prestudent_id);
@@ -130,13 +148,13 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 			else
 			{
 				// if at least some ects were sent, write to sync table
-				$ects_angerechnet_posted = $ects['ects_angerechnet'] == 0
+				$ects_angerechnet_posted = $ects_angerechnet == 0
 					? null
-					: number_format($ects['ects_angerechnet'], 2, '.', '');
+					: number_format($ects_angerechnet, 2, '.', '');
 
-				$ects_erworben_posted = $ects['ects_erworben'] == 0
+				$ects_erworben_posted = $ects_erworben == 0
 					? null
-					: number_format($ects['ects_erworben'], 2, '.', '');
+					: number_format($ects_erworben, 2, '.', '');
 
 				$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
 					array(
@@ -156,7 +174,7 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 		$infos[] = 'Pruefungsaktivitätenmeldung erfolgreich';
 
 		$result = $this->getResponseArr(
-			$pruefungsaktivitaetenResultData,
+			$pruefungsaktivitaetenPostResultData,
 			$infos,
 			$warnings,
 			true

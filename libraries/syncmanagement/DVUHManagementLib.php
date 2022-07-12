@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Contains logic for interaction of FHC with DVUH.
- * This includes initializing webservice calls for modifiying data in DVUH, and updating data in FHC accordingly.
+ * Contains generic logic for interaction of FHC with DVUH.
+ * Loads libraries, configs, helpers needed by all management libs.
  */
 class DVUHManagementLib
 {
@@ -27,9 +27,6 @@ class DVUHManagementLib
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 		$this->_be = $this->_ci->config->item('fhc_dvuh_be_code');
-
-		$this->_ci->load->model('person/Person_model', 'PersonModel');
-		$this->_dbModel = new DB_Model(); // get db
 	}
 
 	// --------------------------------------------------------------------------------------------

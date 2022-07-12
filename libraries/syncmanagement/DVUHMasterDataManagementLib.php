@@ -4,7 +4,7 @@ require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncmanagement/DVUHMan
 
 /**
  * Contains logic for interaction of FHC with DVUH.
- * This includes initializing webservice calls for modifiying data in DVUH, and updating data in FHC accordingly.
+ * This includes initializing webservice calls for modifiying MasterDat data in DVUH, and updating data in FHC accordingly.
  */
 class DVUHMasterDataManagementLib extends DVUHManagementLib
 {
@@ -34,6 +34,8 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHZahlungen_model', 'DVUHZahlungenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHStammdaten_model', 'DVUHStammdatenModel');
+
+		$this->_dbModel = new DB_Model(); // get db
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -189,6 +191,9 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 
 		if (isError($studentinfoRes))
 			return $studentinfoRes;
+
+		if (!hasData($studentinfoRes))
+			return error('Keine Stammdaten gefunden');
 
 		$studentinfo = getData($studentinfoRes);
 
@@ -696,6 +701,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 						// check for nullify flag to see if no nullification is needed
 						$nullifyFlag = $this->_ci->config->item('fhc_dvuh_sync_nullify_buchungen_paid_other_univ');
 
+						// if buchung not paid yet, not sent to sap already, nullify the buchung which was already paid
 						if ($buchung->bezahlt == '0' && $isSentToSap === false && $nullifyFlag === true)
 						{
 							// set ÖH-Buchungen to 0 since they don't need to be paid anymore
@@ -772,7 +778,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	}
 
 	/**
-	 * Saves bpk in FHC db if DVUH returned bpk and there is no bpk in FHC.
+	 * Saves bPK in FHC db if DVUH returned warning with bPK and there is no bpk in FHC.
 	 * @param int $person_id
 	 * @param array $parsedWarnings contains warning objects with error info and bpk, as returned from DVUH
 	 * @return object success with bpk if saved, or error

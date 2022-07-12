@@ -15,6 +15,7 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'pruefungsaktivitaeten_loeschen.xml';
 
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 		$this->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 	}

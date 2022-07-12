@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Library for retrieving data from FHC for DVUH.
+ * Library for retrieving Pruefungsaktivitaeten data from FHC for DVUH.
  * Extracts data from FHC db, performs data quality checks and puts data in DVUH form.
  */
 class DVUHPruefungsaktivitaetenLib
@@ -16,15 +16,13 @@ class DVUHPruefungsaktivitaetenLib
 		$this->_ci =& get_instance(); // get code igniter instance
 
 		// load libraries
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 
 		// load models
 		$this->_ci->load->model('education/Zeugnisnote_model', 'ZeugnisnoteModel');
-
-		// load helpers
-		//$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');

@@ -3,7 +3,7 @@
 require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncdata/DVUHWarningLib.php';
 
 /**
- * Library for retrieving data from FHC for DVUH.
+ * Library for retrieving StudyData data from FHC for DVUH.
  * Extracts data from FHC db, performs data quality checks and puts data in DVUH form.
  */
 class DVUHStudyDataLib extends DVUHWarningLib
@@ -17,9 +17,9 @@ class DVUHStudyDataLib extends DVUHWarningLib
 	public function __construct()
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
-		$this->_dbModel = new DB_Model();
 
 		// load libraries
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
@@ -37,6 +37,8 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+
+		$this->_dbModel = new DB_Model();
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -45,11 +47,11 @@ class DVUHStudyDataLib extends DVUHWarningLib
 	/**
 	 * Retrieves studydata for a person and semester, performs checks, prepares data for DVUH.
 	 * @param int $person_id
-	 * @param string $semester
+	 * @param string $studiensemester_kurzbz
 	 * @param int $prestudent_id optionally, retrieve only data for one prestudent of the person
 	 * @return object success with studentinfo or error
 	 */
-	public function getStudyData($person_id, $semester, $prestudent_id = null)
+	public function getStudyData($person_id, $studiensemester_kurzbz, $prestudent_id = null)
 	{
 		$resultObj = new stdClass();
 
@@ -67,8 +69,6 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 			$resultObj->matrikelnummer = $person->matr_nr;
 			$gebdatum = $person->gebdatum;
-
-			$semester = $this->_ci->dvuhconversionlib->convertSemesterToFHC($semester);
 
 			$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
 			$finished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_finished_student_status_kurzbz');
@@ -105,7 +105,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			$params = array(
 				isEmptyArray($finished_status_kurzbz) ? array('') : $finished_status_kurzbz,
 				$person_id,
-				$semester
+				$studiensemester_kurzbz
 			);
 
 			if (isset($status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA]))
@@ -136,7 +136,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 				foreach ($prestudentstatuses as $prestudentstatus)
 				{
 					$prestudent_id = $prestudentstatus->prestudent_id;
-					$prestudent_ids[] = $prestudent_id;
+					$prestudent_ids[] = $prestudent_id; // save prestudent id to know which prestudents were synced
 					$status_kurzbz = $prestudentstatus->status_kurzbz;
 					$studiengang_kz = $prestudentstatus->studiengang_kz;
 
@@ -298,7 +298,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						$gemeinsam = null;
 						// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
 						$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
-						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $gsBeendigungsdatum);
+						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $studiensemester_kurzbz, $studtyp, $gsBeendigungsdatum);
 
 						if (isset($gemeinsamResult) && isError($gemeinsamResult))
 							return $gemeinsamResult;
@@ -320,7 +320,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 						// Mobilität
 						$mobilitaet = null;
-						$mobilitaetResult = $this->_getMobilitaet($semester, $prestudentstatus);
+						$mobilitaetResult = $this->_getMobilitaet($studiensemester_kurzbz, $prestudentstatus);
 
 						if (isset($mobilitaetResult) && isError($mobilitaetResult))
 							return $mobilitaetResult;
@@ -486,12 +486,12 @@ class DVUHStudyDataLib extends DVUHWarningLib
 	/**
 	 * Gets gemeinsame Studien data for a prestudent.
 	 * @param object $prestudentstatus with gsinfo
-	 * @param string $semester for getting previous semester for Absolventen
+	 * @param string $studiensemester_kurzbz for getting previous semester for Absolventen
 	 * @param string $studtyp pass to gsdata
 	 * @param string $beendiungsdatum end date of GS stay
 	 * @return object error or success with gsdata
 	 */
-	private function _getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $beendigungsdatum)
+	private function _getGemeinsameStudien($prestudentstatus, $studiensemester_kurzbz, $studtyp, $beendigungsdatum)
 	{
 		if (!isset($studtyp))
 			return error('Kein Studientyp für gemeinsame Studien gefunden');
@@ -499,6 +499,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 		$prestudent_id = $prestudentstatus->prestudent_id;
 
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
+		$finished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_finished_student_status_kurzbz');
 
 		$gemeinsamestudienResult = $this->_dbModel->execReadOnlyQuery(
 			"SELECT
@@ -509,10 +510,10 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						(SELECT 1 FROM bis.tbl_mobilitaet
 						WHERE prestudent_id = mo.prestudent_id
 						AND studiensemester_kurzbz = mo.studiensemester_kurzbz
-						AND status_kurzbz = 'Absolvent')
+						AND status_kurzbz IN ?)
 					THEN TRUE
 					ELSE FALSE
-					END AS ist_absolvent
+					END AS abgeschlossen
 				FROM
 					bis.tbl_mobilitaet mo
 					LEFT JOIN bis.tbl_gsprogramm USING(gsprogramm_id)
@@ -522,8 +523,9 @@ class DVUHStudyDataLib extends DVUHWarningLib
 					AND studiensemester_kurzbz=?
 				ORDER BY mo.insertamum DESC LIMIT 1;",
 			array(
+				isEmptyArray($finished_status_kurzbz) ? array('') : $finished_status_kurzbz,
 				$prestudent_id,
-				$semester
+				$studiensemester_kurzbz
 			)
 		);
 
@@ -549,8 +551,8 @@ class DVUHStudyDataLib extends DVUHWarningLib
 				'studtyp' => $studtyp
 			);
 
-			// set beendigungsdatum only if absolvent
-			if ($gemeinsamestudien->ist_absolvent === true)
+			// set beendigungsdatum only if finished studies
+			if ($gemeinsamestudien->abgeschlossen === true)
 				$gemeinsamData['beendigungsdatum'] = $beendigungsdatum;
 
 			$gemeinsam = success($gemeinsamData);

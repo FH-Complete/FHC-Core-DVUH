@@ -14,6 +14,7 @@ class Ekzanfordern_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'ekzanfordern.xml';
 
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 	}
 

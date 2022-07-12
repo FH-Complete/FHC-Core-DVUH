@@ -16,16 +16,18 @@ class FHCManagementLib
 	public function __construct()
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
-		$this->_dbModel = new DB_Model();
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+		$this->_ci->load->model('crm/Konto_model', 'KontoModel');
 
 		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+
+		$this->_dbModel = new DB_Model();
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -178,7 +180,7 @@ class FHCManagementLib
 								AND pss.studiensemester_kurzbz = ?
 								AND pss.status_kurzbz IN ?
 								AND SUBSTRING(matr_nr, 2, 2) < ( /* old Matrikelnummer, older than current first prestudentstatus */
-									SELECT SUBSTRING(studiensemester_kurzbz, 5, 2)
+									SELECT SUBSTRING(studiensemester_kurzbz, 5, 2) /* comparing year of matrikelnr and status studiensemester */
 									FROM public.tbl_prestudent
 									JOIN public.tbl_prestudentstatus USING (prestudent_id)
 									WHERE prestudent_id = ps.prestudent_id
@@ -301,6 +303,7 @@ class FHCManagementLib
 	 */
 	public function checkIfSentToSap($buchungsnr)
 	{
+		// check if sync table exists (SAP sync extension should be installed)
 		$tblExistsQry = "SELECT 1
 							FROM information_schema.tables
 							WHERE table_schema = 'sync' and table_name='tbl_sap_salesorder'";
@@ -310,6 +313,7 @@ class FHCManagementLib
 		if (isError($tblExistsRes))
 			return $tblExistsRes;
 
+		// check if buchungs was already sent and is in synctable
 		if (hasData($tblExistsRes))
 		{
 			$sentToSapQry = "SELECT 1

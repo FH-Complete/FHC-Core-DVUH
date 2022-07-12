@@ -1,13 +1,12 @@
 <?php
 
 /**
- * Library for retrieving data from FHC for DVUH.
+ * Library for retrieving Stammdaten data from FHC for DVUH.
  * Extracts data from FHC db, performs data quality checks and puts data in DVUH form.
  */
 class DVUHStammdatenLib
 {
 	private $_ci;
-	private $_dbModel;
 
 	/**
 	 * Library initialization
@@ -15,9 +14,9 @@ class DVUHStammdatenLib
 	public function __construct()
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
-		$this->_dbModel = new DB_Model();
 
 		// load libraries
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 
@@ -37,19 +36,16 @@ class DVUHStammdatenLib
 	/**
 	 * Retrieves Stammdaten inkl. contacts for a person, performs checks, prepares data for DVUH.
 	 * @param $person_id
-	 * @param $semester
+	 * @param $studiensemester_kurzbz
 	 * @return object success with studentinfo or error
 	 */
-	public function getStammdatenData($person_id, $semester)
+	public function getStammdatenData($person_id, $studiensemester_kurzbz)
 	{
 		$stammdaten = $this->_ci->PersonModel->getPersonStammdaten($person_id);
 
 		if (hasData($stammdaten))
 		{
 			$stammdaten = getData($stammdaten);
-
-			// studiensemester e.g. for university mails
-			$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($semester);
 
 			$adressen = array();
 			$emailliste = array();
@@ -218,10 +214,7 @@ class DVUHStammdatenLib
 			}
 
 			return success(
-				array(
-					'matrikelnummer' => $stammdaten->matr_nr,
-					'studentinfo' => $studentinfo
-				)
+				$studentinfo
 			);
 		}
 		else

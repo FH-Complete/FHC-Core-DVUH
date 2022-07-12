@@ -22,6 +22,8 @@ class DVUHPaymentManagementLib extends DVUHManagementLib
 		// load models
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Zahlung_model', 'ZahlungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHZahlungen_model', 'DVUHZahlungenModel');
+
+		$this->_dbModel = new DB_Model(); // get db
 	}
 
 	// --------------------------------------------------------------------------------------------

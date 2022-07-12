@@ -16,9 +16,11 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 	public function __construct()
 	{
 		parent::__construct();
-		
+
 		// load libraries
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHStudyDataLib');
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
@@ -61,9 +63,19 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 		$fhc_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
 		$dvuh_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($studiensemester);
 
+		$studiumDataResult = $this->_ci->dvuhstudydatalib->getStudyData($person_id, $fhc_studiensemester, $prestudent_id);
+
+		if (isError($studiumDataResult))
+			return $studiumDataResult;
+
+		if (!hasData($studiumDataResult))
+			return error('Keine Studiumdaten gefunden');
+
+		$studiumData = getData($studiumDataResult);
+
 		if ($preview)
 		{
-			$postData = $this->_ci->StudiumModel->retrievePostData($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
+			$postData = $this->_ci->StudiumModel->retrievePostData($this->_be, $studiumData, $dvuh_studiensemester);
 
 			if (isError($postData))
 				return $postData;
@@ -73,9 +85,9 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 
 		// put if only for one prestudent, with post all data would be updated.
 		if (isset($prestudent_id))
-			$studiumResult = $this->_ci->StudiumModel->put($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
+			$studiumResult = $this->_ci->StudiumModel->put($this->_be, $studiumData, $dvuh_studiensemester);
 		else
-			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
+			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $studiumData, $dvuh_studiensemester);
 
 		// get and reset warnings produced by dvuhstudydatalib
 		$warnings = $this->_ci->dvuhstudydatalib->readWarnings();
@@ -113,9 +125,9 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 				if (isError($matrNrActivationResult))
 					$result = error("Studiumdaten erfolgreich gespeichert, Fehler beim Scharfschalten der Matrikelnummer in FHC");
 
-				$syncedPrestudentIds = $this->_ci->StudiumModel->retrieveSyncedPrestudentIds();
+				//$syncedPrestudentIds = $this->_ci->StudiumModel->retrieveSyncedPrestudentIds();
 
-				foreach ($syncedPrestudentIds as $syncedPrestudentId)
+				foreach ($studiumData->prestudent_ids as $syncedPrestudentId)
 				{
 					// save info about saved studiumdata in sync table
 					$studiumSaveResult = $this->_ci->DVUHStudiumdatenModel->insert(
