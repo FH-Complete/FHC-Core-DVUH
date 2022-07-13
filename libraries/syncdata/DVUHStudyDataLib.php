@@ -210,10 +210,29 @@ class DVUHStudyDataLib extends DVUHWarningLib
 					// zulassungsdatum (start date of studies)
 					$zulassungsdatum = $isIncoming || $isAusserordentlich ? null : $prestudentstatus->beginndatum;
 
-					// zgv if not ausserordentlich
+					// orgform_kurzbz
+					if (isset($prestudentstatus->studienplan_orgform))
+						$orgform_kurzbz = $prestudentstatus->studienplan_orgform;
+					elseif (isset($prestudentstatus->prestudentstatus_orgform))
+						$orgform_kurzbz = $prestudentstatus->prestudentstatus_orgform;
+					elseif (isset($prestudentstatus->studiengang_orgform))
+						$orgform_kurzbz = $prestudentstatus->studiengang_orgform;
+
 					$zugangsberechtigung = null;
 					if (!$isAusserordentlich)
 					{
+						// orgform code if not ausserordentlich
+						$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
+
+						if (isError($orgform_code))
+							return $orgform_code;
+
+						if (hasData($orgform_code))
+						{
+							$orgformcode = getData($orgform_code);
+						}
+
+						// zgv if not ausserordentlich
 						$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum, $isIncoming);
 
 						if (isError($zugangsberechtigungResult))
@@ -250,6 +269,21 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						}
 					}
 
+					// gemeinsame Studien
+					$gemeinsam = null;
+					// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
+					$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
+
+					$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $gsBeendigungsdatum);
+
+					if (isset($gemeinsamResult) && isError($gemeinsamResult))
+						return $gemeinsamResult;
+
+					if (hasData($gemeinsamResult))
+					{
+						$gemeinsam = getData($gemeinsamResult);
+					}
+
 					// lehrgang
 					if ($isLehrgang)
 					{
@@ -263,6 +297,9 @@ class DVUHStudyDataLib extends DVUHWarningLib
 							if (!isset($item) || isEmptyString($item))
 								return createError('Lehrgangdaten fehlen: ' . $idx, 'lehrgangdatenFehlen', array($idx));
 						}
+
+						if (isset($orgform_code))
+							$lehrgang['orgformcode'] = $orgformcode;
 
 						if (isset($studstatuscode) && !$isExtern)
 							$lehrgang['studstatuscode'] = $studstatuscode;
@@ -282,32 +319,13 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						if (isset($zugangsberechtigung))
 							$lehrgang['zugangsberechtigung'] = $zugangsberechtigung;
 
+						if (isset($gemeinsam))
+							$lehrgang['gemeinsam'] = $gemeinsam;
+
 						$lehrgaenge[] = $lehrgang;
 					}
 					else // studiengang
 					{
-						// orgform_kurzbz
-						if (isset($prestudentstatus->studienplan_orgform))
-							$orgform_kurzbz = $prestudentstatus->studienplan_orgform;
-						elseif (isset($prestudentstatus->prestudentstatus_orgform))
-							$orgform_kurzbz = $prestudentstatus->prestudentstatus_orgform;
-						elseif (isset($prestudentstatus->studiengang_orgform))
-							$orgform_kurzbz = $prestudentstatus->studiengang_orgform;
-
-						// gemeinsame Studien
-						$gemeinsam = null;
-						// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
-						$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
-						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $studiensemester_kurzbz, $studtyp, $gsBeendigungsdatum);
-
-						if (isset($gemeinsamResult) && isError($gemeinsamResult))
-							return $gemeinsamResult;
-
-						if (hasData($gemeinsamResult))
-						{
-							$gemeinsam = getData($gemeinsamResult);
-						}
-
 						// ausbildungssemester
 						if (!$isIncoming && !$isAusserordentlich)
 						{
@@ -348,16 +366,6 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 						if (!$isAusserordentlich)
 						{
-							// orgform code
-							$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
-
-							if (isError($orgform_code))
-								return $orgform_code;
-
-							if (hasData($orgform_code))
-							{
-								$orgformcode = getData($orgform_code);
-							}
 
 							// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
 							if ($orgformcode != '1')
@@ -486,18 +494,16 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 	/**
 	 * Gets gemeinsame Studien data for a prestudent.
-	 * @param object $prestudentstatus with gsinfo
+	 * @param int $prestudent_id
 	 * @param string $studiensemester_kurzbz for getting previous semester for Absolventen
 	 * @param string $studtyp pass to gsdata
 	 * @param string $beendiungsdatum end date of GS stay
 	 * @return object error or success with gsdata
 	 */
-	private function _getGemeinsameStudien($prestudentstatus, $studiensemester_kurzbz, $studtyp, $beendigungsdatum)
+	private function _getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $beendigungsdatum)
 	{
 		if (!isset($studtyp))
 			return error('Kein Studientyp für gemeinsame Studien gefunden');
-
-		$prestudent_id = $prestudentstatus->prestudent_id;
 
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
 		$finished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_finished_student_status_kurzbz');

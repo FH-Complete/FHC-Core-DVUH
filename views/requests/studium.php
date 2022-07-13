@@ -17,14 +17,35 @@
 			if (isset($lehrgang['beendigungsdatum']))
 				echo "\t\t\t<beendigungsdatum>".$lehrgang['beendigungsdatum']."</beendigungsdatum>\n";
 
+			if (isset($lehrgang['gemeinsam']))
+			{
+				echo "\t\t\t<gemeinsam>\n".
+						"\t\t\t\t<partnercode>".$lehrgang['gemeinsam']['partnercode']."</partnercode>\n".
+						"\t\t\t\t<programmnr>".$lehrgang['gemeinsam']['programmnr']."</programmnr>\n".
+						"\t\t\t\t<studstatuscode>".$lehrgang['gemeinsam']['studstatuscode']."</studstatuscode>\n".
+						"\t\t\t\t<studtyp>".$lehrgang['gemeinsam']['studtyp']."</studtyp>\n";
+
+				if (isset($lehrgang['gemeinsam']['beendigungsdatum']))
+					echo "\t\t\t\t<beendigungsdatum>".$lehrgang['gemeinsam']['beendigungsdatum']."</beendigungsdatum>\n";
+
+				if (isset($lehrgang['gemeinsam']['mobilitaetprogrammcode']))
+					echo "\t\t\t\t<mobilitaetprogrammcode>".$lehrgang['gemeinsam']['mobilitaetprogrammcode']."</mobilitaetprogrammcode>\n";
+
+				if (isset($lehrgang['gemeinsam']['studienkennunguni']))
+					echo "\t\t\t\t<studienkennunguni>".$lehrgang['gemeinsam']['studienkennunguni']."</studienkennunguni>\n";
+
+				echo "\t\t\t</gemeinsam>\n";
+			}
+
 			echo "\t\t\t<lehrgangsnr>".$lehrgang['lehrgangsnr']."</lehrgangsnr>\n";
+
+			if (isset($lehrgang['orgformcode']))
+				echo "\t\t\t<orgformcode>".$lehrgang['orgformcode']."</orgformcode>\n";
 
 			echo "\t\t\t<perskz>".$lehrgang['perskz']."</perskz>\n";
 
 			if (isset($lehrgang['meldestatus']) && $lehrgang['meldestatus']!='')
-			{
 				echo "\t\t\t<meldestatus>".$lehrgang['meldestatus']."</meldestatus>\n";
-			}
 
 			if (isset($lehrgang['standortcode']))
 				echo "\t\t\t<standortcode>".$lehrgang['standortcode']."</standortcode>\n";
@@ -74,19 +95,13 @@
 			echo "\t\t<studiengang$disloziert>\n";
 
 			if (isset($studiengang['ausbildungssemester']))
-			{
 				echo "\t\t\t<ausbildungssemester>" . $studiengang['ausbildungssemester'] . "</ausbildungssemester>\n";
-			}
 
 			if (isset($studiengang['beendigungsdatum']) && $studiengang['beendigungsdatum']!='')
-			{
 				echo "\t\t\t<beendigungsdatum>".$studiengang['beendigungsdatum']."</beendigungsdatum>\n";
-			}
 
 			if (isset($studiengang['berufstaetigkeit_code']) && $studiengang['berufstaetigkeit_code']!='')
-			{
 				echo "\t\t\t<berufstaetigkeitcode>".$studiengang['berufstaetigkeit_code']."</berufstaetigkeitcode>\n";
-			}
 
 			echo "\t\t\t<bmwfwfoerderrelevant>".$studiengang['bmwfwfoerderrelevant']."</bmwfwfoerderrelevant>\n";
 
@@ -160,9 +175,7 @@
 			}
 
 			if (isset($studiengang['meldestatus']) && $studiengang['meldestatus']!='')
-			{
 				echo "\t\t\t<meldestatus>".$studiengang['meldestatus']."</meldestatus>\n";
-			}
 
 			if (isset($studiengang['orgformcode']))
 				echo "\t\t\t<orgformcode>".$studiengang['orgformcode']."</orgformcode>\n";
