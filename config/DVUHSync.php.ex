@@ -47,7 +47,7 @@ $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; // amount to be adde
 
 $config['fhc_dvuh_sync_nullify_buchungen_paid_other_univ'] = true; // if true, Buchungen are set to 0 if paid only on other university
 
-// Ausserordentliche students are sent with this studiengang_kz
+// Ausserordentliche students are sent with this prefix to the studiengang_kz
 $config['fhc_dvuh_sync_ausserordentlich_prefix'] = 9;
 
 // StudStatusCode e.g. for gemeinsame Studien Statuscode
