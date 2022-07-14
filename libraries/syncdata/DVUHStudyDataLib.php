@@ -71,10 +71,12 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			$gebdatum = $person->gebdatum;
 
 			$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
+			$active_status_kurzbz = $this->_ci->config->item('fhc_dvuh_active_student_status_kurzbz');
 			$finished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_finished_student_status_kurzbz');
 
 			// Meldung pro Student, Studium und Semester
-			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz,
+			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid,
+						pss.status_kurzbz, pss.datum AS status_datum,
 						stg.studiengang_kz, stg.typ AS studiengang_typ,
 						stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform,
 						pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester, stg.lgartcode,
@@ -173,7 +175,11 @@ class DVUHStudyDataLib extends DVUHWarningLib
 					$isLehrgang = !$isAusserordentlich && isset($prestudentstatus->lgartcode);
 
 					// studiengang kz
-					$meldeStudiengangRes = $this->_ci->dvuhconversionlib->getMeldeStudiengangKz($studiengang_kz, $prestudentstatus->erhalter_kz, $isAusserordentlich);
+					$meldeStudiengangRes = $this->_ci->dvuhconversionlib->getMeldeStudiengangKz(
+						$studiengang_kz,
+						$prestudentstatus->erhalter_kz,
+						$isAusserordentlich
+					);
 
 					if (isError($meldeStudiengangRes))
 						return $meldeStudiengangRes;
@@ -335,6 +341,43 @@ class DVUHStudyDataLib extends DVUHWarningLib
 								return $ausbildungssemesterResult;
 							else
 								$ausbildungssemester = getData($ausbildungssemesterResult);
+
+
+							// Unterbrechungsdatum if Unterbrecher
+							if ($status_kurzbz == 'Unterbrecher')
+							{
+								$previousStatusActiveRes = $this->_ci->fhcmanagementlib->checkPreviousStatusType(
+									$prestudent_id,
+									$studiensemester_kurzbz,
+									$active_status_kurzbz
+								);
+
+								if (isError($previousStatusActiveRes))
+									return $previousStatusActiveRes;
+
+								if (hasData($previousStatusActiveRes) && getData($previousStatusActiveRes)[0] === true)
+								{
+									$unterbrechungsdatum = $prestudentstatus->status_datum;
+								}
+							}
+
+							// Wiedereintrittsdatum if Student after Unterbrecher
+							if (in_array($status_kurzbz, $active_status_kurzbz))
+							{
+								$previousStatusUnterbrochenRes = $this->_ci->fhcmanagementlib->checkPreviousStatusType(
+									$prestudent_id,
+									$studiensemester_kurzbz,
+									array('Unterbrecher')
+								);
+
+								if (isError($previousStatusUnterbrochenRes))
+									return $previousStatusUnterbrochenRes;
+
+								if (hasData($previousStatusUnterbrochenRes) && getData($previousStatusUnterbrochenRes)[0] === true)
+								{
+									$wiedereintrittsdatum = $prestudentstatus->status_datum;
+								}
+							}
 						}
 
 						// Mobilität
@@ -366,7 +409,6 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 						if (!$isAusserordentlich)
 						{
-
 							// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
 							if ($orgformcode != '1')
 							{
@@ -405,6 +447,12 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 						if (isset($zulassungsdatum) && !$isExtern)
 							$studiengang['zulassungsdatum'] = $zulassungsdatum;
+
+						if (isset($unterbrechungsdatum) && !$isExtern)
+							$studiengang['unterbrechungsdatum'] = $unterbrechungsdatum;
+
+						if (isset($wiedereintrittsdatum) && !$isExtern)
+							$studiengang['wiedereintrittsdatum'] = $wiedereintrittsdatum;
 
 						if (isset($ausbildungssemester) && !$isExtern)
 							$studiengang['ausbildungssemester'] = $ausbildungssemester;
@@ -624,6 +672,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 				$staat = $ioitem->nation_code;
 				$avon = $ioitem->von;
 				$abis = $ioitem->bis;
+				$herkunftslandcode = $ioitem->herkunftsland_code;
 				$adauer = (is_null($avon) || is_null($abis)) ? null : dateDiff($avon, $abis);
 				if (strtotime($abis) <= strtotime(date('Y-m-d')))
 					$aufenthalt_finished = true;
@@ -767,7 +816,8 @@ class DVUHStudyDataLib extends DVUHWarningLib
 					'programm' => $programm,
 					'staat' => $staat,
 					'von' => $avon,
-					'zweck' => $zweck_code_arr
+					'zweck' => $zweck_code_arr,
+					'herkunftslandcode' => $herkunftslandcode
 				);
 
 				if ($aufenthalt_finished)

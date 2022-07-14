@@ -19,7 +19,9 @@ class FHCManagementLib
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+		$this->_ci->load->model('crm/Prestudentstatus_model', 'PrestudentstatusModel');
 		$this->_ci->load->model('crm/Konto_model', 'KontoModel');
+		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 
 		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
@@ -326,6 +328,60 @@ class FHCManagementLib
 				return $sentToSapRes;
 
 			if (hasData($sentToSapRes))
+				return success(array(true));
+		}
+
+		return success(array(false));
+	}
+
+	/**
+	 * Checks if prestudenstatus of Semester previous to given Studiensemester has a certain type.
+	 * @param int $prestudent_id
+	 * @param string $studiensemestear_kurzbz
+	 * @param array $status_kurzbz_arr status kurzbz to check
+	 * @return object success with true/false or error
+	 */
+	public function checkPreviousStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
+	{
+		// get previous semester
+		$this->_ci->StudiensemesterModel->addSelect('studiensemester_kurzbz');
+		$previousStudiensemesterRes = $this->_ci->StudiensemesterModel->getPreviousFrom($studiensemester_kurzbz);
+
+		if (isError($previousStudiensemesterRes))
+			return $previousStudiensemesterRes;
+
+		// check the type(s)
+		if (hasData($previousStudiensemesterRes))
+		{
+			$previousStudiensemester = getData($previousStudiensemesterRes)[0]->studiensemester_kurzbz;
+
+			return $this->_checkStatusType($prestudent_id, $previousStudiensemester, $status_kurzbz_arr);
+		}
+
+		return success(array(false));
+	}
+
+	/**
+	 * Checks if last prestudenstatus of a prestudent of a certain semester has a certain type.
+	 * @param int $prestudent_id
+	 * @param string $studiensemestear_kurzbz
+	 * @param array $status_kurzbz_arr status kurzbz to check
+	 * @return object success with true/false or error
+	 */
+	private function _checkStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
+	{
+		// get last status for the prestudent and semester
+		$lastStatusRes = $this->_ci->PrestudentstatusModel->getLastStatus($prestudent_id, $studiensemester_kurzbz);
+
+		if (isError($lastStatusRes))
+			return $lastStatusRes;
+
+		// check the type(s)
+		if (hasData($lastStatusRes))
+		{
+			$lastStatusKurzbz = getData($lastStatusRes)[0]->status_kurzbz;
+
+			if (in_array($lastStatusKurzbz, $status_kurzbz_arr))
 				return success(array(true));
 		}
 

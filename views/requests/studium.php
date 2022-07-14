@@ -161,6 +161,7 @@
 					echo "\t\t\t\t<programm>" . $mobilitaet['programm'] . "</programm>\n";
 					echo "\t\t\t\t<staat>" . $mobilitaet['staat'] . "</staat>\n";
 					echo "\t\t\t\t<von>" . $mobilitaet['von'] . "</von>\n";
+					echo "\t\t\t\t<herkunftslandcode>" . $mobilitaet['herkunftslandcode'] . "</herkunftslandcode>\n";
 
 					// if only one zweck without array, put it in array
 					if (!is_array($mobilitaet['zweck']) && is_numeric($mobilitaet['zweck']))
@@ -190,8 +191,14 @@
 			if (isset($studiengang['studstatuscode']))
 				echo "\t\t\t<studstatuscode>".$studiengang['studstatuscode']."</studstatuscode>\n";
 
-			if (isset($studiengang['vornachperskz']))
-				echo "\t\t\t<vornachperskz>".$studiengang['vornachperskz']."</vornachperskz>\n";
+			if (isset($studiengang['unterbrechungsdatum']))
+				echo "\t\t\t<unterbrechungsdatum>".$studiengang['unterbrechungsdatum']."</unterbrechungsdatum>\n";
+
+			if (isset($studiengang['vonnachperskz']))
+				echo "\t\t\t<vonnachperskz>".$studiengang['vonnachperskz']."</vonnachperskz>\n";
+
+			if (isset($studiengang['wiedereintrittsdatum']))
+				echo "\t\t\t<wiedereintrittsdatum>".$studiengang['wiedereintrittsdatum']."</wiedereintrittsdatum>\n";
 
 			if (isset($studiengang['zugangsberechtigung']))
 			{
