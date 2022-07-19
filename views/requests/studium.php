@@ -161,7 +161,9 @@
 					echo "\t\t\t\t<programm>" . $mobilitaet['programm'] . "</programm>\n";
 					echo "\t\t\t\t<staat>" . $mobilitaet['staat'] . "</staat>\n";
 					echo "\t\t\t\t<von>" . $mobilitaet['von'] . "</von>\n";
-					echo "\t\t\t\t<herkunftslandcode>" . $mobilitaet['herkunftslandcode'] . "</herkunftslandcode>\n";
+
+					if (isset($mobilitaet['herkunftslandcode']))
+						echo "\t\t\t\t<herkunftslandcode>" . $mobilitaet['herkunftslandcode'] . "</herkunftslandcode>\n";
 
 					// if only one zweck without array, put it in array
 					if (!is_array($mobilitaet['zweck']) && is_numeric($mobilitaet['zweck']))
