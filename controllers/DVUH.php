@@ -45,6 +45,7 @@ class DVUH extends Auth_Controller
 			$this->_permissions
 		);
 
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMatrikelnummerManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMasterDataManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
@@ -125,7 +126,7 @@ class DVUH extends Auth_Controller
 
 		$be = $this->config->item('fhc_dvuh_be_code');
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 
@@ -144,11 +145,12 @@ class DVUH extends Auth_Controller
 
 		$be = $this->config->item('fhc_dvuh_be_code');
 		$seit = isset($data['seit']) ? convertDateToIso($data['seit']) : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 
 		$json = $this->KontostaendeModel->get(
-			$be, $data['semester'], $data['matrikelnummer'], $seit
+			$be, $semester, $data['matrikelnummer'], $seit
 		);
 
 		$this->outputJson($json);
@@ -161,7 +163,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->get('data');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 		$studienkennung = isset($data['studienkennung']) ? $data['studienkennung'] : null;
 
@@ -181,7 +183,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->get('data');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
@@ -243,7 +245,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->get('data');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
@@ -379,7 +381,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->post('data');
 
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDvuh($data['semester']) : null;
 		$matrikelalt = isset($data['matrikelalt']) ? $data['matrikelalt'] : null;
 
 		$be = $this->config->item('fhc_dvuh_be_code');

@@ -207,8 +207,10 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 		if (hasData($meldeStudiengangRes))
 			$fhc_stgkz_in_dvuh_format = getData($meldeStudiengangRes);
 
+		$dvuh_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($semester);
+
 		// get xml of study data in DVUH
-		$studyData = $this->_ci->StudiumModel->get($this->_be, $matrikelnummer, $semester);
+		$studyData = $this->_ci->StudiumModel->get($this->_be, $matrikelnummer, $dvuh_studiensemester);
 
 		if (hasData($studyData))
 		{
@@ -235,7 +237,7 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 					"studierendenkey" => array(
 						"matrikelnummer" => $matrikelnummer,
 						"be" => $this->_be,
-						"semester" => $semester
+						"semester" => $dvuh_studiensemester
 					)
 				);
 

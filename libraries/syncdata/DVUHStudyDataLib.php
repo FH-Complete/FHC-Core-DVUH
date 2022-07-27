@@ -386,6 +386,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 						if (isset($mobilitaetResult) && isError($mobilitaetResult))
 							return $mobilitaetResult;
+
 						if (hasData($mobilitaetResult))
 						{
 							$mobilitaet = getData($mobilitaetResult);
@@ -678,6 +679,17 @@ class DVUHStudyDataLib extends DVUHWarningLib
 					$aufenthalt_finished = true;
 				else
 					$aufenthalt_finished = false;
+
+				// Herkunftsland cannot be Empty
+				if (isEmptyString($herkunftslandcode))
+				{
+					return createError(
+						"Herkunftsland fehlt",
+						'herkunftslandFehlt',
+						null,
+						array('bisio_id' => $bisio_id)
+					);
+				}
 
 				// Aufenthaltszweckcode --------------------------------------------------------------------------------
 				$this->_ci->ZweckModel->addSelect('tbl_zweck.zweck_code');

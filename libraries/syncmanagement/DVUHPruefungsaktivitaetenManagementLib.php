@@ -203,9 +203,10 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 				return error("Daten fehlen: ".ucfirst($requiredField));
 		}
 
+		$dvuh_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($studiensemester);
 		$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
 
-		$deleteRes = $this->_ci->PruefungsaktivitaetenLoeschenModel->delete($this->_be, $person_id, $studiensemester, $prestudent_id);
+		$deleteRes = $this->_ci->PruefungsaktivitaetenLoeschenModel->delete($this->_be, $person_id, $dvuh_studiensemester, $prestudent_id);
 
 		if (isError($deleteRes))
 			return $deleteRes;
