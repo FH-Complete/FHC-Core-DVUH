@@ -20,8 +20,6 @@ class DVUH_SS_0015 implements IIssueResolvedChecker
 		$this->_ci->BisioModel->addSelect('herkunftsland_code');
 		$bisioRes = $this->_ci->BisioModel->loadWhere(array('bisio_id' => $params['bisio_id']));
 
-		var_dump($bisioRes);
-
 		if (isError($bisioRes))
 			return $bisioRes;
 
