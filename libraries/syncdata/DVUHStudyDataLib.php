@@ -82,7 +82,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester, stg.lgartcode,
 						tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
 						tbl_student.matrikelnr AS personenkennzeichen, ps.zgv_code, ps.zgvdatum, ps.zgvnation,
-						ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation, ps.gsstudientyp_kurzbz,
+						ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation, ps.gsstudientyp_kurzbz, ps.dual,
 						(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
@@ -408,6 +408,9 @@ class DVUHStudyDataLib extends DVUHWarningLib
 								$bmffoerderrelevant = 'J';
 						}
 
+						// duales Studium
+						$dualesstudium = $prestudentstatus->dual === true ? 'J' : 'N';
+
 						if (!$isAusserordentlich)
 						{
 							// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
@@ -430,6 +433,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						$studiengang = array(
 							'disloziert' => 'N', // J,N,j,n
 							'bmwfwfoerderrelevant' => $bmffoerderrelevant,
+							'dualesstudium' => $dualesstudium,
 							'perskz' => $perskz,
 							'stgkz' => $melde_studiengang_kz // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
 						);

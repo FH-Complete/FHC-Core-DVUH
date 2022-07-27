@@ -104,6 +104,7 @@
 				echo "\t\t\t<berufstaetigkeitcode>".$studiengang['berufstaetigkeit_code']."</berufstaetigkeitcode>\n";
 
 			echo "\t\t\t<bmwfwfoerderrelevant>".$studiengang['bmwfwfoerderrelevant']."</bmwfwfoerderrelevant>\n";
+			echo "\t\t\t<dualesstudium>".$studiengang['dualesstudium']."</dualesstudium>\n";
 
 			if (isset($studiengang['gemeinsam']))
 			{
