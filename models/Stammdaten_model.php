@@ -53,7 +53,7 @@ class Stammdaten_model extends DVUHClientModel
 	/**
 	 * Saving Stammdaten in DVUH, using person_id to retrieve data available in FHC and add additional payment data.
 	 * @param string $be
-	 * @param $person_id
+	 * @param array $studentinfo contains student data
 	 * @param string $semester
 	 * @param string $matrikelnummer
 	 * @param float $oehbeitrag OEH Beitrag payment amount without insurance

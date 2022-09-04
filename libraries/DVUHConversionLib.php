@@ -115,10 +115,12 @@ class DVUHConversionLib
 
 		// if ausserordentlich, special studiengang kz
 		if ($isAusserordentlich === true)
+		{
 			return success(
 				$dvuh_erhalter_kz
 				.$this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $dvuh_erhalter_kz)
 			);
+		}
 
 		// load stg to get melde_studiengang_kz
 		$this->_ci->StudiengangModel->addSelect('melde_studiengang_kz, lgartcode');

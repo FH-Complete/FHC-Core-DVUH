@@ -241,7 +241,6 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 					)
 				);
 
-				// default send method post for all Studiengänge of person
 				$studiengangIdName = 'stgkz';
 				$lehrgangIdName = 'lehrgangsnr';
 
