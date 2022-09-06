@@ -29,8 +29,15 @@ class DVUH_SC_0004 implements IIssueResolvedChecker
 			$adresseData = getData($adresseRes)[0];
 
 			// build array with infos for adresse check
+
+			// ort - comes from Gemeinde Feld, from Ort if Gemeinde empty and address not austrian
+			if (isset($adresse->gemeinde))
+				$ort = $adresse->gemeinde;
+			elseif ($adresse->nation !== 'A')
+				$ort = $adresse->ort;
+
 			$addr = array();
-			$addr['ort'] = $adresseData->gemeinde;
+			$addr['ort'] = $ort;
 			$addr['plz'] = $adresseData->plz;
 			$addr['strasse'] = $adresseData->strasse;
 			$addr['staat'] = $adresseData->nation;
