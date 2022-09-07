@@ -125,8 +125,6 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 				if (isError($matrNrActivationResult))
 					$result = error("Studiumdaten erfolgreich gespeichert, Fehler beim Scharfschalten der Matrikelnummer in FHC");
 
-				//$syncedPrestudentIds = $this->_ci->StudiumModel->retrieveSyncedPrestudentIds();
-
 				foreach ($studiumData->prestudent_ids as $syncedPrestudentId)
 				{
 					// save info about saved studiumdata in sync table
@@ -198,7 +196,11 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 		$isAusserordentlich = $this->_ci->dvuhcheckinglib->checkIfAusserordentlich($studentData->personenkennzeichen);
 
 		// studiengang kz
-		$meldeStudiengangRes = $this->_ci->dvuhconversionlib->getMeldeStudiengangKz($studentData->studiengang_kz, $studentData->erhalter_kz, $isAusserordentlich);
+		$meldeStudiengangRes = $this->_ci->dvuhconversionlib->getMeldeStudiengangKz(
+			$studentData->studiengang_kz,
+			$studentData->erhalter_kz,
+			$isAusserordentlich
+		);
 
 		if (isError($meldeStudiengangRes))
 			return $meldeStudiengangRes;
