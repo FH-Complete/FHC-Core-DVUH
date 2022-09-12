@@ -181,14 +181,20 @@ class FHCManagementLib
 								AND person_id = ?
 								AND pss.studiensemester_kurzbz = ?
 								AND pss.status_kurzbz IN ?
-								AND SUBSTRING(matr_nr, 2, 2) < ( /* old Matrikelnummer, older than current first prestudentstatus */
+								/* old Matrikelnummer, older than current first prestudentstatus. */
+								/* +1 for SS because year in Matrikelnr spans 2 Semester */
+								AND
+								SUBSTRING(matr_nr, 2, 2)::int + (CASE WHEN SUBSTRING(sem.studiensemester_kurzbz, 1, 2) = 'SS' THEN 1 ELSE 0 END)
+								<
+								(
 									SELECT SUBSTRING(studiensemester_kurzbz, 5, 2) /* comparing year of matrikelnr and status studiensemester */
 									FROM public.tbl_prestudent
-									JOIN public.tbl_prestudentstatus USING (prestudent_id)
+									JOIN public.tbl_prestudentstatus first_status USING (prestudent_id)
+									JOIN public.tbl_studiensemester first_status_sem USING (studiensemester_kurzbz)
 									WHERE prestudent_id = ps.prestudent_id
-									ORDER BY datum
+									ORDER BY first_status_sem.start, first_status.datum
 									LIMIT 1
-								)
+								)::int
 								/* check for two digits of year works only for 100 years */
 								AND SUBSTRING(studiensemester_kurzbz, 3, 4)::integer BETWEEN 2000 AND 2099
 								AND NOT EXISTS ( /* no active prestudents in past */
