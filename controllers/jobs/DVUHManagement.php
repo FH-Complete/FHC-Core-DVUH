@@ -149,7 +149,9 @@ class DVUHManagement extends JQW_Controller
 						$this->_logDVUHInfosAndWarnings($sendCharge, array('person_id' => $person_id));
 
 						if (isset($sendCharge['result']))
-							$this->_logDVUHInfoIfEnabled("Stammdaten mit Vorschreibung Person Id $person_id, Studiensemester $studiensemester erfolgreich gesendet");
+							$this->_logDVUHInfoIfEnabled(
+								"Stammdaten mit Vorschreibung Person Id $person_id, Studiensemester $studiensemester erfolgreich gesendet"
+							);
 					}
 				}
 			}
@@ -299,7 +301,9 @@ class DVUHManagement extends JQW_Controller
 
 						if (isset($sendStudyData['result']))
 						{
-							$this->_logDVUHInfoIfEnabled("Studiumdaten für prestudent Id $prestudent_id, studiensemester $studiensemester erfolgreich gesendet");
+							$this->_logDVUHInfoIfEnabled(
+								"Studiumdaten für prestudent Id $prestudent_id, studiensemester $studiensemester erfolgreich gesendet"
+							);
 						}
 					}
 				}
@@ -444,7 +448,10 @@ class DVUHManagement extends JQW_Controller
 					$person_id = $persobj->person_id;
 					$studiensemester_kurzbz = $persobj->studiensemester_kurzbz;
 
-					$sendPruefungsaktivitaetenResult = $this->dvuhpruefungsaktivitaetenmanagementlib->sendPruefungsaktivitaeten($person_id, $studiensemester_kurzbz);
+					$sendPruefungsaktivitaetenResult = $this->dvuhpruefungsaktivitaetenmanagementlib->sendPruefungsaktivitaeten(
+						$person_id,
+						$studiensemester_kurzbz
+					);
 
 					if (isError($sendPruefungsaktivitaetenResult))
 					{
