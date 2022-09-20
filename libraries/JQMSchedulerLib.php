@@ -259,12 +259,12 @@ class JQMSchedulerLib
 
 		$qry .= 		" GROUP BY pers.person_id, pss.studiensemester_kurzbz, kto.buchungsnr, kto_insertamum, kto_updateamum
 					) persons
-					LEFT JOIN (
+					LEFT JOIN ( /* add date when a kontakt was last modified */
 						SELECT person_id, MAX(updateamum) AS updateamum, MAX(insertamum) AS insertamum
 						FROM public.tbl_kontakt
 						GROUP BY person_id
 					) AS ktkt ON persons.person_id = ktkt.person_id
-					LEFT JOIN (
+					LEFT JOIN ( /* add date when an adresse was last modified */
 						SELECT person_id, MAX(updateamum) AS updateamum, MAX(insertamum) AS insertamum
 						FROM public.tbl_adresse
 						GROUP BY person_id
