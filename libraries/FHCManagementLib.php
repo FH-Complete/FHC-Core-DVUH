@@ -343,7 +343,7 @@ class FHCManagementLib
 	/**
 	 * Checks if prestudenstatus of Semester previous to given Studiensemester has a certain type.
 	 * @param int $prestudent_id
-	 * @param string $studiensemestear_kurzbz
+	 * @param string $studiensemester_kurzbz
 	 * @param array $status_kurzbz_arr status kurzbz to check
 	 * @return object success with true/false or error
 	 */
@@ -367,10 +367,50 @@ class FHCManagementLib
 		return success(array(false));
 	}
 
+	/*
+	 * Gets previous first prestudent status date.
+	 * e.g.if a student has the same status for 3 semester, and the method is called for the third, date or the first semester is returned.
+	 * @param int $prestudent_id
+	 * @param string $studiensemester_kurzbz
+	 * @param string $status_kurzbz
+	 * @return object success with date or error
+	 */
+	public function getPreviousFirstStatusDate($prestudent_id, $studiensemester_kurzbz, $status_kurzbz)
+	{
+		$prevFirstStatusDate = null;
+
+		$qry = '
+				SELECT status.datum, status.status_kurzbz
+				FROM public.tbl_prestudentstatus status
+				JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
+				WHERE prestudent_id = ?
+				AND sem.start::date <= (SELECT start from public.tbl_studiensemester WHERE studiensemester_kurzbz = ?)::date
+				ORDER BY sem.start DESC, status.datum DESC';
+
+		$statusRes = $this->_dbModel->execReadOnlyQuery($qry, array($prestudent_id, $studiensemester_kurzbz));
+
+		if (isError($statusRes)) return $statusRes;
+
+		if (hasData($statusRes))
+		{
+			$status = getData($statusRes);
+
+			foreach ($status as $st)
+			{
+				if ($st->status_kurzbz === $status_kurzbz)
+					$prevFirstStatusDate = $st->datum;
+				else 
+					break;
+			}
+		}
+
+		return success($prevFirstStatusDate);
+	}
+
 	/**
 	 * Checks if last prestudenstatus of a prestudent of a certain semester has a certain type.
 	 * @param int $prestudent_id
-	 * @param string $studiensemestear_kurzbz
+	 * @param string $studiensemester_kurzbz
 	 * @param array $status_kurzbz_arr status kurzbz to check
 	 * @return object success with true/false or error
 	 */
