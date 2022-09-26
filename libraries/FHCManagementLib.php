@@ -371,8 +371,8 @@ class FHCManagementLib
 	 * Gets previous first prestudent status date.
 	 * e.g.if a student has the same status for 3 semester, and the method is called for the third, date or the first semester is returned.
 	 * @param int $prestudent_id
-	 * @param string $studiensemester_kurzbz
-	 * @param string $status_kurzbz
+	 * @param string $studiensemester_kurzbz start from this semester backwards
+	 * @param string $status_kurzbz status to check
 	 * @return object success with date or error
 	 */
 	public function getPreviousFirstStatusDate($prestudent_id, $studiensemester_kurzbz, $status_kurzbz)
