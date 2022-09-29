@@ -100,7 +100,7 @@
 			if (isset($studiengang['beendigungsdatum']) && $studiengang['beendigungsdatum']!='')
 				echo "\t\t\t<beendigungsdatum>".$studiengang['beendigungsdatum']."</beendigungsdatum>\n";
 
-			if (isset($studiengang['berufstaetigkeit_code']) && $studiengang['berufstaetigkeit_code']!='')
+			if (isset($studiengang['berufstaetigkeit_code']) && is_numeric($studiengang['berufstaetigkeit_code']))
 				echo "\t\t\t<berufstaetigkeitcode>".$studiengang['berufstaetigkeit_code']."</berufstaetigkeitcode>\n";
 
 			echo "\t\t\t<bmwfwfoerderrelevant>".$studiengang['bmwfwfoerderrelevant']."</bmwfwfoerderrelevant>\n";

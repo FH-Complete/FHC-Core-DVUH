@@ -411,7 +411,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 							// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
 							if ($orgformcode != '1')
 							{
-								if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
+								if (!isset($prestudentstatus->berufstaetigkeit_code) || !is_numeric($prestudentstatus->berufstaetigkeit_code))
 								{
 									$this->addWarning(
 										'Berufstätigkeitcode fehlt',
