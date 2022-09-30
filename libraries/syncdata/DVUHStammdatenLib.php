@@ -65,6 +65,7 @@ class DVUHStammdatenLib
 				$addr = array();
 
 				// ort - comes from Gemeinde Feld, from Ort if Gemeinde empty and address not austrian
+				$ort = null;
 				if (isset($adresse->gemeinde))
 					$ort = $adresse->gemeinde;
 				elseif($adresse->nation !== 'A')
