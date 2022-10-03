@@ -97,6 +97,16 @@ class DVUHCheckingLib
 	}
 
 	/**
+	 * Checks academic title for validity.
+	 * @param string $titel
+	 * @return bool valid or not
+	 */
+	public function checkTitel($titel)
+	{
+		return preg_match("/^[A-Za-z.\-\/\,'´`\(\) À-ž&]{0,255}$/", $titel);
+	}
+
+	/**
 	 * Checks if a student is ausserordentlich.
 	 * @param string $personenkennzeichen
 	 * @return bool true if ausserordentlich, false otherwise

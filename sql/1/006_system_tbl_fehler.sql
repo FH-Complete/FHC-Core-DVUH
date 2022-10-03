@@ -11,6 +11,8 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SC_0008', 'emailEnthaeltSonderzeichen', NULL, 'Email enthält Sonderzeichen', 'error', 'dvuh'),
 ('DVUH_SC_0009', 'oehbeitragNichtSpezifiziert', NULL, 'Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester %s spezifiziert, Buchung %s', 'error', 'dvuh'),
 ('DVUH_SC_0010', 'bpkUngueltig', NULL, 'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen', 'error', 'dvuh'),
+('DVUH_SC_0011', 'titelpreUngueltig', NULL, 'Titel pre hat ungültiges Format', 'error', 'dvuh'),
+('DVUH_SC_0012', 'titelpostUngueltig', NULL, 'Titel post hat ungültiges Format', 'error', 'dvuh'),
 ('DVUH_SP_0001', 'zlgUngleichVorschreibung', NULL, 'Buchung: %s: Zahlungsbetrag abweichend von Vorschreibungsbetrag', 'error', 'dvuh'),
 ('DVUH_SS_0001', 'matrikelnrUngueltig', NULL, 'Matrikelnummer ungültig (%s)', 'error', 'dvuh'),
 ('DVUH_SS_0002', 'fehlerhafteZgvDaten', NULL, 'Fehlerhafte ZGV Daten: %s', 'error', 'dvuh'),
@@ -27,6 +29,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SS_0013', 'ungueltigeMeldeStudiengangskennzahl', NULL, 'Ungültige Meldestudiengangskennzahl für Studiengang %s, gültiges Format: (3 Stellen für Erhalter wenn Lehrgang) [4 Stellen Studiengang]', 'error', 'dvuh'),
 ('DVUH_SS_0014', 'studienkennunguniUngueltig', NULL, 'Ungültige Studienkennung Uni für GS mit Programmcode %s, muss z.B. UUT190593347UA sein', 'error', 'dvuh'),
 ('DVUH_SS_0015', 'herkunftslandFehlt', NULL, 'Herkunftsland fehlt', 'error', 'dvuh'),
+('DVUH_SS_0016', 'gsdatenFehlen', NULL, 'Daten für gemeinsames Studium fehlen: %s', 'error', 'dvuh'),
 /* DVUH Errors */
 ('DVUH_ERROR', 'dvuhFehler', NULL, 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
 ('DVUH_SM_MATRNR_STATUS_2', NULL, 'MATRNR_STATUS_2', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, Datenverbund kontaktieren.', 'error', 'dvuh'),

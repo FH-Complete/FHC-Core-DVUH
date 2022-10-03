@@ -177,10 +177,30 @@ class DVUHStammdatenLib
 				$studentinfo['matr_nr'] = $stammdaten->matr_nr;
 
 			if (isset($stammdaten->titelpre))
+			{
+				if (!$this->_ci->dvuhcheckinglib->checkTitel($stammdaten->titelpre))
+				{
+					return createError(
+						'Titel pre hat ungültiges Format',
+						'titelpreUngueltig'
+					);
+				}
+
 				$studentinfo['akadgrad'] = $stammdaten->titelpre;
+			}
 
 			if (isset($stammdaten->titelpost))
+			{
+				if (!$this->_ci->dvuhcheckinglib->checkTitel($stammdaten->titelpost))
+				{
+					return createError(
+						'Titel post hat ungültiges Format',
+						'titelpostUngueltig'
+					);
+				}
+
 				$studentinfo['akadgradnach'] = $stammdaten->titelpost;
+			}
 
 			if (isset($stammdaten->svnr))
 				$studentinfo['svnr'] = $stammdaten->svnr;

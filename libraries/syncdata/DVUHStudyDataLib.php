@@ -589,6 +589,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 		if (isError($gemeinsamestudienResult))
 			return error("Fehler beim Holen gemeinsamer Studien");
+
 		if (hasData($gemeinsamestudienResult))
 		{
 			$gemeinsamestudien = getData($gemeinsamestudienResult)[0];
@@ -597,6 +598,22 @@ class DVUHStudyDataLib extends DVUHWarningLib
 				$gs_studstatuscode = $kodex_studstatuscode_array[$gemeinsamestudien->status_kurzbz];
 			else
 				return error('Kein Status für gemeinsame Studien gefunden');
+
+			// check required fields for gemeinsame Studien
+			$requiredFields = array('mobilitaetsprogramm_code', 'partner_code', 'programm_code');
+
+			foreach ($requiredFields as $field)
+			{
+				if (!isset($gemeinsamestudien->{$field}) || isEmptyString($gemeinsamestudien->{$field}))
+				{
+					return createError(
+						"Daten für gemeinsames Studium fehlen: ".$field,
+						'gsdatenFehlen',
+						array($field),
+						array('gsprogramm_id' => $gemeinsamestudien->gsprogramm_id)
+					);
+				}
+			}
 
 			$gemeinsamData = array(
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
