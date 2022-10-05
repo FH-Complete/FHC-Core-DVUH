@@ -22,6 +22,8 @@ class IssueResolver extends IssueResolver_Controller
 			'DVUH_SC_0008' => 'DVUH_SC_0008',
 			'DVUH_SC_0009' => 'DVUH_SC_0009',
 			'DVUH_SC_0010' => 'DVUH_SC_0010',
+			'DVUH_SC_0011' => 'DVUH_SC_0011',
+			'DVUH_SC_0012' => 'DVUH_SC_0012',
 			'DVUH_SP_0001' => 'DVUH_SP_0001',
 			'DVUH_SP_W_0001' => 'DVUH_SP_W_0001',
 			'DVUH_SP_W_0002' => 'DVUH_SP_W_0002',

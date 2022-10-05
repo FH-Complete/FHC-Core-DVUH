@@ -107,13 +107,23 @@ class DVUHCheckingLib
 	}
 
 	/**
-	 * Checks Oehbeitrag for validity.
-	 * @param string $oehBeitrag
+	 * Checks Oehbeitrag in cents for validity.
+	 * @param int $oehBeitrag
 	 * @return bool valid or not
 	 */
 	public function checkOehBeitrag($oehBeitrag)
 	{
 		return is_numeric($oehBeitrag) && $oehBeitrag <= 9999 && $oehBeitrag >= 0;
+	}
+
+	/**
+	 * Checks Oehbeitrag in cents for validity.
+	 * @param int $studiengebuehr
+	 * @return bool valid or not
+	 */
+	public function checkStudiengebuehr($studiengebuehr)
+	{
+		return is_numeric($studiengebuehr) && $studiengebuehr <= 9999999 && $studiengebuehr >= 0;
 	}
 
 	/**

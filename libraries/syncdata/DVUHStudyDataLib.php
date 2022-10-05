@@ -610,7 +610,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						"Daten für gemeinsames Studium fehlen: ".$field,
 						'gsdatenFehlen',
 						array($field),
-						array('gsprogramm_id' => $gemeinsamestudien->gsprogramm_id)
+						array('gsprogramm_id' => $gemeinsamestudien->gsprogramm_id, 'fehlendes_feld' => $field)
 					);
 				}
 			}

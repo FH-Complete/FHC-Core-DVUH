@@ -21,6 +21,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 
 		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHStammdatenLib');
@@ -62,7 +63,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
 		$dvuh_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($studiensemester);
 
-		// get Buchungen
+		// get Buchungen for Vorschreibung
 		$buchungenResult = $this->_dbModel->execReadOnlyQuery(
 			"SELECT person_id, studiengang_kz, buchungsdatum, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
 				   studiensemester_kurzbz, buchungstext, buchungsdatum,
@@ -186,6 +187,27 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$valutadatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
 		$valutadatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
 		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? abs($vorschreibung['studiengebuehrnachfrist'])  * 100 : null;
+
+		// check validity of payments
+		if (isset($oehbeitrag) && !$this->_ci->dvuhcheckinglib->checkOehBeitrag($oehbeitrag))
+		{
+			return createError(
+				"Öhbeitrag: Betrag ungültig",
+				'oehbeitragUngueltig',
+				null,
+				array('studiensemester_kurzbz' => $studiensemester_kurzbz, 'buchungstyp_kurzbz' => $buchungstypen['oehbeitrag'])
+			);
+		}
+
+		if (isset($studiengebuehr) && !$this->_ci->dvuhcheckinglib->checkStudiengebuehr($studiengebuehr))
+		{
+			return createError(
+				"Studiengebühr: Betrag ungültig",
+				'studiengebuehrUngueltig',
+				null,
+				array('buchungsnr' => $buchung->buchungsnr, 'buchungstyp_kurzbz' => $buchungstypen['studiengebuehr'])
+			);
+		}
 
 		$studentinfoRes = $this->_ci->dvuhstammdatenlib->getStammdatenData($person_id, $studiensemester_kurzbz);
 

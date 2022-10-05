@@ -13,6 +13,8 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SC_0010', 'bpkUngueltig', NULL, 'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen', 'error', 'dvuh'),
 ('DVUH_SC_0011', 'titelpreUngueltig', NULL, 'Titel pre hat ungültiges Format', 'error', 'dvuh'),
 ('DVUH_SC_0012', 'titelpostUngueltig', NULL, 'Titel post hat ungültiges Format', 'error', 'dvuh'),
+('DVUH_SC_0013', 'oehbeitragUngueltig', NULL, 'Öhbeitrag: Betrag ungültig', 'error', 'dvuh'),
+('DVUH_SC_0014', 'studiengebuehrUngueltig', NULL, 'Studiengebühr: Betrag ungültig', 'error', 'dvuh'),
 ('DVUH_SP_0001', 'zlgUngleichVorschreibung', NULL, 'Buchung: %s: Zahlungsbetrag abweichend von Vorschreibungsbetrag', 'error', 'dvuh'),
 ('DVUH_SS_0001', 'matrikelnrUngueltig', NULL, 'Matrikelnummer ungültig (%s)', 'error', 'dvuh'),
 ('DVUH_SS_0002', 'fehlerhafteZgvDaten', NULL, 'Fehlerhafte ZGV Daten: %s', 'error', 'dvuh'),
