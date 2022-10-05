@@ -107,6 +107,16 @@ class DVUHCheckingLib
 	}
 
 	/**
+	 * Checks Oehbeitrag for validity.
+	 * @param string $oehBeitrag
+	 * @return bool valid or not
+	 */
+	public function checkOehBeitrag($oehBeitrag)
+	{
+		return is_numeric($oehBeitrag) && $oehBeitrag <= 9999 && $oehBeitrag >= 0;
+	}
+
+	/**
 	 * Checks if a student is ausserordentlich.
 	 * @param string $personenkennzeichen
 	 * @return bool true if ausserordentlich, false otherwise
