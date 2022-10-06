@@ -102,19 +102,13 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 		else
 			$infos[] = $no_pruefungen_info;
 
-			// foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
-			// {
-			// 	// save ects to post to variable
-			// 	$toPost[$prestudent_id]['ects_angerechnet'] = 0;
-			// 	$toPost[$prestudent_id]['ects_erworben'] = $pruefungsaktivitaeten->ects_erworben;
-
 		// check for each prestudent to post if deletion is needed
 		foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
 		{
 			$ects_angerechnet = 0;
 			$ects_erworben = $pruefungsaktivitaeten->ects_erworben;
 
-			// if no ects sent to DVUH
+			// if no ects sent to DVUH now
 			if ($ects_angerechnet == 0 && $ects_erworben == 0)
 			{
 				// get last sent ects
@@ -148,13 +142,8 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 			else
 			{
 				// if at least some ects were sent, write to sync table
-				$ects_angerechnet_posted = $ects_angerechnet == 0
-					? null
-					: number_format($ects_angerechnet, 2, '.', '');
-
-				$ects_erworben_posted = $ects_erworben == 0
-					? null
-					: number_format($ects_erworben, 2, '.', '');
+				$ects_angerechnet_posted = $ects_angerechnet == 0 ? null : number_format($ects_angerechnet, 2, '.', '');
+				$ects_erworben_posted = $ects_erworben == 0 ? null : number_format($ects_erworben, 2, '.', '');
 
 				$pruefungsaktivitaetenSaveResult = $this->_ci->DVUHPruefungsaktivitaetenModel->insert(
 					array(
