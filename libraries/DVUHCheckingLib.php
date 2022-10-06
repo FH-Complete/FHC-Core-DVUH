@@ -117,7 +117,7 @@ class DVUHCheckingLib
 	}
 
 	/**
-	 * Checks Oehbeitrag in cents for validity.
+	 * Checks Studiengebühr in cents for validity.
 	 * @param int $studiengebuehr
 	 * @return bool valid or not
 	 */

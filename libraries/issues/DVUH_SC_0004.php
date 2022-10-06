@@ -18,23 +18,24 @@ class DVUH_SC_0004 implements IIssueResolvedChecker
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load the adresse
-		$this->_ci->AdresseModel->addSelect('strasse, plz, gemeinde, nation');
-		$adresseRes = $this->_ci->AdresseModel->load($params['adresse_id']);
+		$this->_ci->AdresseModel->addSelect('strasse, plz, gemeinde, nation, ort');
+		$adresseDataRes = $this->_ci->AdresseModel->load($params['adresse_id']);
 
-		if (isError($adresseRes))
-			return $adresseRes;
+		if (isError($adresseDataRes))
+			return $adresseDataRes;
 
-		if (hasData($adresseRes))
+		if (hasData($adresseDataRes))
 		{
-			$adresseData = getData($adresseRes)[0];
+			$adresseData = getData($adresseDataRes)[0];
 
 			// build array with infos for adresse check
 
 			// ort - comes from Gemeinde Feld, from Ort if Gemeinde empty and address not austrian
-			if (isset($adresse->gemeinde))
-				$ort = $adresse->gemeinde;
-			elseif ($adresse->nation !== 'A')
-				$ort = $adresse->ort;
+			$ort = null;
+			if (isset($adresseData->gemeinde))
+				$ort = $adresseData->gemeinde;
+			elseif ($adresseData->nation !== 'A')
+				$ort = $adresseData->ort;
 
 			$addr = array();
 			$addr['ort'] = $ort;

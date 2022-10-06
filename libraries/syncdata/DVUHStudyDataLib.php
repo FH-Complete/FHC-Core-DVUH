@@ -604,13 +604,13 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 			foreach ($requiredFields as $field)
 			{
-				if (!isset($gemeinsamestudien->{$field}) || isEmptyString($gemeinsamestudien->{$field}))
+				if (!isset($gemeinsamestudien->{$field}))
 				{
 					return createError(
 						"Daten für gemeinsames Studium fehlen: ".$field,
 						'gsdatenFehlen',
 						array($field),
-						array('gsprogramm_id' => $gemeinsamestudien->gsprogramm_id, 'fehlendes_feld' => $field)
+						array('mobilitaet_id' => $gemeinsamestudien->mobilitaet_id, 'fehlendes_feld' => $field)
 					);
 				}
 			}

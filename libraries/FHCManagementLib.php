@@ -100,6 +100,39 @@ class FHCManagementLib
 		);
 	}
 
+	/*
+	 * Gets charges of a student in a certain semester, for certain buchungstypen.
+	 * @param int person_id
+	 * @param string studiensemester_kurzbz
+	 * @return object success or error
+	 */
+	public function getBuchungenOfStudent($person_id, $studiensemester_kurzbz, $buchungstypen)
+	{
+		return $this->_dbModel->execReadOnlyQuery(
+			"SELECT person_id, studiengang_kz, buchungsdatum, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
+				   studiensemester_kurzbz, buchungstext, buchungsdatum,
+					(SELECT count(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
+								WHERE kto.person_id = tbl_konto.person_id
+								AND kto.buchungsnr_verweis = tbl_konto.buchungsnr) AS bezahlt
+			FROM public.tbl_konto
+			WHERE person_id = ?
+			AND studiensemester_kurzbz = ?
+			AND buchungsnr_verweis IS NULL
+			AND betrag <= 0
+			AND EXISTS (SELECT 1 FROM public.tbl_prestudent
+							JOIN public.tbl_prestudentstatus USING (prestudent_id)
+							WHERE tbl_prestudent.person_id = tbl_konto.person_id
+							AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
+			AND buchungstyp_kurzbz IN ?
+			ORDER BY buchungsdatum, buchungsnr",
+			array(
+				$person_id,
+				$studiensemester_kurzbz,
+				$buchungstypen
+			)
+		);
+	}
+
 	/**
 	 * Gets non-paid Buchungen of a person, i.e. no other Buchung has it as buchungsnr_verweis.
 	 * @param int $person_id
@@ -399,7 +432,7 @@ class FHCManagementLib
 			{
 				if ($st->status_kurzbz === $status_kurzbz)
 					$prevFirstStatusDate = $st->datum;
-				else 
+				else
 					break;
 			}
 		}

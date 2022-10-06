@@ -101,7 +101,7 @@ class JQMSchedulerLib
 					WHERE ps.bismelden = TRUE
 						AND stg.melderelevant = TRUE
 						/* matr_aktiv = false: old Matrikelnummer not yet activated might need to be replaced with new */
-						AND (pers.matr_nr IS NULL OR matr_aktiv = FALSE) 
+						AND (pers.matr_nr IS NULL OR matr_aktiv = FALSE)
 						AND pss.studiensemester_kurzbz IN ?";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_MATRIKELNUMMER]))
@@ -400,7 +400,7 @@ class JQMSchedulerLib
 					FROM (
 							SELECT ps.prestudent_id, pss.studiensemester_kurzbz,
 									ps.insertamum AS ps_insertamum, pss.insertamum AS pss_insertamum,
-									mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum, 
+									mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum,
 									ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum,
 									mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
 									max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum,
@@ -434,7 +434,7 @@ class JQMSchedulerLib
 											LIMIT 1)
 										/*exception: Abbrecher, Unterbrecher etc. might not need to pay*/
 									OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Diplomand', 'Absolvent')
-							   )";
+							)";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_STUDY_DATA]))
 		{
@@ -551,10 +551,10 @@ class JQMSchedulerLib
 						AND note.positiv
 						AND lv.zeugnis
 					) anzahl_ects ON prestudenten.prestudent_id = anzahl_ects.prestudent_id AND
-						prestudenten.studiensemester_kurzbz = anzahl_ects.studiensemester_kurzbz	
+						prestudenten.studiensemester_kurzbz = anzahl_ects.studiensemester_kurzbz
 					GROUP BY prestudenten.studiensemester_kurzbz, person_id, prestudenten.prestudent_id
 				) summen_ects
-				WHERE (/*summe_ects_angerechnet <> 
+				WHERE (/*summe_ects_angerechnet <>
 							(SELECT COALESCE(SUM(last_ects_ar), 0)
 								FROM (SELECT ects_angerechnet as last_ects_ar
 								FROM sync.tbl_dvuh_pruefungsaktivitaeten
