@@ -420,9 +420,8 @@ class JQMSchedulerLib
 							LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
 							LEFT JOIN bis.tbl_bisio bisio ON tbl_student.student_uid = bisio.student_uid
 							LEFT JOIN bis.tbl_mobilitaet mob ON ps.prestudent_id = mob.prestudent_id
-							LEFT JOIN sync.tbl_dvuh_studiumdaten studd
-												ON pss.studiensemester_kurzbz = studd.studiensemester_kurzbz AND
-												   ps.prestudent_id = studd.prestudent_id
+							LEFT JOIN sync.tbl_dvuh_studiumdaten studd ON pss.studiensemester_kurzbz = studd.studiensemester_kurzbz
+																			AND ps.prestudent_id = studd.prestudent_id
 							WHERE ps.bismelden = TRUE
 							AND stg.melderelevant = TRUE
 							AND pss.studiensemester_kurzbz IN ?
@@ -433,7 +432,7 @@ class JQMSchedulerLib
 											AND zlg.betrag <= 0
 											LIMIT 1)
 										/*exception: Abbrecher, Unterbrecher etc. might not need to pay*/
-									OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Diplomand', 'Absolvent')
+								OR pss.status_kurzbz IN ('Abbrecher', 'Unterbrecher', 'Diplomand', 'Absolvent')
 							)";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_SEND_STUDY_DATA]))
