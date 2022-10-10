@@ -3,9 +3,9 @@
 if (! defined('BASEPATH')) exit('No direct script access allowed');
 
 /**
- * Ersatzkennzeichen invalid
+ * Titel post invalid
  */
-class DVUH_SC_0005 implements IIssueResolvedChecker
+class DVUH_SC_0012 implements IIssueResolvedChecker
 {
 	public function checkIfIssueIsResolved($params)
 	{
@@ -17,8 +17,8 @@ class DVUH_SC_0005 implements IIssueResolvedChecker
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
-		// load ersatzkennzeichen for the given person
-		$this->_ci->PersonModel->addSelect('ersatzkennzeichen');
+		// load Titel of given person
+		$this->_ci->PersonModel->addSelect('titelpost');
 		$personRes = $this->_ci->PersonModel->load($params['issue_person_id']);
 
 		if (isError($personRes))
@@ -26,16 +26,16 @@ class DVUH_SC_0005 implements IIssueResolvedChecker
 
 		if (hasData($personRes))
 		{
-			// call ersatzkennzeichen check method
-			$ekzCheck = $this->_ci->dvuhcheckinglib->checkEkz(getData($personRes)[0]->ersatzkennzeichen);
+			// call method for checking Titel
+			$titelCheck = $this->_ci->dvuhcheckinglib->checkTitel(getData($personRes)[0]->titelpost);
 
-			// if returns true, ekz is valid, issue resolved
-			if ($ekzCheck)
+			// resolved if Titel valid
+			if ($titelCheck)
 				return success(true);
 			else
 				return success(false);
 		}
 		else
-			return success(false); // if no ekz found, not resolved
+			return success(false); // not resolved if no Titel found
 	}
 }

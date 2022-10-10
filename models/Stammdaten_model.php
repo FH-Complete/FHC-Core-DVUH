@@ -15,7 +15,11 @@ class Stammdaten_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'stammdaten.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		// load libraries
+		$this->load->library('extensions/FHC-Core-DVUH/syncdata/DVUHCheckingLib');
+
+		// load helpers
+		$this->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
 	}
 
 	/**
@@ -49,7 +53,7 @@ class Stammdaten_model extends DVUHClientModel
 	/**
 	 * Saving Stammdaten in DVUH, using person_id to retrieve data available in FHC and add additional payment data.
 	 * @param string $be
-	 * @param $person_id
+	 * @param array $studentinfo contains student data
 	 * @param string $semester
 	 * @param string $matrikelnummer
 	 * @param float $oehbeitrag OEH Beitrag payment amount without insurance
@@ -60,11 +64,11 @@ class Stammdaten_model extends DVUHClientModel
 	 * @param string $studiengebuehrnachfrist
 	 * @return object  success or error
 	 */
-	public function post($be, $person_id, $semester,
-						 $matrikelnummer = null, $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
-						 $studiengebuehrnachfrist = null)
+	public function post($be, $studentinfo, $semester,
+							$matrikelnummer = null, $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+							$studiengebuehrnachfrist = null)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $semester, $matrikelnummer, $oehbeitrag, $sonderbeitrag, $studiengebuehr, $valutadatum,
+		$postData = $this->retrievePostData($be, $studentinfo, $semester, $matrikelnummer, $oehbeitrag, $sonderbeitrag, $studiengebuehr, $valutadatum,
 			$valutadatumnachfrist, $studiengebuehrnachfrist);
 
 		if (isError($postData))
@@ -78,7 +82,7 @@ class Stammdaten_model extends DVUHClientModel
 	/**
 	 * Retrieve person data needed for sending Stammdaten, as well as needed payment data to send charge with the Stammdaten.
 	 * @param string $be
-	 * @param int $person_id
+	 * @param array $studentinfo
 	 * @param string $semester
 	 * @param string $matrikelnummer
 	 * @param string $oehbeitrag
@@ -89,75 +93,65 @@ class Stammdaten_model extends DVUHClientModel
 	 * @param string $studiengebuehrnachfrist
 	 * @return object success with person data or error
 	 */
-	public function retrievePostData($be, $person_id, $semester, $matrikelnummer = null,
-									  $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
-									  $studiengebuehrnachfrist = null)
+	public function retrievePostData($be, $studentinfo, $semester, $matrikelnummer = null,
+										$oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
+										$studiengebuehrnachfrist = null)
 	{
 		$result = null;
 
-		if (isEmptyString($person_id))
-			$result = error('personID nicht gesetzt');
+		if (isEmptyArray($studentinfo))
+			$result = error('Studentinfo nicht gesetzt');
 		elseif (isEmptyString($semester))
 			$result = error('Semester nicht gesetzt');
 		else
 		{
-			$stammdatenDataResult = $this->dvuhsynclib->getStammdatenData($person_id, $semester);
+			if (!isset($matrikelnummer) && isset($studentinfo['matr_nr']))
+				$matrikelnummer = $studentinfo['matr_nr'];
 
-			if (isError($stammdatenDataResult))
-				$result = $stammdatenDataResult;
-			elseif (hasData($stammdatenDataResult))
-			{
-				$stammdatenData = getData($stammdatenDataResult);
-
-				$matrikelnummer = isset($matrikelnummer) ? $matrikelnummer : $stammdatenData['matrikelnummer'];
-
-				if (isEmptyString($matrikelnummer))
-					$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
-				elseif (!$this->dvuhsynclib->checkMatrikelnummer($matrikelnummer))
-					$result = createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($matrikelnummer));
-				else
-				{
-					$params = array(
-						"uuid" => getUUID(),
-						"studierendenkey" => array(
-							"matrikelnummer" => $matrikelnummer,
-							"be" => $be,
-							"semester" => $semester
-						),
-						"studentinfo" => $stammdatenData['studentinfo']
-					);
-
-					$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
-					$sonderbeitrag = isset($sonderbeitrag) ? $sonderbeitrag : '0';
-					$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
-					$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
-
-					// betragstatus 'O' if no oehbeitrag, otherwise Z error from DVUH
-					if ($oehbeitrag == '0' && $sonderbeitrag == '0')
-						$params["studentinfo"]["beitragstatus"] = 'O';
-
-					// valutadatum?? Buchungsdatum + Mahnspanne
-					$valutadatum = isset($valutadatum) ? $valutadatum : date_format(date_create(), 'Y-m-d');
-					$valutadatumnachfrist = isset($valutadatumnachfrist) ? $valutadatumnachfrist : date_format(date_create(), 'Y-m-d');
-
-					$params["vorschreibung"] = array(
-						'oehbeitrag' => $oehbeitrag, // IN CENT!!
-						'sonderbeitrag' => $sonderbeitrag, // IN CENT!!,
-						'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
-						'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
-						'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
-						'studiengebuehrnachfrist' => $studiengebuehrnachfrist, //  in CENT!!!
-						'valutadatum' => $valutadatum,
-						'valutadatumnachfrist' => $valutadatumnachfrist
-					);
-
-					$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
-
-					$result = success($postData);
-				}
-			}
+			if (isEmptyString($matrikelnummer))
+				$result = createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+			elseif (!$this->dvuhcheckinglib->checkMatrikelnummer($matrikelnummer))
+				$result = createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($matrikelnummer));
 			else
-				$result = error("Keine Stammdaten gefunden");
+			{
+				$params = array(
+					"uuid" => getUUID(),
+					"studierendenkey" => array(
+						"matrikelnummer" => $matrikelnummer,
+						"be" => $be,
+						"semester" => $semester
+					),
+					"studentinfo" => $studentinfo
+				);
+
+				$oehbeitrag = isset($oehbeitrag) ? $oehbeitrag : '0';
+				$sonderbeitrag = isset($sonderbeitrag) ? $sonderbeitrag : '0';
+				$studiengebuehr = isset($studiengebuehr) ? $studiengebuehr : '0';
+				$studiengebuehrnachfrist = isset($studiengebuehrnachfrist) ? $studiengebuehrnachfrist : '0';
+
+				// beitragstatus 'O' if no oehbeitrag, otherwise Z error from DVUH
+				if ($oehbeitrag == '0' && $sonderbeitrag == '0')
+					$params["studentinfo"]["beitragstatus"] = 'O';
+
+				// valutadatum?? Buchungsdatum + Mahnspanne
+				$valutadatum = isset($valutadatum) ? $valutadatum : date_format(date_create(), 'Y-m-d');
+				$valutadatumnachfrist = isset($valutadatumnachfrist) ? $valutadatumnachfrist : date_format(date_create(), 'Y-m-d');
+
+				$params["vorschreibung"] = array(
+					'oehbeitrag' => $oehbeitrag, // IN CENT!!
+					'sonderbeitrag' => $sonderbeitrag, // IN CENT!!,
+					'studienbeitrag' => '0', // Bei FH immer 0, CENT !!
+					'studienbeitragnachfrist' => '0', // Bei FH immer 0, CENT!!
+					'studiengebuehr' => $studiengebuehr, // FH Studiengebuehr in CENT!!!
+					'studiengebuehrnachfrist' => $studiengebuehrnachfrist, //  in CENT!!!
+					'valutadatum' => $valutadatum,
+					'valutadatumnachfrist' => $valutadatumnachfrist
+				);
+
+				$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/stammdaten', $params, true);
+
+				$result = success($postData);
+			}
 		}
 
 		return $result;

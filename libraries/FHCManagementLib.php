@@ -16,16 +16,20 @@ class FHCManagementLib
 	public function __construct()
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
-		$this->_dbModel = new DB_Model();
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+		$this->_ci->load->model('crm/Prestudentstatus_model', 'PrestudentstatusModel');
+		$this->_ci->load->model('crm/Konto_model', 'KontoModel');
+		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
 
 		// load libraries
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+
+		$this->_dbModel = new DB_Model();
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -96,6 +100,39 @@ class FHCManagementLib
 		);
 	}
 
+	/*
+	 * Gets charges of a student in a certain semester, for certain buchungstypen.
+	 * @param int person_id
+	 * @param string studiensemester_kurzbz
+	 * @return object success or error
+	 */
+	public function getBuchungenOfStudent($person_id, $studiensemester_kurzbz, $buchungstypen)
+	{
+		return $this->_dbModel->execReadOnlyQuery(
+			"SELECT person_id, studiengang_kz, buchungsdatum, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
+				   studiensemester_kurzbz, buchungstext, buchungsdatum,
+					(SELECT count(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
+								WHERE kto.person_id = tbl_konto.person_id
+								AND kto.buchungsnr_verweis = tbl_konto.buchungsnr) AS bezahlt
+			FROM public.tbl_konto
+			WHERE person_id = ?
+			AND studiensemester_kurzbz = ?
+			AND buchungsnr_verweis IS NULL
+			AND betrag <= 0
+			AND EXISTS (SELECT 1 FROM public.tbl_prestudent
+							JOIN public.tbl_prestudentstatus USING (prestudent_id)
+							WHERE tbl_prestudent.person_id = tbl_konto.person_id
+							AND tbl_prestudentstatus.studiensemester_kurzbz = tbl_konto.studiensemester_kurzbz)
+			AND buchungstyp_kurzbz IN ?
+			ORDER BY buchungsdatum, buchungsnr",
+			array(
+				$person_id,
+				$studiensemester_kurzbz,
+				$buchungstypen
+			)
+		);
+	}
+
 	/**
 	 * Gets non-paid Buchungen of a person, i.e. no other Buchung has it as buchungsnr_verweis.
 	 * @param int $person_id
@@ -112,7 +149,7 @@ class FHCManagementLib
 				AND studiensemester_kurzbz = ?
 				AND buchungsnr_verweis IS NULL
 				AND betrag < 0
-				AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto 
+				AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto
 				WHERE kto.person_id = tbl_konto.person_id
 				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr)
 				AND buchungstyp_kurzbz IN ?
@@ -177,14 +214,20 @@ class FHCManagementLib
 								AND person_id = ?
 								AND pss.studiensemester_kurzbz = ?
 								AND pss.status_kurzbz IN ?
-								AND SUBSTRING(matr_nr, 2, 2) < ( /* old Matrikelnummer, older than current first prestudentstatus */
-									SELECT SUBSTRING(studiensemester_kurzbz, 5, 2) 
+								/* old Matrikelnummer, older than current first prestudentstatus. */
+								/* +1 for SS because year in Matrikelnr spans 2 Semester */
+								AND
+								SUBSTRING(matr_nr, 2, 2)::int + (CASE WHEN SUBSTRING(sem.studiensemester_kurzbz, 1, 2) = 'SS' THEN 1 ELSE 0 END)
+								<
+								(
+									SELECT SUBSTRING(studiensemester_kurzbz, 5, 2) /* comparing year of matrikelnr and status studiensemester */
 									FROM public.tbl_prestudent
-									JOIN public.tbl_prestudentstatus USING (prestudent_id)
+									JOIN public.tbl_prestudentstatus first_status USING (prestudent_id)
+									JOIN public.tbl_studiensemester first_status_sem USING (studiensemester_kurzbz)
 									WHERE prestudent_id = ps.prestudent_id
-									ORDER BY datum
+									ORDER BY first_status_sem.start, first_status.datum
 									LIMIT 1
-								)
+								)::int
 								/* check for two digits of year works only for 100 years */
 								AND SUBSTRING(studiensemester_kurzbz, 3, 4)::integer BETWEEN 2000 AND 2099
 								AND NOT EXISTS ( /* no active prestudents in past */
@@ -234,7 +277,7 @@ class FHCManagementLib
 	 */
 	public function saveBpkInFhc($person_id, $bpk)
 	{
-		if (!$this->_ci->dvuhsynclib->checkBpk($bpk))
+		if (!$this->_ci->dvuhcheckinglib->checkBpk($bpk))
 			return error("Invalid bPK");
 
 		return $this->_ci->PersonModel->update(
@@ -301,6 +344,7 @@ class FHCManagementLib
 	 */
 	public function checkIfSentToSap($buchungsnr)
 	{
+		// check if sync table exists (SAP sync extension should be installed)
 		$tblExistsQry = "SELECT 1
 							FROM information_schema.tables
 							WHERE table_schema = 'sync' and table_name='tbl_sap_salesorder'";
@@ -310,6 +354,7 @@ class FHCManagementLib
 		if (isError($tblExistsRes))
 			return $tblExistsRes;
 
+		// check if buchungs was already sent and is in synctable
 		if (hasData($tblExistsRes))
 		{
 			$sentToSapQry = "SELECT 1
@@ -322,6 +367,100 @@ class FHCManagementLib
 				return $sentToSapRes;
 
 			if (hasData($sentToSapRes))
+				return success(array(true));
+		}
+
+		return success(array(false));
+	}
+
+	/**
+	 * Checks if prestudenstatus of Semester previous to given Studiensemester has a certain type.
+	 * @param int $prestudent_id
+	 * @param string $studiensemester_kurzbz
+	 * @param array $status_kurzbz_arr status kurzbz to check
+	 * @return object success with true/false or error
+	 */
+	public function checkPreviousStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
+	{
+		// get previous semester
+		$this->_ci->StudiensemesterModel->addSelect('studiensemester_kurzbz');
+		$previousStudiensemesterRes = $this->_ci->StudiensemesterModel->getPreviousFrom($studiensemester_kurzbz);
+
+		if (isError($previousStudiensemesterRes))
+			return $previousStudiensemesterRes;
+
+		// check the type(s)
+		if (hasData($previousStudiensemesterRes))
+		{
+			$previousStudiensemester = getData($previousStudiensemesterRes)[0]->studiensemester_kurzbz;
+
+			return $this->_checkStatusType($prestudent_id, $previousStudiensemester, $status_kurzbz_arr);
+		}
+
+		return success(array(false));
+	}
+
+	/*
+	 * Gets previous first prestudent status date.
+	 * e.g.if a student has the same status for 3 semester, and the method is called for the third, date or the first semester is returned.
+	 * @param int $prestudent_id
+	 * @param string $studiensemester_kurzbz start from this semester backwards
+	 * @param string $status_kurzbz status to check
+	 * @return object success with date or error
+	 */
+	public function getPreviousFirstStatusDate($prestudent_id, $studiensemester_kurzbz, $status_kurzbz)
+	{
+		$prevFirstStatusDate = null;
+
+		$qry = '
+				SELECT status.datum, status.status_kurzbz
+				FROM public.tbl_prestudentstatus status
+				JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
+				WHERE prestudent_id = ?
+				AND sem.start::date <= (SELECT start from public.tbl_studiensemester WHERE studiensemester_kurzbz = ?)::date
+				ORDER BY sem.start DESC, status.datum DESC';
+
+		$statusRes = $this->_dbModel->execReadOnlyQuery($qry, array($prestudent_id, $studiensemester_kurzbz));
+
+		if (isError($statusRes)) return $statusRes;
+
+		if (hasData($statusRes))
+		{
+			$status = getData($statusRes);
+
+			foreach ($status as $st)
+			{
+				if ($st->status_kurzbz === $status_kurzbz)
+					$prevFirstStatusDate = $st->datum;
+				else
+					break;
+			}
+		}
+
+		return success($prevFirstStatusDate);
+	}
+
+	/**
+	 * Checks if last prestudenstatus of a prestudent of a certain semester has a certain type.
+	 * @param int $prestudent_id
+	 * @param string $studiensemester_kurzbz
+	 * @param array $status_kurzbz_arr status kurzbz to check
+	 * @return object success with true/false or error
+	 */
+	private function _checkStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
+	{
+		// get last status for the prestudent and semester
+		$lastStatusRes = $this->_ci->PrestudentstatusModel->getLastStatus($prestudent_id, $studiensemester_kurzbz);
+
+		if (isError($lastStatusRes))
+			return $lastStatusRes;
+
+		// check the type(s)
+		if (hasData($lastStatusRes))
+		{
+			$lastStatusKurzbz = getData($lastStatusRes)[0]->status_kurzbz;
+
+			if (in_array($lastStatusKurzbz, $status_kurzbz_arr))
 				return success(array(true));
 		}
 

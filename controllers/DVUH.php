@@ -45,7 +45,12 @@ class DVUH extends Auth_Controller
 			$this->_permissions
 		);
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMatrikelnummerManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMasterDataManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHStudyDataManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPruefungsaktivitaetenManagementLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 	}
@@ -121,7 +126,7 @@ class DVUH extends Auth_Controller
 
 		$be = $this->config->item('fhc_dvuh_be_code');
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 
@@ -140,11 +145,12 @@ class DVUH extends Auth_Controller
 
 		$be = $this->config->item('fhc_dvuh_be_code');
 		$seit = isset($data['seit']) ? convertDateToIso($data['seit']) : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 
 		$json = $this->KontostaendeModel->get(
-			$be, $data['semester'], $data['matrikelnummer'], $seit
+			$be, $semester, $data['matrikelnummer'], $seit
 		);
 
 		$this->outputJson($json);
@@ -157,7 +163,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->get('data');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 		$studienkennung = isset($data['studienkennung']) ? $data['studienkennung'] : null;
 
@@ -177,7 +183,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->get('data');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
@@ -239,7 +245,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->get('data');
 
 		$be = $this->config->item('fhc_dvuh_be_code');
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Pruefungsaktivitaeten_model', 'PruefungsaktivitaetenModel');
@@ -311,7 +317,7 @@ class DVUH extends Auth_Controller
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$json = $this->dvuhmanagementlib->sendMasterdata($person_id, $semester, null, $preview);
+		$json = $this->dvuhmasterdatamanagementlib->sendMasterdata($person_id, $semester, null, $preview);
 
 		$this->outputJson($json);
 	}
@@ -326,7 +332,7 @@ class DVUH extends Auth_Controller
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$json = $this->dvuhmanagementlib->sendPayment($person_id, $semester, $preview);
+		$json = $this->dvuhpaymentmanagementlib->sendPayment($person_id, $semester, $preview);
 
 		$this->outputJson($json);
 	}
@@ -342,7 +348,7 @@ class DVUH extends Auth_Controller
 		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$json = $this->dvuhmanagementlib->sendStudyData($semester, $person_id, $prestudent_id,  $preview);
+		$json = $this->dvuhstudydatamanagementlib->sendStudyData($semester, $person_id, $prestudent_id,  $preview);
 
 		$this->outputJson($json);
 	}
@@ -362,7 +368,7 @@ class DVUH extends Auth_Controller
 		$dokumentnr = isset($data['dokumentnr']) ? $data['dokumentnr'] : null;
 		$dokumenttyp = isset($data['dokumenttyp']) ? $data['dokumenttyp'] : null;
 
-		$json = $this->dvuhmanagementlib->sendMatrikelErnpMeldung($person_id, $writeonerror, $ausgabedatum,
+		$json = $this->dvuhmasterdatamanagementlib->sendMatrikelErnpMeldung($person_id, $writeonerror, $ausgabedatum,
 			$ausstellBehoerde, $ausstellland, $dokumentnr, $dokumenttyp, $preview);
 
 		$this->outputJson($json);
@@ -375,7 +381,7 @@ class DVUH extends Auth_Controller
 		$data = $this->input->post('data');
 
 		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
-		$semester = isset($data['semester']) ? $data['semester'] : null;
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDvuh($data['semester']) : null;
 		$matrikelalt = isset($data['matrikelalt']) ? $data['matrikelalt'] : null;
 
 		$be = $this->config->item('fhc_dvuh_be_code');
@@ -399,7 +405,7 @@ class DVUH extends Auth_Controller
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$json = $this->dvuhmanagementlib->sendPruefungsaktivitaeten($person_id, $semester, $preview);
+		$json = $this->dvuhpruefungsaktivitaetenmanagementlib->sendPruefungsaktivitaeten($person_id, $semester, $preview);
 
 		$this->outputJson($json);
 	}
@@ -414,7 +420,7 @@ class DVUH extends Auth_Controller
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$forcierungskey = isset($data['forcierungskey']) ? $data['forcierungskey'] : null;
 
-		$json = $this->dvuhmanagementlib->requestEkz($person_id, $forcierungskey, $preview);
+		$json = $this->dvuhmasterdatamanagementlib->requestEkz($person_id, $forcierungskey, $preview);
 
 		$this->outputJson($json);
 	}
@@ -429,7 +435,7 @@ class DVUH extends Auth_Controller
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
 
-		$json = $this->dvuhmanagementlib->cancelStudyData($prestudent_id, $semester, $preview);
+		$json = $this->dvuhstudydatamanagementlib->cancelStudyData($prestudent_id, $semester, $preview);
 
 		$this->outputJson($json);
 	}
@@ -444,7 +450,7 @@ class DVUH extends Auth_Controller
 		$prestudent_id = isset($data['prestudent_id']) ? $data['prestudent_id'] : null;
 		$semester = isset($data['semester']) ? $data['semester'] : null;
 
-		$json = $this->dvuhmanagementlib->deletePruefungsaktivitaeten($person_id, $semester, $prestudent_id);
+		$json = $this->dvuhpruefungsaktivitaetenmanagementlib->deletePruefungsaktivitaeten($person_id, $semester, $prestudent_id);
 
 		$this->outputJson($json);
 	}

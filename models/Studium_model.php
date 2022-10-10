@@ -7,7 +7,7 @@ require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
  */
 class Studium_model extends DVUHClientModel
 {
-	private $_prestudentIdsToSave = array();
+	//private $_prestudentIdsToSave = array();
 
 	/**
 	 * Set the properties to perform calls
@@ -16,8 +16,6 @@ class Studium_model extends DVUHClientModel
 	{
 		parent::__construct();
 		$this->_url = 'studium.xml';
-
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	/**
@@ -57,14 +55,14 @@ class Studium_model extends DVUHClientModel
 	 * Prestudent_id can be additionally passed to send data for only one prestudent.
 	 * The API will attempt to delete all previously sent students if only one is sent.
 	 * @param string $be
-	 * @param int $person_id
+	 * @param object $studiumData as object with Studiengänge, Lehrgänge  of a person
 	 * @param string $semester
 	 * @param int $prestudent_id
 	 * @return object success or error
 	 */
-	public function post($be, $person_id, $semester, $prestudent_id = null)
+	public function post($be, $studiumData, $semester)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $semester, $prestudent_id);
+		$postData = $this->retrievePostData($be, $studiumData, $semester);
 
 		if (isError($postData))
 			$result = $postData;
@@ -89,14 +87,14 @@ class Studium_model extends DVUHClientModel
 	/**
 	 * Put request, same as post, but previously safed students are not deleted if only one student is sent.
 	 * @param string $be
-	 * @param int $person_id
+	 * @param object $studiumData as object with Studiengänge, Lehrgänge  of a person
 	 * @param string $semester
 	 * @param int $prestudent_id
 	 * @return object success or error
 	 */
-	public function put($be, $person_id, $semester, $prestudent_id = null)
+	public function put($be, $studiumData, $semester)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $semester, $prestudent_id);
+		$postData = $this->retrievePostData($be, $studiumData, $semester);
 
 		if (isError($postData))
 			$result = $postData;
@@ -121,42 +119,31 @@ class Studium_model extends DVUHClientModel
 	/**
 	 * Retrieves necessary xml study data from fhc db for all prestudents of a person or a single prestudent.
 	 * @param string $be
-	 * @param int $person_id
+	 * @param object $studiumData as object with Studiengänge, Lehrgänge  of a person
 	 * @param string $semester
 	 * @param int $prestudent_id
 	 * @return object success with study data or error
 	 */
-	public function retrievePostData($be, $person_id, $semester, $prestudent_id)
+	public function retrievePostData($be, $studiumData, $semester)
 	{
-		$studiumDataResult = $this->dvuhsynclib->getStudyData($person_id, $semester, $prestudent_id);
+		if (!isset($studiumData->matrikelnummer) || !isset($studiumData->studiengaenge) || !isset($studiumData->lehrgaenge))
+			return error("Studiumdaten ungültig, müssen Matrikelnummer, Studiengänge/Lehrgänge enthalten");
 
-		if (isError($studiumDataResult))
-			$result = $studiumDataResult;
-		elseif (hasData($studiumDataResult))
-		{
-			$studiumData = getData($studiumDataResult);
+		$params = array(
+			"uuid" => getUUID(),
+			"studierendenkey" => array(
+				"matrikelnummer" => $studiumData->matrikelnummer,
+				"be" => $be,
+				"semester" => $semester
+			)
+		);
 
-			$params = array(
-				"uuid" => getUUID(),
-				"studierendenkey" => array(
-					"matrikelnummer" => $studiumData->matrikelnummer,
-					"be" => $be,
-					"semester" => $semester
-				)
-			);
+		$params['studiengaenge'] = $studiumData->studiengaenge;
+		$params['lehrgaenge'] = $studiumData->lehrgaenge;
 
-			$params['studiengaenge'] = $studiumData->studiengaenge;
-			$params['lehrgaenge'] = $studiumData->lehrgaenge;
-			$this->_prestudentIdsToSave = $studiumData->prestudent_ids;
+		$postData = $this->retrievePostDataString($params);
 
-			$postData = $this->retrievePostDataString($params);
-
-			$result = success($postData);
-		}
-		else
-			$result = error("Keine Studiumdaten gefunden");
-
-		return $result;
+		return success($postData);
 	}
 
 	/**
@@ -167,17 +154,5 @@ class Studium_model extends DVUHClientModel
 	public function retrievePostDataString($params)
 	{
 		return $this->load->view('extensions/FHC-Core-DVUH/requests/studium', $params, true);
-	}
-
-	/**
-	 * Gets saved prestudent ids. Helper function for saving the ids in sync table in fhc db.
-	 * @return array
-	 */
-	public function retrieveSyncedPrestudentIds()
-	{
-		if (!is_array($this->_prestudentIdsToSave))
-			return array();
-
-		return $this->_prestudentIdsToSave;
 	}
 }

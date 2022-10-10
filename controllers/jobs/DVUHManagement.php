@@ -18,9 +18,15 @@ class DVUHManagement extends JQW_Controller
 	{
 		parent::__construct();
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHManagementLib');
+		// load libraries
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMatrikelnummerManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMasterDataManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHStudyDataManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPruefungsaktivitaetenManagementLib');
 
+		// load configs and save "log infos" parameter
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 		$this->_logInfos = $this->config->item('fhc_dvuh_log_infos');
 	}
@@ -61,7 +67,7 @@ class DVUHManagement extends JQW_Controller
 					$person_id = $persobj->person_id;
 					$studiensemester_kurzbz = $persobj->studiensemester_kurzbz;
 
-					$requestMatrnrResult = $this->dvuhmanagementlib->requestMatrikelnummer($person_id, $studiensemester_kurzbz);
+					$requestMatrnrResult = $this->dvuhmatrikelnummermanagementlib->requestMatrikelnummer($person_id, $studiensemester_kurzbz);
 
 					if (isError($requestMatrnrResult))
 					{
@@ -126,7 +132,7 @@ class DVUHManagement extends JQW_Controller
 					$person_id = $persobj->person_id;
 					$studiensemester = $persobj->studiensemester_kurzbz;
 
-					$sendChargeResult = $this->dvuhmanagementlib->sendMasterData($person_id, $studiensemester);
+					$sendChargeResult = $this->dvuhmasterdatamanagementlib->sendMasterData($person_id, $studiensemester);
 
 					if (isError($sendChargeResult))
 					{
@@ -143,7 +149,9 @@ class DVUHManagement extends JQW_Controller
 						$this->_logDVUHInfosAndWarnings($sendCharge, array('person_id' => $person_id));
 
 						if (isset($sendCharge['result']))
-							$this->_logDVUHInfoIfEnabled("Stammdaten mit Vorschreibung Person Id $person_id, Studiensemester $studiensemester erfolgreich gesendet");
+							$this->_logDVUHInfoIfEnabled(
+								"Stammdaten mit Vorschreibung Person Id $person_id, Studiensemester $studiensemester erfolgreich gesendet"
+							);
 					}
 				}
 			}
@@ -194,7 +202,7 @@ class DVUHManagement extends JQW_Controller
 					$this->logError("Fehler beim Senden der Zahlung, ungültige Parameter übergeben");
 				else
 				{
-					$sendPaymentResult = $this->dvuhmanagementlib->sendPayment($person_id, $studiensemester);
+					$sendPaymentResult = $this->dvuhpaymentmanagementlib->sendPayment($person_id, $studiensemester);
 
 					if (isError($sendPaymentResult))
 					{
@@ -274,7 +282,7 @@ class DVUHManagement extends JQW_Controller
 					$this->logError("Fehler beim Senden der Studiumdaten, ungültige Parameter übergeben");
 				else
 				{
-					$sendStudyDataResult = $this->dvuhmanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
+					$sendStudyDataResult = $this->dvuhstudydatamanagementlib->sendStudyData($studiensemester, null, $prestudent_id);
 
 					if (isError($sendStudyDataResult))
 					{
@@ -293,7 +301,9 @@ class DVUHManagement extends JQW_Controller
 
 						if (isset($sendStudyData['result']))
 						{
-							$this->_logDVUHInfoIfEnabled("Studiumdaten für prestudent Id $prestudent_id, studiensemester $studiensemester erfolgreich gesendet");
+							$this->_logDVUHInfoIfEnabled(
+								"Studiumdaten für prestudent Id $prestudent_id, studiensemester $studiensemester erfolgreich gesendet"
+							);
 						}
 					}
 				}
@@ -350,7 +360,7 @@ class DVUHManagement extends JQW_Controller
 					while ($continueLoop)
 					{
 						$continueLoop = false;
-						$requestBpkResult = $this->dvuhmanagementlib->requestBpk($person_id);
+						$requestBpkResult = $this->dvuhmasterdatamanagementlib->requestBpk($person_id);
 
 						if (isError($requestBpkResult))
 						{
@@ -438,7 +448,10 @@ class DVUHManagement extends JQW_Controller
 					$person_id = $persobj->person_id;
 					$studiensemester_kurzbz = $persobj->studiensemester_kurzbz;
 
-					$sendPruefungsaktivitaetenResult = $this->dvuhmanagementlib->sendPruefungsaktivitaeten($person_id, $studiensemester_kurzbz);
+					$sendPruefungsaktivitaetenResult = $this->dvuhpruefungsaktivitaetenmanagementlib->sendPruefungsaktivitaeten(
+						$person_id,
+						$studiensemester_kurzbz
+					);
 
 					if (isError($sendPruefungsaktivitaetenResult))
 					{

@@ -15,7 +15,7 @@ class DVUH_SS_0004 implements IIssueResolvedChecker
 		$this->_ci =& get_instance(); // get code igniter instance
 
 		$this->_ci->load->model('crm/Student_model', 'StudentModel');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load personenkennzeichen (saved in field matrikelnr) for a student uid
 		$this->_ci->StudentModel->addSelect('matrikelnr');
@@ -26,8 +26,8 @@ class DVUH_SS_0004 implements IIssueResolvedChecker
 
 		if (hasData($studentRes))
 		{
-			// call method for checking if personenkennzeichen and resolve if valid
-			$perskzCheck = $this->_ci->dvuhsynclib->checkPersonenkennzeichen(trim(getData($studentRes)[0]->matrikelnr));
+			// call method for checking personenkennzeichen and resolve if valid
+			$perskzCheck = $this->_ci->dvuhcheckinglib->checkPersonenkennzeichen(trim(getData($studentRes)[0]->matrikelnr));
 
 			if ($perskzCheck)
 				return success(true);

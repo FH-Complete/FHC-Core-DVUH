@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Functionality for parsing DVUH XML
+ * Functionality for managing DVUH issues
  */
 class DVUHIssueLib
 {

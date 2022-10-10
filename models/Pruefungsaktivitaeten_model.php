@@ -14,8 +14,6 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	{
 		parent::__construct();
 		$this->_url = 'pruefungsaktivitaeten.xml';
-
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
 	}
 
 	/**
@@ -49,14 +47,13 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	/**
 	 * Saves Pruefungsaktivitäten data in DVUH.
 	 * @param string $be
-	 * @param int $person_id
-	 * @param string $studiensemester
-	 * @param array $toPost passed by reference, to be filled with posted data to know for which prestudents Prüfungsaktivitäten were sent.
+	 * @param array $pruefungsaktivitaetenData
+	 * @param string $dvuh_studiensemester
 	 * @return object success or error
 	 */
-	public function post($be, $person_id, $studiensemester, &$toPost)
+	public function post($be, $pruefungsaktivitaetenData, $dvuh_studiensemester)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $studiensemester, $toPost);
+		$postData = $this->retrievePostData($be, $pruefungsaktivitaetenData, $dvuh_studiensemester);
 
 		if (isError($postData))
 			return $postData;
@@ -72,72 +69,47 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 	/**
 	 * Retrieves xml Pruefungsaktivitäten data for request to send to DVUH, including ECTS sums.
 	 * @param string $be
-	 * @param int $person_id
-	 * @param string $studiensemester
-	 * @param array $toPost
+	 * @param array $pruefungsaktivitaetenData
+	 * @param string $dvuh_studiensemester
 	 * @return object success or error
 	 */
-	public function retrievePostData($be, $person_id, $studiensemester, &$toPost = array())
+	public function retrievePostData($be, $pruefungsaktivitaetenData, $dvuh_studiensemester)
 	{
-		if (isEmptyString($person_id))
-			$result = error('personID nicht gesetzt');
-		else
+		if (isEmptyArray($pruefungsaktivitaetenData))
+			return success(array());
+
+		// get ects sums for Noten of the person
+		$studiumpruefungen = array();
+
+		foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
 		{
-			$dvuh_studiensemester = $this->dvuhsynclib->convertSemesterToDVUH($studiensemester);
 
-			// get ects sums for Noten of the person
-			$pruefungsaktivitaetenDataResult = $this->dvuhsynclib->getPruefungsaktivitaetenData($person_id, $studiensemester);
+			// only send Pruefungsaktivitaeten if there are ects
+			if (/*$pruefungsaktivitaeten->ects_angerechnet == 0 && */$pruefungsaktivitaeten->ects_erworben == 0)
+				continue;
 
-			if (isError($pruefungsaktivitaetenDataResult))
-				$result = $pruefungsaktivitaetenDataResult;
-			elseif (hasData($pruefungsaktivitaetenDataResult))
-			{
-				$studiumpruefungen = array();
+			// format ects
+			$ectsSums = new stdClass();
+			//$ectsSums->ects_angerechnet = number_format($pruefungsaktivitaeten->ects_angerechnet, 1);
+			$ectsSums->ects_erworben = number_format($pruefungsaktivitaeten->ects_erworben, 1);
 
-				$pruefungsaktivitaetenData = getData($pruefungsaktivitaetenDataResult);
-
-				foreach ($pruefungsaktivitaetenData as $prestudent_id => $pruefungsaktivitaeten)
-				{
-					// save ects to post to variable
-					$toPost[$prestudent_id]['ects_angerechnet'] = 0;
-					$toPost[$prestudent_id]['ects_erworben'] = $pruefungsaktivitaeten->ects_erworben;
-
-					// only send Pruefungsaktivitaeten if there are ects
-					if (/*$pruefungsaktivitaeten->ects_angerechnet == 0 && */$pruefungsaktivitaeten->ects_erworben == 0)
-						continue;
-
-					// format ects
-					$ectsSums = new stdClass();
-					//$ectsSums->ects_angerechnet = number_format($pruefungsaktivitaeten->ects_angerechnet, 1);
-					$ectsSums->ects_erworben = number_format($pruefungsaktivitaeten->ects_erworben, 1);
-
-					$studiumpruefungen[$prestudent_id]['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
-					$studiumpruefungen[$prestudent_id]['studiensemester'] = $dvuh_studiensemester;
-					$studiumpruefungen[$prestudent_id]['studiengang'] = $pruefungsaktivitaeten->dvuh_stgkz;
-					$studiumpruefungen[$prestudent_id]['ects'] = $ectsSums;
-				}
-
-				if (isEmptyArray($studiumpruefungen))
-				{
-					$result = success(array()); // empty array means no pruefungsaktivitaeten were found
-				}
-				else
-				{
-					$params = array(
-						'uuid' => getUUID(),
-						'be' => $be,
-						'studiumpruefungen' => $studiumpruefungen
-					);
-
-					$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/pruefungsaktivitaeten', $params, true);
-
-					$result = success($postData);
-				}
-			}
-			else
-				$result = success(array());// empty array means no pruefungsaktivitaeten were found
+			$studiumpruefungen[$prestudent_id]['matrikelnummer'] = $pruefungsaktivitaeten->matr_nr;
+			$studiumpruefungen[$prestudent_id]['studiensemester'] = $dvuh_studiensemester;
+			$studiumpruefungen[$prestudent_id]['studiengang'] = $pruefungsaktivitaeten->dvuh_stgkz;
+			$studiumpruefungen[$prestudent_id]['ects'] = $ectsSums;
 		}
 
-		return $result;
+		if (isEmptyArray($studiumpruefungen))
+			return success(array()); // empty array means no pruefungsaktivitaeten were found
+
+		$params = array(
+			'uuid' => getUUID(),
+			'be' => $be,
+			'studiumpruefungen' => $studiumpruefungen
+		);
+
+		$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/pruefungsaktivitaeten', $params, true);
+
+		return success($postData);
 	}
 }

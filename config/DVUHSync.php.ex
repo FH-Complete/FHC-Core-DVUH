@@ -12,7 +12,7 @@ $config['fhc_dvuh_studiensemester_meldezeitraum'] = array(
 	),
 	'WS2021' => array(
 		'von' => '2021-06-01',
-		'bis' => '2021-04-15'
+		'bis' => '2022-04-15'
 	)
 );
 
@@ -29,6 +29,9 @@ $config['fhc_dvuh_status_kurzbz'] = array(
 // All status_kurzbz which an active student can have
 $config['fhc_dvuh_active_student_status_kurzbz'] = array('Student', 'Incoming', 'Diplomand');
 
+// All status_kurzbz which a student who finished studies can have
+$config['fhc_dvuh_finished_student_status_kurzbz'] = array('Absolvent', 'Abbrecher');
+
 // buchungstypen to be considered when sending payments to DVUH
 $config['fhc_dvuh_buchungstyp'] = array(
 	'oehbeitrag' => array('OEH'),
@@ -44,7 +47,7 @@ $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; // amount to be adde
 
 $config['fhc_dvuh_sync_nullify_buchungen_paid_other_univ'] = true; // if true, Buchungen are set to 0 if paid only on other university
 
-// Ausserordentliche students are sent with this studiengang_kz
+// Ausserordentliche students are sent with this prefix to the studiengang_kz
 $config['fhc_dvuh_sync_ausserordentlich_prefix'] = 9;
 
 // StudStatusCode e.g. for gemeinsame Studien Statuscode

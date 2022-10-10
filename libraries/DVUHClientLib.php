@@ -188,7 +188,7 @@ class DVUHClientLib
 		}
 		else
 		{
-			$this->_error(self::REQUEST_FAILED, 'HTTP Code not starting with 2 - Value:'.$curl_info['http_code'].$url.print_r($response,true));
+			$this->_error(self::REQUEST_FAILED, 'HTTP Code not starting with 2 - Value:'.$curl_info['http_code'].' '.$url.' '.print_r($response,true));
 			return null;
 		}
 	}

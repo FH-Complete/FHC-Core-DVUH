@@ -14,7 +14,8 @@ class Ekzanfordern_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'ekzanfordern.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 	}
 
 	/**
@@ -72,7 +73,7 @@ class Ekzanfordern_model extends DVUHClientModel
 					$addr['strasse'] = $adresse->strasse;
 					$addr['staat'] = $adresse->nation;
 
-					$addrCheck = $this->dvuhsynclib->checkAdresse($addr);
+					$addrCheck = $this->dvuhcheckinglib->checkAdresse($addr);
 
 					if (isError($addrCheck))
 						return error("Adresse ungültig: " . getError($addrCheck));
@@ -90,7 +91,7 @@ class Ekzanfordern_model extends DVUHClientModel
 				if (isEmptyString($heimatAdresse))
 					return error("Keine Heimatadresse angegeben!");
 
-				$geschlecht = $this->dvuhsynclib->convertGeschlechtToDVUH($stammdaten->geschlecht);
+				$geschlecht = $this->dvuhconversionlib->convertGeschlechtToDVUH($stammdaten->geschlecht);
 
 				$ekzbasisdaten = array(
 					'adresse' => $heimatAdresse,

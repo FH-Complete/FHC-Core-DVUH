@@ -23,7 +23,7 @@ class BPKManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHBpkCheck');
 	}
@@ -270,7 +270,7 @@ class BPKManagementLib
 				'bpk' => $stammdaten->bpk,
 				'svnr' => $stammdaten->svnr,
 				'ersatzkennzeichen' => $stammdaten->ersatzkennzeichen,
-				'geschlecht' => $this->_ci->dvuhsynclib->convertGeschlechtToDVUH($stammdaten->geschlecht),
+				'geschlecht' => $this->_ci->dvuhconversionlib->convertGeschlechtToDVUH($stammdaten->geschlecht),
 				'geburtsland' => $stammdaten->geburtsnation_code,
 				'akadgrad' => $stammdaten->titelpre,
 				'akadnach' => $stammdaten->titelpost
