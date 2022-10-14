@@ -15,7 +15,8 @@ class Pruefebpk_model extends DVUHClientModel
 		parent::__construct();
 		$this->_url = 'pruefebpk.xml';
 
-		$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		// load models
+		$this->load->model('person/Person_model', 'PersonModel');
 	}
 
 	/**
@@ -32,10 +33,18 @@ class Pruefebpk_model extends DVUHClientModel
 	 * @param string $alternativname
 	 * @return object success or error
 	 */
-	public function get($vorname, $nachname, $geburtsdatum, $geschlecht = null,
-						$strasse = null, $plz = null, $geburtsland = null, $akadgrad = null, $akadnach = null,
-						$alternativname = null)
-	{
+	public function get(
+		$vorname,
+		$nachname,
+		$geburtsdatum,
+		$geschlecht = null,
+		$strasse = null,
+		$plz = null,
+		$geburtsland = null,
+		$akadgrad = null,
+		$akadnach = null,
+		$alternativname = null
+	) {
 		if (isEmptyString($vorname))
 			$result = error('Vorname nicht gesetzt');
 		elseif (isEmptyString($nachname))
@@ -90,8 +99,17 @@ class Pruefebpk_model extends DVUHClientModel
 		{
 			$stammdatenData = getData($stammdatenDataResult);
 
-			return $this->get($stammdatenData->vorname, $stammdatenData->nachname, $stammdatenData->gebdatum,
-				$stammdatenData->geschlecht, null, null, null, $stammdatenData->titelpre, $stammdatenData->titelpost);
+			return $this->get(
+				$stammdatenData->vorname,
+				$stammdatenData->nachname,
+				$stammdatenData->gebdatum,
+				$stammdatenData->geschlecht,
+				null,
+				null,
+				null,
+				$stammdatenData->titelpre,
+				$stammdatenData->titelpost
+			);
 		}
 		else
 			return error("No data found for person.");

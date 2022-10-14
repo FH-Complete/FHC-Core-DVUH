@@ -15,7 +15,7 @@ class DVUH_SS_0001 implements IIssueResolvedChecker
 		$this->_ci =& get_instance(); // get code igniter instance
 
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
 
 		// load Matrikelnummer of given person
 		$this->_ci->PersonModel->addSelect('matr_nr');
@@ -27,7 +27,7 @@ class DVUH_SS_0001 implements IIssueResolvedChecker
 		if (hasData($personRes))
 		{
 			// check Matrikelnummer, resolve if valid
-			$matrnrCheck = $this->_ci->dvuhsynclib->checkMatrikelnummer(getData($personRes)[0]->matr_nr);
+			$matrnrCheck = $this->_ci->dvuhcheckinglib->checkMatrikelnummer(getData($personRes)[0]->matr_nr);
 
 			if ($matrnrCheck)
 				return success(true);

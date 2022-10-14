@@ -17,14 +17,35 @@
 			if (isset($lehrgang['beendigungsdatum']))
 				echo "\t\t\t<beendigungsdatum>".$lehrgang['beendigungsdatum']."</beendigungsdatum>\n";
 
+			if (isset($lehrgang['gemeinsam']))
+			{
+				echo "\t\t\t<gemeinsam>\n".
+						"\t\t\t\t<partnercode>".$lehrgang['gemeinsam']['partnercode']."</partnercode>\n".
+						"\t\t\t\t<programmnr>".$lehrgang['gemeinsam']['programmnr']."</programmnr>\n".
+						"\t\t\t\t<studstatuscode>".$lehrgang['gemeinsam']['studstatuscode']."</studstatuscode>\n".
+						"\t\t\t\t<studtyp>".$lehrgang['gemeinsam']['studtyp']."</studtyp>\n";
+
+				if (isset($lehrgang['gemeinsam']['beendigungsdatum']))
+					echo "\t\t\t\t<beendigungsdatum>".$lehrgang['gemeinsam']['beendigungsdatum']."</beendigungsdatum>\n";
+
+				if (isset($lehrgang['gemeinsam']['mobilitaetprogrammcode']))
+					echo "\t\t\t\t<mobilitaetprogrammcode>".$lehrgang['gemeinsam']['mobilitaetprogrammcode']."</mobilitaetprogrammcode>\n";
+
+				if (isset($lehrgang['gemeinsam']['studienkennunguni']))
+					echo "\t\t\t\t<studienkennunguni>".$lehrgang['gemeinsam']['studienkennunguni']."</studienkennunguni>\n";
+
+				echo "\t\t\t</gemeinsam>\n";
+			}
+
 			echo "\t\t\t<lehrgangsnr>".$lehrgang['lehrgangsnr']."</lehrgangsnr>\n";
+
+			if (isset($lehrgang['orgformcode']))
+				echo "\t\t\t<orgformcode>".$lehrgang['orgformcode']."</orgformcode>\n";
 
 			echo "\t\t\t<perskz>".$lehrgang['perskz']."</perskz>\n";
 
 			if (isset($lehrgang['meldestatus']) && $lehrgang['meldestatus']!='')
-			{
 				echo "\t\t\t<meldestatus>".$lehrgang['meldestatus']."</meldestatus>\n";
-			}
 
 			if (isset($lehrgang['standortcode']))
 				echo "\t\t\t<standortcode>".$lehrgang['standortcode']."</standortcode>\n";
@@ -74,21 +95,16 @@
 			echo "\t\t<studiengang$disloziert>\n";
 
 			if (isset($studiengang['ausbildungssemester']))
-			{
 				echo "\t\t\t<ausbildungssemester>" . $studiengang['ausbildungssemester'] . "</ausbildungssemester>\n";
-			}
 
 			if (isset($studiengang['beendigungsdatum']) && $studiengang['beendigungsdatum']!='')
-			{
 				echo "\t\t\t<beendigungsdatum>".$studiengang['beendigungsdatum']."</beendigungsdatum>\n";
-			}
 
-			if (isset($studiengang['berufstaetigkeit_code']) && $studiengang['berufstaetigkeit_code']!='')
-			{
+			if (isset($studiengang['berufstaetigkeit_code']) && is_numeric($studiengang['berufstaetigkeit_code']))
 				echo "\t\t\t<berufstaetigkeitcode>".$studiengang['berufstaetigkeit_code']."</berufstaetigkeitcode>\n";
-			}
 
 			echo "\t\t\t<bmwfwfoerderrelevant>".$studiengang['bmwfwfoerderrelevant']."</bmwfwfoerderrelevant>\n";
+			echo "\t\t\t<dualesstudium>".$studiengang['dualesstudium']."</dualesstudium>\n";
 
 			if (isset($studiengang['gemeinsam']))
 			{
@@ -104,6 +120,9 @@
 
 				if (isset($studiengang['gemeinsam']['mobilitaetprogrammcode']))
 					echo "\t\t\t\t<mobilitaetprogrammcode>".$studiengang['gemeinsam']['mobilitaetprogrammcode']."</mobilitaetprogrammcode>\n";
+
+				if (isset($studiengang['gemeinsam']['studienkennunguni']))
+					echo "\t\t\t\t<studienkennunguni>".$studiengang['gemeinsam']['studienkennunguni']."</studienkennunguni>\n";
 
 				echo "\t\t\t</gemeinsam>\n";
 			}
@@ -144,6 +163,9 @@
 					echo "\t\t\t\t<staat>" . $mobilitaet['staat'] . "</staat>\n";
 					echo "\t\t\t\t<von>" . $mobilitaet['von'] . "</von>\n";
 
+					if (isset($mobilitaet['herkunftslandcode']))
+						echo "\t\t\t\t<herkunftslandcode>" . $mobilitaet['herkunftslandcode'] . "</herkunftslandcode>\n";
+
 					// if only one zweck without array, put it in array
 					if (!is_array($mobilitaet['zweck']) && is_numeric($mobilitaet['zweck']))
 						$mobilitaet['zweck'] = array($mobilitaet['zweck']);
@@ -157,9 +179,7 @@
 			}
 
 			if (isset($studiengang['meldestatus']) && $studiengang['meldestatus']!='')
-			{
 				echo "\t\t\t<meldestatus>".$studiengang['meldestatus']."</meldestatus>\n";
-			}
 
 			if (isset($studiengang['orgformcode']))
 				echo "\t\t\t<orgformcode>".$studiengang['orgformcode']."</orgformcode>\n";
@@ -174,8 +194,14 @@
 			if (isset($studiengang['studstatuscode']))
 				echo "\t\t\t<studstatuscode>".$studiengang['studstatuscode']."</studstatuscode>\n";
 
-			if (isset($studiengang['vornachperskz']))
-				echo "\t\t\t<vornachperskz>".$studiengang['vornachperskz']."</vornachperskz>\n";
+			if (isset($studiengang['unterbrechungsdatum']))
+				echo "\t\t\t<unterbrechungsdatum>".$studiengang['unterbrechungsdatum']."</unterbrechungsdatum>\n";
+
+			if (isset($studiengang['vonnachperskz']))
+				echo "\t\t\t<vonnachperskz>".$studiengang['vonnachperskz']."</vonnachperskz>\n";
+
+			if (isset($studiengang['wiedereintrittsdatum']))
+				echo "\t\t\t<wiedereintrittsdatum>".$studiengang['wiedereintrittsdatum']."</wiedereintrittsdatum>\n";
 
 			if (isset($studiengang['zugangsberechtigung']))
 			{

@@ -117,7 +117,7 @@ var DVUHMenu = {
 			case 'getFullstudent':
 				html = '<h4>Detaillierte Studiendaten abfragen</h4>';
 				html += DVUHMenu._getMatrikelnummerRow()
-					+ DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. 2016S für Sommer-, 2016W für Wintersemester 2016', 5)
+					+ DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016', 6)
 				method = 'get';
 				break;
 			case 'getBpk':
@@ -316,57 +316,6 @@ var DVUHMenu = {
 			}
 		);
 	},
-	getPersonPrefillData: function(person_id, buttonId)
-	{
-		FHC_AjaxClient.ajaxCallGet(
-			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/getPersonPrefillData',
-			{"person_id": person_id},
-			{
-				successCallback: function(data)
-				{
-					if (FHC_AjaxClient.hasData(data))
-					{
-						var prefillData = FHC_AjaxClient.getData(data);
-
-						$("#person_id").val(person_id);
-
-						$("#vorname").val(prefillData.vorname);
-						$("#nachname").val(prefillData.nachname);
-						$("#geburtsdatum").val(prefillData.gebdatum);
-
-						if (buttonId == 'matrnrDatenVorausfuellen')
-						{
-							$("#bpk").val(prefillData.bpk);
-							$("#svnr").val(prefillData.svnr);
-							$("#ekz").val(prefillData.ersatzkennzeichen);
-						}
-						else if (buttonId == 'bpkDatenVorausfuellen')
-						{
-							$("#geschlecht").val('');
-							$("#geburtsland").val('');
-							$("#strasse").val('');
-							$("#plz").val('');
-							$("#akadgrad").val('');
-							$("#akadnach").val('');
-						}
-						else if (buttonId == 'bpkDatenVorausfuellenVoll')
-						{
-							$("#geschlecht").val(prefillData.geschlecht);
-							$("#geburtsland").val(prefillData.geburtsland);
-							$("#strasse").val(prefillData.strasse);
-							$("#plz").val(prefillData.plz);
-							$("#akadgrad").val(prefillData.akadgrad);
-							$("#akadnach").val(prefillData.akadnach);
-						}
-					}
-				},
-				errorCallback: function(jqXHR, textStatus, errorThrown)
-				{
-					DVUHMenu._writeResult("Fehler beim Vorausfüllen", 'dvuhOutput', 'error');
-				}
-			}
-		);
-	},
 	sendForm: function(action, method, preview)
 	{
 		var url = FHC_JS_DATA_STORAGE_OBJECT.called_path + '/' + action;
@@ -477,6 +426,58 @@ var DVUHMenu = {
 			}
 		);
 	},
+	// get person data for prefill of input fields
+	getPersonPrefillData: function(person_id, buttonId)
+	{
+		FHC_AjaxClient.ajaxCallGet(
+			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/getPersonPrefillData',
+			{"person_id": person_id},
+			{
+				successCallback: function(data)
+				{
+					if (FHC_AjaxClient.hasData(data))
+					{
+						var prefillData = FHC_AjaxClient.getData(data);
+
+						$("#person_id").val(person_id);
+
+						$("#vorname").val(prefillData.vorname);
+						$("#nachname").val(prefillData.nachname);
+						$("#geburtsdatum").val(prefillData.gebdatum);
+
+						if (buttonId == 'matrnrDatenVorausfuellen')
+						{
+							$("#bpk").val(prefillData.bpk);
+							$("#svnr").val(prefillData.svnr);
+							$("#ekz").val(prefillData.ersatzkennzeichen);
+						}
+						else if (buttonId == 'bpkDatenVorausfuellen')
+						{
+							$("#geschlecht").val('');
+							$("#geburtsland").val('');
+							$("#strasse").val('');
+							$("#plz").val('');
+							$("#akadgrad").val('');
+							$("#akadnach").val('');
+						}
+						else if (buttonId == 'bpkDatenVorausfuellenVoll')
+						{
+							$("#geschlecht").val(prefillData.geschlecht);
+							$("#geburtsland").val(prefillData.geburtsland);
+							$("#strasse").val(prefillData.strasse);
+							$("#plz").val(prefillData.plz);
+							$("#akadgrad").val(prefillData.akadgrad);
+							$("#akadnach").val(prefillData.akadnach);
+						}
+					}
+				},
+				errorCallback: function(jqXHR, textStatus, errorThrown)
+				{
+					DVUHMenu._writeResult("Fehler beim Vorausfüllen", 'dvuhOutput', 'error');
+				}
+			}
+		);
+	},
 
 	/* additional "private" methods */
 	_hideNonPermittedMenuActions: function()
@@ -505,7 +506,7 @@ var DVUHMenu = {
 	},
 	_getSemesterRow: function(value)
 	{
-		return DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'z.B. 2016S für Sommer-, 2016W für Wintersemester 2016', 5, value)
+		return DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016', 6, value)
 	},
 	_getTextfieldHtml: function(name, title, hint, maxlength, value)
 	{

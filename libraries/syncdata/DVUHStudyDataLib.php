@@ -1,17 +1,15 @@
 <?php
 
+require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncdata/DVUHWarningLib.php';
+
 /**
- * Library for retrieving data from FHC for DVUH.
+ * Library for retrieving StudyData data from FHC for DVUH.
  * Extracts data from FHC db, performs data quality checks and puts data in DVUH form.
  */
-class DVUHSyncLib
+class DVUHStudyDataLib extends DVUHWarningLib
 {
 	private $_ci;
 	private $_dbModel;
-	private $_warnings = array();
-
-	const DVUH_STGKZ_LENGTH = 4;
-	const DVUH_ERHALTER_LENGTH = 3;
 
 	/**
 	 * Library initialization
@@ -19,234 +17,41 @@ class DVUHSyncLib
 	public function __construct()
 	{
 		$this->_ci =& get_instance(); // get code igniter instance
-		$this->_dbModel = new DB_Model();
 
 		// load libraries
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/JQMSchedulerLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
-		$this->_ci->load->model('person/benutzer_model', 'BenutzerModel');
 		$this->_ci->load->model('crm/prestudent_model', 'PrestudentModel');
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
-		$this->_ci->load->model('organisation/Studienplan_model', 'StudienplanModel');
-		$this->_ci->load->model('organisation/Studiengang_model', 'StudiengangModel');
 		$this->_ci->load->model('codex/Orgform_model', 'OrgformModel');
 		$this->_ci->load->model('codex/Zweck_model', 'ZweckModel');
 		$this->_ci->load->model('codex/Aufenthaltfoerderung_model', 'AufenthaltfoerderungModel');
-		$this->_ci->load->model('education/Zeugnisnote_model', 'ZeugnisnoteModel');
 
 		// load helpers
 		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+
+		$this->_dbModel = new DB_Model();
 	}
 
 	// --------------------------------------------------------------------------------------------
 	// Public methods
 
 	/**
-	 * Retrieves Stammdaten inkl. contacts for a person, performs checks, prepares data for DVUH.
-	 * @param $person_id
-	 * @return object success with studentinfo or error
-	 */
-	public function getStammdatenData($person_id, $semester)
-	{
-		$stammdaten = $this->_ci->PersonModel->getPersonStammdaten($person_id);
-
-		if (hasData($stammdaten))
-		{
-			$stammdaten = getData($stammdaten);
-
-			// studiensemester e.g. for university mails
-			$studiensemester_kurzbz = $this->convertSemesterToFHC($semester);
-
-			$adressen = array();
-			$emailliste = array();
-
-			// adresses
-			$zustellAdresse = null;
-			$heimatAdresse = null;
-			$zustellInsertamum = null;
-			$heimatInsertamum = null;
-
-			foreach ($stammdaten->adressen as $adresse)
-			{
-				// only Heimat- or Zustelladressen are sent to DVUH
-				if (!$adresse->zustelladresse && !$adresse->heimatadresse)
-					continue;
-
-				$addr = array();
-				$addr['ort'] = $adresse->gemeinde;
-				$addr['plz'] = $adresse->plz;
-				$addr['strasse'] = $adresse->strasse;
-				$addr['staat'] = $adresse->nation;
-
-				$addrCheck = $this->checkAdresse($addr);
-
-				if (isError($addrCheck))
-				{
-					return createError(
-						"Adresse ungültig: " . getError($addrCheck),
-						'adresseUngueltig',
-						array(getError($addrCheck)),
-						array('adresse_id' => $adresse->adresse_id)
-					);
-				}
-
-				if ($adresse->zustelladresse)
-				{
-					if (is_null($zustellInsertamum) || $adresse->insertamum > $zustellInsertamum)
-					{
-						$addr['typ'] = 'S';
-						$zustellInsertamum = $adresse->insertamum;
-						$zustellAdresse = $addr;
-					}
-				}
-
-				if ($adresse->heimatadresse)
-				{
-					if (is_null($heimatInsertamum) || $adresse->insertamum > $heimatInsertamum)
-					{
-						$addr['typ'] = 'H';
-						$heimatInsertamum = $adresse->insertamum;
-						$heimatAdresse = $addr;
-					}
-				}
-			}
-
-			if (isEmptyString($zustellAdresse))
-				return createError('Zustelladresse fehlt', 'keineZustelladresse');
-
-			if (isEmptyString($heimatAdresse))
-				return createError('Heimatadresse fehlt', 'keineHeimatadresse');
-
-			$adressen[] = $zustellAdresse;
-			$adressen[] = $heimatAdresse;
-
-			// private mail
-			foreach ($stammdaten->kontakte as $kontakt)
-			{
-				if ($kontakt->kontakttyp == 'email')
-				{
-					if (!validateXmlTextValue($kontakt->kontakt))
-						return createError(
-							'Email enthält Sonderzeichen',
-							'emailEnthaeltSonderzeichen',
-							null, // issue_fehlertext_params
-							array('kontakt_id' => $kontakt->kontakt_id) // issue_resolution_params
-						);
-
-					$knt = array();
-					$knt['emailadresse'] = $kontakt->kontakt;
-					$knt['emailtyp'] = 'PR';
-					$emailliste[] = $knt;
-				}
-			}
-
-			// university mail
-			$uids = $this->_ci->fhcmanagementlib->getUids($person_id, $studiensemester_kurzbz);
-
-			if (hasData($uids))
-			{
-				$uids = getData($uids);
-
-				foreach ($uids as $uid)
-				{
-					$bsmail = array();
-					$bsmail['emailadresse'] = $uid->uid . '@' . DOMAIN;
-					$bsmail['emailtyp'] = 'BE';
-					$emailliste[] = $bsmail;
-				}
-			}
-
-			$geschlecht = $this->convertGeschlechtToDVUH($stammdaten->geschlecht);
-
-			$studentinfo = array(
-				'adressen' => $adressen,
-				'beitragstatus' => 'X', // X gilt nur für FHs, Bei Uni anders
-				'emailliste' => $emailliste,
-				'geburtsdatum' => $stammdaten->gebdatum,
-				'geschlecht' => $geschlecht,
-				'nachname' => $stammdaten->nachname,
-				'staatsbuergerschaft' => $stammdaten->staatsbuergerschaft_code,
-				'vorname' => $stammdaten->vorname,
-			);
-
-			foreach ($studentinfo as $idx => $item)
-			{
-				if (!isset($item) || isEmptyString($item))
-					return createError('Stammdaten fehlen: ' . $idx, 'stammdatenFehlen', array($idx));
-			}
-
-			if (isset($stammdaten->matr_nr))
-				$studentinfo['matr_nr'] = $stammdaten->matr_nr;
-
-			if (isset($stammdaten->titelpre))
-				$studentinfo['akadgrad'] = $stammdaten->titelpre;
-
-			if (isset($stammdaten->titelpost))
-				$studentinfo['akadgradnach'] = $stammdaten->titelpost;
-
-			if (isset($stammdaten->svnr))
-				$studentinfo['svnr'] = $stammdaten->svnr;
-
-			if (isset($stammdaten->ersatzkennzeichen) && isEmptyString($stammdaten->svnr))
-			{
-				if (!$this->checkEkz($stammdaten->ersatzkennzeichen))
-				{
-					return createError(
-						'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
-						'ersatzkennzeichenUngueltig'
-					);
-				}
-
-				$studentinfo['ekz'] = $stammdaten->ersatzkennzeichen;
-			}
-
-			if (isset($stammdaten->bpk))
-			{
-				if (!$this->checkBpk($stammdaten->bpk))
-				{
-					return createError(
-						'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
-						'bpkUngueltig'
-					);
-				}
-
-				$studentinfo['bpk'] = $stammdaten->bpk;
-			}
-
-			$textValues = array('vorname', 'nachname', 'akadgrad', 'akadgradnach', 'bpk', 'titelpre', 'titelpost', 'ersatzkennzeichen');
-
-			foreach ($textValues as $textValue)
-			{
-				if (isset($studentinfo[$textValue]) && !validateXmlTextValue($studentinfo[$textValue]))
-				{
-					return createError("$textValue enthält ungültige Sonderzeichen", 'ungueltigeSonderzeichen', array($textValue));
-				}
-			}
-
-			return success(
-				array(
-					'matrikelnummer' => $stammdaten->matr_nr,
-					'studentinfo' => $studentinfo
-				)
-			);
-		}
-		else
-			return error("keine Stammdaten gefunden");
-	}
-
-	/**
 	 * Retrieves studydata for a person and semester, performs checks, prepares data for DVUH.
 	 * @param int $person_id
-	 * @param string $semester
+	 * @param string $studiensemester_kurzbz
 	 * @param int $prestudent_id optionally, retrieve only data for one prestudent of the person
 	 * @return object success with studentinfo or error
 	 */
-	public function getStudyData($person_id, $semester, $prestudent_id = null)
+	public function getStudyData($person_id, $studiensemester_kurzbz, $prestudent_id = null)
 	{
 		$resultObj = new stdClass();
 
@@ -259,24 +64,25 @@ class DVUHSyncLib
 			if (isEmptyString($person->matr_nr))
 				return createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
 
-			if (!$this->checkMatrikelnummer($person->matr_nr))
+			if (!$this->_ci->dvuhcheckinglib->checkMatrikelnummer($person->matr_nr))
 				return createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($person->matr_nr));
 
 			$resultObj->matrikelnummer = $person->matr_nr;
 			$gebdatum = $person->gebdatum;
 
-			$semester = $this->convertSemesterToFHC($semester);
-
 			$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
+			$active_status_kurzbz = $this->_ci->config->item('fhc_dvuh_active_student_status_kurzbz');
+			$finished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_finished_student_status_kurzbz');
 
 			// Meldung pro Student, Studium und Semester
-			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid, pss.status_kurzbz,
+			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid,
+						pss.status_kurzbz, pss.datum AS status_datum,
 						stg.studiengang_kz, stg.typ AS studiengang_typ,
 						stg.orgform_kurzbz AS studiengang_orgform, tbl_studienplan.orgform_kurzbz AS studienplan_orgform,
 						pss.orgform_kurzbz AS prestudentstatus_orgform, stg.erhalter_kz, stg.max_semester AS studiengang_maxsemester, stg.lgartcode,
 						tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
 						tbl_student.matrikelnr AS personenkennzeichen, ps.zgv_code, ps.zgvdatum, ps.zgvnation,
-						ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation, ps.gsstudientyp_kurzbz,
+						ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation, ps.gsstudientyp_kurzbz, ps.dual,
 						(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
@@ -284,7 +90,7 @@ class DVUHSyncLib
 						(SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
     						AND tbl_prestudentstatus.studiensemester_kurzbz = pss.studiensemester_kurzbz
-							AND status_kurzbz IN ('Absolvent', 'Abbrecher')
+							AND status_kurzbz IN ?
 							AND datum <= NOW()
 							ORDER BY datum DESC LIMIT 1) AS beendigungsdatum
 					FROM public.tbl_prestudent ps
@@ -295,12 +101,13 @@ class DVUHSyncLib
 					LEFT JOIN bis.tbl_lgartcode ON (stg.lgartcode = tbl_lgartcode.lgartcode)
 					WHERE ps.bismelden = TRUE
 					AND stg.melderelevant = TRUE
-					AND ps.person_id = ? 
+					AND ps.person_id = ?
 					AND pss.studiensemester_kurzbz = ?";
 
 			$params = array(
+				isEmptyArray($finished_status_kurzbz) ? array('') : $finished_status_kurzbz,
 				$person_id,
-				$semester
+				$studiensemester_kurzbz
 			);
 
 			if (isset($status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_STUDY_DATA]))
@@ -331,14 +138,14 @@ class DVUHSyncLib
 				foreach ($prestudentstatuses as $prestudentstatus)
 				{
 					$prestudent_id = $prestudentstatus->prestudent_id;
-					$prestudent_ids[] = $prestudent_id;
+					$prestudent_ids[] = $prestudent_id; // save prestudent id to know which prestudents were synced
 					$status_kurzbz = $prestudentstatus->status_kurzbz;
 					$studiengang_kz = $prestudentstatus->studiengang_kz;
 
 					// personenkennzeichen
 					$perskz = trim($prestudentstatus->personenkennzeichen);
 
-					if (!$this->checkPersonenkennzeichen($perskz))
+					if (!$this->_ci->dvuhcheckinglib->checkPersonenkennzeichen($perskz))
 					{
 						return createError(
 							"Personenkennzeichen ungültig",
@@ -362,13 +169,17 @@ class DVUHSyncLib
 					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
 
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
-					$isAusserordentlich = $this->checkIfAusserordentlich($prestudentstatus->personenkennzeichen);
+					$isAusserordentlich = $this->_ci->dvuhcheckinglib->checkIfAusserordentlich($prestudentstatus->personenkennzeichen);
 
 					// Lehrgang - if Lehrgangsart is set, but not ausserordentlich
 					$isLehrgang = !$isAusserordentlich && isset($prestudentstatus->lgartcode);
 
 					// studiengang kz
-					$meldeStudiengangRes = $this->getMeldeStudiengangKz($studiengang_kz, $prestudentstatus->erhalter_kz, $isAusserordentlich);
+					$meldeStudiengangRes = $this->_ci->dvuhconversionlib->getMeldeStudiengangKz(
+						$studiengang_kz,
+						$prestudentstatus->erhalter_kz,
+						$isAusserordentlich
+					);
 
 					if (isError($meldeStudiengangRes))
 						return $meldeStudiengangRes;
@@ -405,10 +216,29 @@ class DVUHSyncLib
 					// zulassungsdatum (start date of studies)
 					$zulassungsdatum = $isIncoming || $isAusserordentlich ? null : $prestudentstatus->beginndatum;
 
-					// zgv if not ausserordentlich
+					// orgform_kurzbz
+					if (isset($prestudentstatus->studienplan_orgform))
+						$orgform_kurzbz = $prestudentstatus->studienplan_orgform;
+					elseif (isset($prestudentstatus->prestudentstatus_orgform))
+						$orgform_kurzbz = $prestudentstatus->prestudentstatus_orgform;
+					elseif (isset($prestudentstatus->studiengang_orgform))
+						$orgform_kurzbz = $prestudentstatus->studiengang_orgform;
+
 					$zugangsberechtigung = null;
 					if (!$isAusserordentlich)
 					{
+						// orgform code if not ausserordentlich
+						$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
+
+						if (isError($orgform_code))
+							return $orgform_code;
+
+						if (hasData($orgform_code))
+						{
+							$orgformcode = getData($orgform_code);
+						}
+
+						// zgv if not ausserordentlich
 						$zugangsberechtigungResult = $this->_getZgv($prestudentstatus, $gebdatum, $isIncoming);
 
 						if (isError($zugangsberechtigungResult))
@@ -445,6 +275,21 @@ class DVUHSyncLib
 						}
 					}
 
+					// gemeinsame Studien
+					$gemeinsam = null;
+					// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
+					$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
+
+					$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $gsBeendigungsdatum);
+
+					if (isset($gemeinsamResult) && isError($gemeinsamResult))
+						return $gemeinsamResult;
+
+					if (hasData($gemeinsamResult))
+					{
+						$gemeinsam = getData($gemeinsamResult);
+					}
+
 					// lehrgang
 					if ($isLehrgang)
 					{
@@ -459,7 +304,10 @@ class DVUHSyncLib
 								return createError('Lehrgangdaten fehlen: ' . $idx, 'lehrgangdatenFehlen', array($idx));
 						}
 
-						if (isset($zulassungsdatum) && !$isExtern)
+						if (isset($orgform_code))
+							$lehrgang['orgformcode'] = $orgformcode;
+
+						if (isset($studstatuscode) && !$isExtern)
 							$lehrgang['studstatuscode'] = $studstatuscode;
 
 						if (isset($zulassungsdatum) && !$isExtern)
@@ -477,31 +325,13 @@ class DVUHSyncLib
 						if (isset($zugangsberechtigung))
 							$lehrgang['zugangsberechtigung'] = $zugangsberechtigung;
 
+						if (isset($gemeinsam))
+							$lehrgang['gemeinsam'] = $gemeinsam;
+
 						$lehrgaenge[] = $lehrgang;
 					}
 					else // studiengang
 					{
-						// orgform_kurzbz
-						if (isset($prestudentstatus->studienplan_orgform))
-							$orgform_kurzbz = $prestudentstatus->studienplan_orgform;
-						elseif (isset($prestudentstatus->prestudentstatus_orgform))
-							$orgform_kurzbz = $prestudentstatus->prestudentstatus_orgform;
-						elseif (isset($prestudentstatus->studiengang_orgform))
-							$orgform_kurzbz = $prestudentstatus->studiengang_orgform;
-
-						// gemeinsame Studien
-						$gemeinsam = null;
-						// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
-						$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
-						$gemeinsamResult = $this->_getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $gsBeendigungsdatum);
-
-						if (isset($gemeinsamResult) && isError($gemeinsamResult))
-							return $gemeinsamResult;
-						if (hasData($gemeinsamResult))
-						{
-							$gemeinsam = getData($gemeinsamResult);
-						}
-
 						// ausbildungssemester
 						if (!$isIncoming && !$isAusserordentlich)
 						{
@@ -511,14 +341,47 @@ class DVUHSyncLib
 								return $ausbildungssemesterResult;
 							else
 								$ausbildungssemester = getData($ausbildungssemesterResult);
+
+							// Unterbrechungsdatum if Unterbrecher
+							if ($status_kurzbz == 'Unterbrecher')
+							{
+								$unterbrechungsdatumRes = $this->_ci->fhcmanagementlib->getPreviousFirstStatusDate(
+									$prestudent_id,
+									$studiensemester_kurzbz,
+									'Unterbrecher'
+								);
+
+								if (isError($unterbrechungsdatumRes)) return $unterbrechungsdatumRes;
+
+								$unterbrechungsdatum = hasData($unterbrechungsdatumRes) ? getData($unterbrechungsdatumRes) : null;
+							}
+
+							// Wiedereintrittsdatum if Student after Unterbrecher
+							if (in_array($status_kurzbz, $active_status_kurzbz))
+							{
+								$previousStatusUnterbrochenRes = $this->_ci->fhcmanagementlib->checkPreviousStatusType(
+									$prestudent_id,
+									$studiensemester_kurzbz,
+									array('Unterbrecher')
+								);
+
+								if (isError($previousStatusUnterbrochenRes))
+									return $previousStatusUnterbrochenRes;
+
+								if (hasData($previousStatusUnterbrochenRes) && getData($previousStatusUnterbrochenRes)[0] === true)
+								{
+									$wiedereintrittsdatum = $prestudentstatus->status_datum;
+								}
+							}
 						}
 
 						// Mobilität
 						$mobilitaet = null;
-						$mobilitaetResult = $this->_getMobilitaet($semester, $prestudentstatus);
+						$mobilitaetResult = $this->_getMobilitaet($studiensemester_kurzbz, $prestudentstatus);
 
 						if (isset($mobilitaetResult) && isError($mobilitaetResult))
 							return $mobilitaetResult;
+
 						if (hasData($mobilitaetResult))
 						{
 							$mobilitaet = getData($mobilitaetResult);
@@ -540,25 +403,17 @@ class DVUHSyncLib
 								$bmffoerderrelevant = 'J';
 						}
 
+						// duales Studium
+						$dualesstudium = $prestudentstatus->dual === true ? 'J' : 'N';
+
 						if (!$isAusserordentlich)
 						{
-							// orgform code
-							$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
-
-							if (isError($orgform_code))
-								return $orgform_code;
-
-							if (hasData($orgform_code))
-							{
-								$orgformcode = getData($orgform_code);
-							}
-
 							// berufstätigkeitcode, wenn nicht Vollzeit und nicht ausserordentlich
 							if ($orgformcode != '1')
 							{
-								if (isEmptyString($prestudentstatus->berufstaetigkeit_code))
+								if (!isset($prestudentstatus->berufstaetigkeit_code) || !is_numeric($prestudentstatus->berufstaetigkeit_code))
 								{
-									$this->_addWarning(
+									$this->addWarning(
 										'Berufstätigkeitcode fehlt',
 										'berufstaetigkeitcodeFehlt',
 										null,
@@ -573,6 +428,7 @@ class DVUHSyncLib
 						$studiengang = array(
 							'disloziert' => 'N', // J,N,j,n
 							'bmwfwfoerderrelevant' => $bmffoerderrelevant,
+							'dualesstudium' => $dualesstudium,
 							'perskz' => $perskz,
 							'stgkz' => $melde_studiengang_kz // Laut Dokumentation 3stellige ErhKZ + 4stellige STGKz
 						);
@@ -591,6 +447,12 @@ class DVUHSyncLib
 
 						if (isset($zulassungsdatum) && !$isExtern)
 							$studiengang['zulassungsdatum'] = $zulassungsdatum;
+
+						if (isset($unterbrechungsdatum) && !$isExtern)
+							$studiengang['unterbrechungsdatum'] = $unterbrechungsdatum;
+
+						if (isset($wiedereintrittsdatum) && !$isExtern)
+							$studiengang['wiedereintrittsdatum'] = $wiedereintrittsdatum;
 
 						if (isset($ausbildungssemester) && !$isExtern)
 							$studiengang['ausbildungssemester'] = $ausbildungssemester;
@@ -630,313 +492,6 @@ class DVUHSyncLib
 		}
 
 		return success($resultObj);
-	}
-
-	/**
-	 * Retrieves Prüfungsaktivitäten data for sending to DVUH, for each prestudent of a person.
-	 * Sums up ects angerechnet and erworben.
-	 * @param int $person_id
-	 * @param string $studiensemester
-	 * @return object prestudent ids with ects data or error
-	 */
-	public function getPruefungsaktivitaetenData($person_id, $studiensemester)
-	{
-		$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
-		$note_angerechnet_ids = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
-
-		$prestudentEcts = array();
-
-		//get all valid prestudents of person
-		$prestudentsRes = $this->_ci->fhcmanagementlib->getPrestudentsOfPerson(
-			$person_id,
-			$studiensemester,
-			$status_kurzbz[JQMSchedulerLib::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN]
-		);
-
-		if (isError($prestudentsRes))
-			return $prestudentsRes;
-
-		if (hasData($prestudentsRes))
-		{
-			$prestudents = getData($prestudentsRes);
-
-			foreach ($prestudents as $prestudent)
-			{
-				// convert erhalter kz and studiengangskennzahl to DVUH format
-				$isAusserordentlich = isset($prestudent->personenkennzeichen) && $this->checkIfAusserordentlich($prestudent->personenkennzeichen);
-
-				$meldeStudiengangRes = $this->getMeldeStudiengangKz($prestudent->studiengang_kz, $prestudent->erhalter_kz, $isAusserordentlich);
-
-				if (isError($meldeStudiengangRes))
-					return $meldeStudiengangRes;
-
-				$melde_studiengang_kz = null;
-				if (hasData($meldeStudiengangRes))
-					$melde_studiengang_kz = getData($meldeStudiengangRes);
-
-				$prestudentEctsObj = new stdClass();
-				$prestudentEctsObj->ects_erworben = 0.0;
-				$prestudentEctsObj->ects_angerechnet = 0.0;
-				$prestudentEctsObj->dvuh_stgkz = $melde_studiengang_kz;
-				$prestudentEctsObj->matr_nr = $prestudent->matr_nr;
-				$prestudentEcts[$prestudent->prestudent_id] = $prestudentEctsObj;
-			}
-		}
-
-		// get ects sums of Noten which are aktiv, both lehre and non-lehre, offiziell, positiv, have zeugnis = true
-		$zeugnisNotenResult = $this->_ci->ZeugnisnoteModel->getByPerson($person_id, $studiensemester, true, null, true, true, true);
-
-		if (isError($zeugnisNotenResult))
-			return $zeugnisNotenResult;
-
-		if (hasData($zeugnisNotenResult))
-		{
-			$zeugnisNoten = getData($zeugnisNotenResult);
-
-			// sum up ects by prestudent, angerechnete Noten separately
-			foreach ($zeugnisNoten as $note)
-			{
-				if (isset($prestudentEcts[$note->prestudent_id]) && isset($note->ects))
-				{
-					if (in_array($note->note, $note_angerechnet_ids))
-						$prestudentEcts[$note->prestudent_id]->ects_angerechnet += $note->ects;
-					else
-						$prestudentEcts[$note->prestudent_id]->ects_erworben += $note->ects;
-				}
-			}
-		}
-
-		return success($prestudentEcts);
-	}
-
-	/**
-	 * Gets Studiengangskennzahl for reporting to DVUH.
-	 * @param int $studiengang_kz the inofficial identifier
-	 * @param int $erhalter_kz number of Erhalter instiution
-	 * @param bool $isAusserordentlich wether student to report is ausserordentlich
-	 * @return object
-	 */
-	public function getMeldeStudiengangKz($studiengang_kz, $erhalter_kz, $isAusserordentlich = false)
-	{
-		$dvuh_erhalter_kz = $this->convertErhalterkennzahlToDVUH($erhalter_kz);
-
-		// if ausserordentlich, special studiengang kz
-		if ($isAusserordentlich === true)
-			return success($dvuh_erhalter_kz.$this->convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $dvuh_erhalter_kz));
-
-		// load stg to get melde_studiengang_kz
-		$this->_ci->StudiengangModel->addSelect('melde_studiengang_kz, lgartcode');
-		$studiengangRes = $this->_ci->StudiengangModel->load($studiengang_kz);
-
-		if (hasData($studiengangRes))
-		{
-			$studiengangData = getData($studiengangRes)[0];
-			$melde_studiengang_kz = $studiengangData->melde_studiengang_kz;
-
-			// if lgartcode exists, studiengang is lehrgang - add erhalter_kz
-			if (!is_numeric($studiengangData->lgartcode))
-			{
-				$dvuh_erhalter_kz = $this->convertErhalterkennzahlToDVUH($erhalter_kz);
-				$melde_studiengang_kz = $dvuh_erhalter_kz.$melde_studiengang_kz;
-			}
-
-			// check studiengang kz for validity
-			if (!$this->checkStudiengangkz($melde_studiengang_kz))
-			{
-				return createError( // TODO phrase?
-					"Ungültige Meldestudiengangskennzahl für Studiengang $studiengang_kz,"
-					." gültiges Format: (3 Stellen für Erhalter wenn Lehrgang) [4 Stellen Studiengang]",
-					'ungueltigeMeldeStudiengangskennzahl',
-					array($studiengang_kz),
-					array('studiengang_kz' => $studiengang_kz)
-				);
-			}
-
-			// return covnerted melde studiengang kz
-			return success($melde_studiengang_kz);
-		}
-		else
-			return error("Keinen Studiengang gefunden"); // TODO phrases
-	}
-
-	/**
-	 * Converts semester in DVUH format to FHC format
-	 * @param string $semester
-	 * @return string semester in FHC format
-	 */
-	public function convertSemesterToFHC($semester)
-	{
-		if (!preg_match("/^\d{4}(S|W)$/", $semester))
-			return $semester;
-
-		return mb_substr($semester, -1).'S'.mb_substr($semester, 0, 4);
-	}
-
-	/**
-	 * Converts semester in FHC format to DVUH format
-	 * @param string $semester
-	 * @return string semester in DVUH format
-	 */
-	public function convertSemesterToDVUH($semester)
-	{
-		if (!preg_match("/^(S|W)S\d{4}$/", $semester))
-			return $semester;
-
-		return mb_substr($semester, 2, strlen($semester) - 2).mb_substr($semester, 0, 1);
-	}
-
-	/**
-	 * Converts geschlecht from FHC to DVUH format.
-	 * @param string $fhcgeschlecht
-	 * @return string geschlecht in DVUH format
-	 */
-	public function convertGeschlechtToDVUH($fhcgeschlecht)
-	{
-		$dvuh_geschlecht = 'X';
-
-		if ($fhcgeschlecht == 'm')
-			$dvuh_geschlecht = 'M';
-		elseif ($fhcgeschlecht == 'w')
-			$dvuh_geschlecht = 'W';
-
-		return $dvuh_geschlecht;
-	}
-
-	/**
-	 * Converts Erhalter Kennzahl to DVUH format.
-	 * @param string $erhalter_kz
-	 * @return string
-	 */
-	public function convertErhalterkennzahlToDVUH($erhalter_kz)
-	{
-		if (!is_numeric($erhalter_kz))
-			return $erhalter_kz;
-
-		return str_pad($erhalter_kz, self::DVUH_ERHALTER_LENGTH, '0', STR_PAD_LEFT);
-	}
-
-	/**
-	 * Converts Studiengangskennzahl of a student who is ausserordentlich to DVUH format.
-	 * @param $studiengang_kz
-	 * @param $erhalter_kz
-	 * @return string
-	 */
-	public function convertStudiengangskennzahlToDVUHAusserordentlich($studiengang_kz, $erhalter_kz)
-	{
-		$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
-
-		if (!is_numeric($ausserordentlich_prefix))
-			return $studiengang_kz;
-
-		return $ausserordentlich_prefix.$erhalter_kz;
-	}
-
-	/**
-	 * Checks an adress for validity.
-	 * @param object $addr
-	 * @return error or success with true/false (valid or not)
-	 */
-	public function checkAdresse($addr)
-	{
-		$result = success(true);
-
-		$errorText = '';
-
-		if (!isset($addr['ort']) || isEmptyString($addr['ort']) || !validateXmlTextValue($addr['ort']))
-			$errorText .= (!isEmptyString($errorText) ? ', ' : '') . 'Ort (Feld Gemeinde) fehlt oder enthält Sonderzeichen';
-
-		if (!isset($addr['plz']) || isEmptyString($addr['plz']) || !validateXmlTextValue($addr['plz']))
-			$errorText .= (!isEmptyString($errorText) ? ', ' : '') . 'Plz fehlt oder enthält Sonderzeichen';
-
-		if (!isset($addr['strasse']) || isEmptyString($addr['strasse']) || !validateXmlTextValue($addr['strasse']))
-			$errorText .= (!isEmptyString($errorText) ? ', ' : '') . 'Strasse fehlt oder enthält Sonderzeichen';
-
-		if (!isset($addr['staat']) || isEmptyString($addr['staat']))
-			$errorText .= (!isEmptyString($errorText) ? ', ' : '') . 'Nation fehlt';
-
-		if (!isEmptyString($errorText))
-			$result = error($errorText);
-
-		return $result;
-	}
-
-	/**
-	 * Checks Matrikelnummer for validity.
-	 * @param string $svnr
-	 * @return bool valid or not
-	 */
-	public function checkMatrikelnummer($svnr)
-	{
-		return preg_match("/^\d{8}$/", $svnr) === 1;
-	}
-
-	/**
-	 * Checks Ersatzkennzeichen for validity.
-	 * @param string $ekz
-	 * @return bool valid or not
-	 */
-	public function checkEkz($ekz)
-	{
-		return preg_match('/^[A-Z]{4}[0-9]{6}$/', $ekz) === 1;
-	}
-
-	/**
-	 * Checks Bpk for validity.
-	 * @param string $bpk
-	 * @return bool valid or not
-	 */
-	public function checkBpk($bpk)
-	{
-		return preg_match("/^([A-Za-z0-9+\/]{27})=$/", $bpk) === 1;
-	}
-
-	/**
-	 * Checks Bpk for validity.
-	 * @param string $bpk
-	 * @return bool valid or not
-	 */
-	public function checkPersonenkennzeichen($perskz)
-	{
-		return preg_match("/^\d{10}$/", $perskz);
-	}
-
-	/**
-	 * Checks if a student is ausserordentlich.
-	 * @param string $personenkennzeichen
-	 * @return bool
-	 */
-	public function checkIfAusserordentlich($personenkennzeichen)
-	{
-		return mb_substr($personenkennzeichen, 3, 1) == '9';
-	}
-
-	/**
-	 * Checks if studiengang kz is valid to report.
-	 * @param int $melde_studiengang_kz
-	 * @return bool true if valid, false otherwise
-	 */
-	public function checkStudiengangkz($melde_studiengang_kz)
-	{
-		$stgkzValid = is_numeric($melde_studiengang_kz);
-
-		// length must be erhalter kz length + studiengang kz length
-		if (strlen((string)$melde_studiengang_kz) !== self::DVUH_ERHALTER_LENGTH + self::DVUH_STGKZ_LENGTH)
-		{
-			$stgkzValid = false;
-		}
-
-		return $stgkzValid;
-	}
-
-	/**
-	 * Gets occured warnings and resets them.
-	 * @return array
-	 */
-	public function readWarnings()
-	{
-		$warnings = $this->_warnings;
-		$this->_warnings = array();
-		return $warnings;
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -987,43 +542,46 @@ class DVUHSyncLib
 
 	/**
 	 * Gets gemeinsame Studien data for a prestudent.
-	 * @param object $prestudentstatus with gsinfo
-	 * @param string $semester for getting previous semester for Absolventen
+	 * @param int $prestudent_id
+	 * @param string $studiensemester_kurzbz for getting previous semester for Absolventen
 	 * @param string $studtyp pass to gsdata
+	 * @param string $beendiungsdatum end date of GS stay
 	 * @return object error or success with gsdata
 	 */
-	private function _getGemeinsameStudien($prestudentstatus, $semester, $studtyp, $beendigungsdatum)
+	private function _getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $beendigungsdatum)
 	{
 		if (!isset($studtyp))
 			return error('Kein Studientyp für gemeinsame Studien gefunden');
 
-		$prestudent_id = $prestudentstatus->prestudent_id;
-
 		$kodex_studstatuscode_array = $this->_ci->config->item('fhc_dvuh_sync_student_statuscode');
+		$finished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_finished_student_status_kurzbz');
 
-		$gemeinsamestudienResult = $this->_dbModel->execReadOnlyQuery("SELECT
-								mo.*,
-								tbl_gsprogramm.programm_code,
-								tbl_firma.partner_code,
-       							CASE WHEN EXISTS
-									(SELECT 1 FROM bis.tbl_mobilitaet
-									WHERE prestudent_id = mo.prestudent_id
-									AND studiensemester_kurzbz = mo.studiensemester_kurzbz
-									AND status_kurzbz = 'Absolvent')
-								THEN TRUE
-								ELSE FALSE
-								END AS ist_absolvent
-							FROM
-								bis.tbl_mobilitaet mo
-								LEFT JOIN bis.tbl_gsprogramm USING(gsprogramm_id)
-								LEFT JOIN public.tbl_firma USING(firma_id)
-							WHERE
-								prestudent_id=?
-								AND studiensemester_kurzbz=?
-							ORDER BY mo.insertamum DESC LIMIT 1;",
+		$gemeinsamestudienResult = $this->_dbModel->execReadOnlyQuery(
+			"SELECT
+					mo.*,
+					tbl_gsprogramm.programm_code,
+					tbl_gsprogramm.studienkennung_uni,
+					tbl_firma.partner_code,
+						CASE WHEN EXISTS
+						(SELECT 1 FROM bis.tbl_mobilitaet
+						WHERE prestudent_id = mo.prestudent_id
+						AND studiensemester_kurzbz = mo.studiensemester_kurzbz
+						AND status_kurzbz IN ?)
+					THEN TRUE
+					ELSE FALSE
+					END AS abgeschlossen
+				FROM
+					bis.tbl_mobilitaet mo
+					LEFT JOIN bis.tbl_gsprogramm USING(gsprogramm_id)
+					LEFT JOIN public.tbl_firma USING(firma_id)
+				WHERE
+					prestudent_id=?
+					AND studiensemester_kurzbz=?
+				ORDER BY mo.insertamum DESC LIMIT 1;",
 			array(
+				isEmptyArray($finished_status_kurzbz) ? array('') : $finished_status_kurzbz,
 				$prestudent_id,
-				$semester
+				$studiensemester_kurzbz
 			)
 		);
 
@@ -1031,6 +589,7 @@ class DVUHSyncLib
 
 		if (isError($gemeinsamestudienResult))
 			return error("Fehler beim Holen gemeinsamer Studien");
+
 		if (hasData($gemeinsamestudienResult))
 		{
 			$gemeinsamestudien = getData($gemeinsamestudienResult)[0];
@@ -1039,6 +598,22 @@ class DVUHSyncLib
 				$gs_studstatuscode = $kodex_studstatuscode_array[$gemeinsamestudien->status_kurzbz];
 			else
 				return error('Kein Status für gemeinsame Studien gefunden');
+
+			// check required fields for gemeinsame Studien
+			$requiredFields = array('mobilitaetsprogramm_code', 'partner_code', 'programm_code');
+
+			foreach ($requiredFields as $field)
+			{
+				if (!isset($gemeinsamestudien->{$field}))
+				{
+					return createError(
+						"Daten für gemeinsames Studium fehlen: ".$field,
+						'gsdatenFehlen',
+						array($field),
+						array('mobilitaet_id' => $gemeinsamestudien->mobilitaet_id, 'fehlendes_feld' => $field)
+					);
+				}
+			}
 
 			$gemeinsamData = array(
 				'ausbildungssemester' => $gemeinsamestudien->ausbildungssemester,
@@ -1049,8 +624,21 @@ class DVUHSyncLib
 				'studtyp' => $studtyp
 			);
 
-			// set beendigungsdatum only if absolvent
-			if ($gemeinsamestudien->ist_absolvent === true)
+			if (isset($gemeinsamestudien->studienkennung_uni)
+				&& !$this->_ci->dvuhcheckinglib->checkStudienkennunguni($gemeinsamestudien->studienkennung_uni))
+			{
+				return createError(
+					"Studienkennung Uni ungültig, GS Programm Code ".$gemeinsamestudien->programm_code,
+					'studienkennunguniUngueltig',
+					array($gemeinsamestudien->programm_code),
+					array('gsprogramm_id' => $gemeinsamestudien->gsprogramm_id)
+				);
+			}
+
+			$gemeinsamData['studienkennunguni'] = $gemeinsamestudien->studienkennung_uni;
+
+			// set beendigungsdatum only if finished studies
+			if ($gemeinsamestudien->abgeschlossen === true)
 				$gemeinsamData['beendigungsdatum'] = $beendigungsdatum;
 
 			$gemeinsam = success($gemeinsamData);
@@ -1101,11 +689,23 @@ class DVUHSyncLib
 				$staat = $ioitem->nation_code;
 				$avon = $ioitem->von;
 				$abis = $ioitem->bis;
+				$herkunftslandcode = $ioitem->herkunftsland_code;
 				$adauer = (is_null($avon) || is_null($abis)) ? null : dateDiff($avon, $abis);
 				if (strtotime($abis) <= strtotime(date('Y-m-d')))
 					$aufenthalt_finished = true;
 				else
 					$aufenthalt_finished = false;
+
+				// Herkunftsland cannot be Empty
+				if (isEmptyString($herkunftslandcode))
+				{
+					return createError(
+						"Herkunftsland fehlt",
+						'herkunftslandFehlt',
+						null,
+						array('bisio_id' => $bisio_id)
+					);
+				}
 
 				// Aufenthaltszweckcode --------------------------------------------------------------------------------
 				$this->_ci->ZweckModel->addSelect('tbl_zweck.zweck_code');
@@ -1244,7 +844,8 @@ class DVUHSyncLib
 					'programm' => $programm,
 					'staat' => $staat,
 					'von' => $avon,
-					'zweck' => $zweck_code_arr
+					'zweck' => $zweck_code_arr,
+					'herkunftslandcode' => $herkunftslandcode
 				);
 
 				if ($aufenthalt_finished)
@@ -1351,7 +952,7 @@ class DVUHSyncLib
 
 		if (!isset($prestudentstatus->zgv_code))
 		{
-			$this->_addWarning(
+			$this->addWarning(
 				'Zgv fehlt',
 				'zgvFehlt',
 				null,
@@ -1361,7 +962,7 @@ class DVUHSyncLib
 
 		if (!isset($prestudentstatus->zgvdatum))
 		{
-			$this->_addWarning(
+			$this->addWarning(
 				'ZGV Datum fehlt',
 				'zgvDatumFehlt',
 				null,
@@ -1421,7 +1022,7 @@ class DVUHSyncLib
 		{
 			if (!isset($prestudentstatus->zgvmas_code))
 			{
-				$this->_addWarning(
+				$this->addWarning(
 					'Zgv Master fehlt',
 					'zgvMasterFehlt',
 					null,
@@ -1431,7 +1032,7 @@ class DVUHSyncLib
 
 			if (!isset($prestudentstatus->zgvmadatum))
 			{
-				$this->_addWarning(
+				$this->addWarning(
 					'ZGV Masterdatum fehlt',
 					'zgvMasterDatumFehlt',
 					null,
@@ -1485,24 +1086,5 @@ class DVUHSyncLib
 		}
 
 		return success($zugangsberechtigungMA);
-	}
-
-	/**
-	 * Adds warning to warning list.
-	 * @param $warningtext
-	 * @param string $issue_fehler_kurzbz if set, issue is created and added as warning
-	 * @param array $issue_fehlertext_params
-	 * @param array $issue_resolution_prams
-	 */
-	private function _addWarning($warningtext, $issue_fehler_kurzbz = null, $issue_fehlertext_params = null, $issue_resolution_prams = null)
-	{
-		if (isEmptyString($issue_fehler_kurzbz))
-		{
-			$this->_warnings[] = error($warningtext);
-		}
-		else
-		{
-			$this->_warnings[] = createError($warningtext, $issue_fehler_kurzbz, $issue_fehlertext_params, $issue_resolution_prams);
-		}
 	}
 }

@@ -65,7 +65,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 		{
 			$this->load->model('person/Person_model', 'PersonModel');
 			$this->load->model('crm/Prestudent_model', 'PrestudentModel');
-			$this->load->library('extensions/FHC-Core-DVUH/DVUHSyncLib');
+			$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 
 			$stammdatenDataResult = $this->PersonModel->getPersonStammdaten($person_id, true);
 
@@ -108,7 +108,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 					);
 				}
 
-				$geschlecht = $this->dvuhsynclib->convertGeschlechtToDVUH($stammdatenData->geschlecht);
+				$geschlecht = $this->dvuhconversionlib->convertGeschlechtToDVUH($stammdatenData->geschlecht);
 
 				$params['personmeldung'] = array(
 					'be' => $be,

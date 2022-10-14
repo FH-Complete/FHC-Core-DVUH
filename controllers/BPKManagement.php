@@ -140,7 +140,7 @@ class BPKManagement extends Auth_Controller
 
 		if (isEmptyString($person_id))
 			$bpkSaveResult = error('PersonID fehlt');
-		elseif (!$this->dvuhsynclib->checkBpk($bpk))
+		elseif (!$this->dvuhcheckinglib->checkBpk($bpk))
 			$bpkSaveResult = error('bPK ungültig');
 		else
 		{
