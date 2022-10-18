@@ -128,6 +128,7 @@ class DVUHPaymentManagementLib extends DVUHManagementLib
 				}
 				else
 				{
+					// do not send payment and return warning if no charge was sent before payment
 					return $this->getResponseArr(
 						null,
 						null,

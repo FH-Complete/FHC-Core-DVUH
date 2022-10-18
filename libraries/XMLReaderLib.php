@@ -38,7 +38,7 @@ class XMLReaderLib
 			{
 				if (!isEmptyString($errortext))
 					$errortext .= ', ';
-				$errortext .= $error->fehlertextKomplett;
+				$errortext .= $error->issue_fehlertext;
 			}
 
 			$result = error('Error(s) occured: ' . $errortext, $errorsArr);
@@ -162,7 +162,7 @@ class XMLReaderLib
 						$errResultobj->{$errAttr->nodeName} = $errAttr->nodeValue;
 					}
 
-					$errResultobj->fehlertextKomplett = $errResultobj->fehlernummer . ': ' .
+					$errResultobj->issue_fehlertext = $errResultobj->fehlernummer . ': ' .
 						(isset($errResultobj->feldinhalt) && !isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
 						$errResultobj->fehlertext .
 						(isset($errResultobj->massnahme) && !isEmptyString($errResultobj->massnahme) ? ', ' . $errResultobj->massnahme : '');

@@ -1,12 +1,12 @@
 <?php
 
-require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncdata/DVUHWarningLib.php';
+require_once 'DVUHErrorProducerLib.php';
 
 /**
  * Library for retrieving StudyData data from FHC for DVUH.
  * Extracts data from FHC db, performs data quality checks and puts data in DVUH form.
  */
-class DVUHStudyDataLib extends DVUHWarningLib
+class DVUHStudyDataLib extends DVUHErrorProducerLib
 {
 	private $_ci;
 	private $_dbModel;
@@ -62,10 +62,10 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			$person = getData($personresult)[0];
 
 			if (isEmptyString($person->matr_nr))
-				return createError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
+				$this->addError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
 
 			if (!$this->_ci->dvuhcheckinglib->checkMatrikelnummer($person->matr_nr))
-				return createError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($person->matr_nr));
+				$this->addError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($person->matr_nr));
 
 			$resultObj->matrikelnummer = $person->matr_nr;
 			$gebdatum = $person->gebdatum;
@@ -147,7 +147,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 					if (!$this->_ci->dvuhcheckinglib->checkPersonenkennzeichen($perskz))
 					{
-						return createError(
+						$this->addError(
 							"Personenkennzeichen ungültig",
 							'personenkennzeichenUngueltig',
 							array($perskz),
@@ -198,6 +198,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 					if (isError($gsstudientypResult))
 						return $gsstudientypResult;
+
 					if (hasData($gsstudientypResult))
 					{
 						$gsstudientypes = getData($gsstudientypResult);
@@ -301,7 +302,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						foreach ($lehrgang as $idx => $item)
 						{
 							if (!isset($item) || isEmptyString($item))
-								return createError('Lehrgangdaten fehlen: ' . $idx, 'lehrgangdatenFehlen', array($idx));
+								$this->addError('Lehrgangdaten fehlen: ' . $idx, 'lehrgangdatenFehlen', array($idx));
 						}
 
 						if (isset($orgform_code))
@@ -436,7 +437,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						foreach ($studiengang as $idx => $item)
 						{
 							if (!isset($item) || isEmptyString($item))
-								return createError('Studiumdaten fehlen', 'studiumdatenFehlen', array($idx));
+								$this->addError('Studiumdaten fehlen', 'studiumdatenFehlen', array($idx));
 						}
 
 						if (isset($orgform_code))
@@ -490,6 +491,9 @@ class DVUHStudyDataLib extends DVUHWarningLib
 				return error('Keine aktiven Studenten für das gegebene Semester');
 			}
 		}
+
+		if ($this->hasError())
+			return error("Fehler beim Holen der Studiendaten", $this->readErrors());
 
 		return success($resultObj);
 	}
@@ -606,7 +610,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			{
 				if (!isset($gemeinsamestudien->{$field}))
 				{
-					return createError(
+					$this->addError(
 						"Daten für gemeinsames Studium fehlen: ".$field,
 						'gsdatenFehlen',
 						array($field),
@@ -627,7 +631,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			if (isset($gemeinsamestudien->studienkennung_uni)
 				&& !$this->_ci->dvuhcheckinglib->checkStudienkennunguni($gemeinsamestudien->studienkennung_uni))
 			{
-				return createError(
+				$this->addError(
 					"Studienkennung Uni ungültig, GS Programm Code ".$gemeinsamestudien->programm_code,
 					'studienkennunguniUngueltig',
 					array($gemeinsamestudien->programm_code),
@@ -699,7 +703,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 				// Herkunftsland cannot be Empty
 				if (isEmptyString($herkunftslandcode))
 				{
-					return createError(
+					$this->addError(
 						"Herkunftsland fehlt",
 						'herkunftslandFehlt',
 						null,
@@ -724,7 +728,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						// ...max 1 Aufenthaltszweck
 						if (count($bisio_zweck) > 1)
 						{
-							return createError(
+							$this->addError(
 								"Es sind" . count($bisio_zweck) . " Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)",
 								'zuVieleZweckeIncomingPlausi',
 								array(count($bisio_zweck)),
@@ -735,7 +739,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						//...nur Zweck 1, 2 oder 3 erlaubt
 						if (count($bisio_zweck) == 1 && !in_array($bisio_zweck[0]->zweck_code, array(1, 2, 3)))
 						{
-							return createError(
+							$this->addError(
 								"Aufenthaltszweckcode ist " . $bisio_zweck[0]->zweck_code . " (f&uuml;r Incomings ist nur Zweck 1, 2, 3 erlaubt)",
 								'falscherIncomingZweckPlausi',
 								array($bisio_zweck[0]->zweck_code),
@@ -752,7 +756,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 							// Aufenthaltszweck 1, 2, 3 nicht gemeinsam melden
 							if (in_array(1, $zweck_code_arr) && in_array(2, $zweck_code_arr) && in_array(3, $zweck_code_arr))
 							{
-								return createError(
+								$this->addError(
 									"Aufenthaltzweckcode 1, 2, 3 d&uuml;rfen nicht gemeinsam gemeldet werden",
 									'falscherIncomingZweckGemeinsam'
 								);
@@ -776,7 +780,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						// ... mindestens 1 Aufenthaltfoerderung melden, wenn Auslandsaufenthalt >= 29 Tage
 						if ((!hasData($bisio_foerderung_result)) && $adauer >= 29)
 						{
-							return createError(
+							$this->addError(
 								"Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)",
 								'outgoingAufenthaltfoerderungfehltPlausi',
 								null,
@@ -806,24 +810,27 @@ class DVUHStudyDataLib extends DVUHWarningLib
 							}
 						}
 
-						if (isEmptyString($ioitem->ects_erworben) && $adauer >= 29 && $aufenthalt_finished)
+						if ($adauer >= 29 && $aufenthalt_finished)
 						{
-							return createError(
-								"Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
-								'outgoingErworbeneEctsFehlenPlausi',
-								null,
-								array('bisio_id' => $bisio_id)
-							);
-						}
+							if (isEmptyString($ioitem->ects_erworben))
+							{
+								$this->addError(
+									"Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
+									'outgoingErworbeneEctsFehlenPlausi',
+									null,
+									array('bisio_id' => $bisio_id)
+								);
+							}
 
-						if (isEmptyString($ioitem->ects_angerechnet) && $adauer >= 29 && $aufenthalt_finished)
-						{
-							return createError(
-								"Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
-								'outgoingAngerechneteEctsFehlenPlausi',
-								null,
-								array('bisio_id' => $bisio_id)
-							);
+							if (isEmptyString($ioitem->ects_angerechnet))
+							{
+								$this->addError(
+									"Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)",
+									'outgoingAngerechneteEctsFehlenPlausi',
+									null,
+									array('bisio_id' => $bisio_id)
+								);
+							}
 						}
 
 						$ects_erworben = $ioitem->ects_erworben;
@@ -832,7 +839,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 				}
 				else
 				{
-					return createError(
+					$this->addError(
 						"Kein Aufenthaltszweck gefunden",
 						'keinAufenthaltszweckPlausi',
 						null,
@@ -973,7 +980,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 		{
 			if ($prestudentstatus->zgvdatum > date("Y-m-d"))
 			{
-				return createError(
+				$this->addError(
 					"ZGV Datum in Zukunft",
 					'zgvDatumInZukunft',
 					null,
@@ -983,7 +990,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 			if ($prestudentstatus->zgvdatum < $gebdatum)
 			{
-				return createError(
+				$this->addError(
 					"ZGV Datum vor Geburtsdatum",
 					'zgvDatumVorGeburtsdatum',
 					null,
@@ -1043,7 +1050,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			{
 				if ($prestudentstatus->zgvmadatum > date("Y-m-d"))
 				{
-					return createError(
+					$this->addError(
 						"ZGV Masterdatum in Zukunft",
 						'zgvMasterDatumInZukunft',
 						null,
@@ -1053,7 +1060,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 				if ($prestudentstatus->zgvmadatum < $prestudentstatus->zgvdatum)
 				{
-					return createError(
+					$this->addError(
 						"ZGV Masterdatum vor Zgvdatum",
 						'zgvMasterDatumVorZgvdatum',
 						null,
@@ -1063,7 +1070,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 				if ($prestudentstatus->zgvmadatum < $gebdatum)
 				{
-					return createError(
+					$this->addError(
 						"zgvMasterDatumVorGeburtsdatum",
 						'ZGV Masterdatum vor Geburtsdatum',
 						array('prestudent_id' => $prestudentstatus->prestudent_id)

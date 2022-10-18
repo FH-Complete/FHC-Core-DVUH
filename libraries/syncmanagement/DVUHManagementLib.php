@@ -76,7 +76,7 @@ class DVUHManagementLib
 						{
 							if (!isEmptyString($warningtext))
 								$warningtext .= ', ';
-							$warningtext .= $warning->fehlertextKomplett;
+							$warningtext .= $warning->issue_fehlertext;
 							if (!isEmptyArray($warningCodesToExcludeFromIssues)
 								&& in_array($warning->fehlernummer, $warningCodesToExcludeFromIssues))
 							{

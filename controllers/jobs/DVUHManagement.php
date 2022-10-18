@@ -577,7 +577,7 @@ class DVUHManagement extends JQW_Controller
 	private function _logDVUHError($logging_prefix, $errorObj, $person_id = null, $prestudent_id = null)
 	{
 		// write in webserive log
-		$this->logError($logging_prefix.': '.getError($errorObj), $errorObj);
+		$this->logError($logging_prefix.': '.$this->dvuhissuelib->getErrorString($errorObj));
 
 		// optionally add issue
 		$this->_addDVUHIssue($errorObj, $person_id, $prestudent_id);

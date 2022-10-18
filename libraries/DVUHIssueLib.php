@@ -37,10 +37,10 @@ class DVUHIssueLib
 	public function addIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
 		$oe_kurzbz = null;
-		$code = getCode($errorObj);
+		$errorData = getError($errorObj);
 
 		// add as issue to be processed
-		if (isset($code) && (isset($person_id) || isset($prestudent_id)))
+		if (isset($errorData) && (isset($person_id) || isset($prestudent_id)))
 		{
 			// get person_id and oe_kurzbz from prestudent if necessary
 			if (isset($prestudent_id))
@@ -63,79 +63,122 @@ class DVUHIssueLib
 					return error("Kein Prestudent für Hinzufügen von Issue gefunden.");
 			}
 
-			if (isset($code->issue_fehler_kurzbz)) // custom, self-defined error
-			{
-				$addIssueRes = $this->_ci->issueslib->addFhcIssue(
-					$code->issue_fehler_kurzbz,
-					$person_id,
-					$oe_kurzbz,
-					$code->issue_fehlertext_params,
-					$code->issue_resolution_params
-				);
+			// if only a single issue, wrap into array
+			if (isEmptyArray($errorData))
+				$errorData = array($errorData);
 
-				// if error when adding issue, add person Id, prestudent Id to error text
-				if (isError($addIssueRes))
-				{
-					$errorText = getError($addIssueRes);
-					$errorText .= ', fehler kurzbz: '.$code->issue_fehler_kurzbz;
-					if (isset($person_id)) $errorText .= ', person Id: '.$person_id;
-					if (isset($prestudent_id)) $errorText .= ', prestudent Id: '.$prestudent_id;
-					return error($errorText);
-				}
-			}
-			elseif (!isEmptyArray($code)) // external error from DVUH is an array
-			{
-				$issuesResObj = success('Successfully added issue(s)');
-				$issuesErrorArr = array();
+			// optimistic assumption
+			$issuesResObj = success('Successfully added issue(s)');
+			$issuesErrorArr = array();
 
-				foreach($code as $error)
+			foreach($errorData as $error)
+			{
+				if (isset($error->fehlernummer)) // has fehlernummer if external error
 				{
-					if (isset($error->fehlernummer)) // has fehlernummer if external error
+					// get external fehlercode (unique for each app)
+					$this->_ci->FehlerModel->addSelect('fehlercode');
+					$fehlerRes = $this->_ci->FehlerModel->loadWhere(
+						array(
+							'fehlercode_extern' => $error->fehlernummer,
+							'app' => self::APP
+						)
+					);
+
+					if (isError($fehlerRes))
+						return $fehlerRes;
+
+					// check if there is a predefined custom error for the external issue
+					if (!hasData($fehlerRes))
 					{
-						// get external fehlercode (unique for each app)
-						$this->_ci->FehlerModel->addSelect('fehlercode');
-						$fehlerRes = $this->_ci->FehlerModel->loadWhere(
-							array(
-								'fehlercode_extern' => $error->fehlernummer,
-								'app' => self::APP
-							)
-						);
+						if ($force_predefined_for_external)
+							return success("External issue not added because it is not defined in FHC"); // TODO phrases
+					}
 
-						if (isError($fehlerRes))
-							return $fehlerRes;
+					// add the external issue
+					$extIssueRes = $this->_ci->issueslib->addExternalIssue(
+						$error->fehlernummer,
+						$error->issue_fehlertext,
+						$person_id,
+						$oe_kurzbz
+					);
 
-						// check if there is a predefined custom error for the external issue
-						if (!hasData($fehlerRes))
-						{
-							if ($force_predefined_for_external)
-								return success("External issue not added because it is not defined in FHC"); // TODO phrases
-						}
-
-						$extIssueRes = $this->_ci->issueslib->addExternalIssue(
-							$error->fehlernummer,
-							$error->fehlertextKomplett,
-							$person_id,
-							$oe_kurzbz
-						);
-
-						if (isError($extIssueRes))
-						{
-							$errorText = getError($extIssueRes);
-							$errorText .= ', fehler code extern: '.$error->fehlernummer;
-							if (isset($person_id)) $errorText .= ', person Id: '.$person_id;
-							if (isset($prestudent_id)) $errorText .= ', prestudent Id: '.$prestudent_id;
-							$issuesErrorArr[] = $errorText;
-						}
+					// if error when adding issue, add person Id, prestudent Id to error text
+					if (isError($extIssueRes))
+					{
+						$errorText = getError($extIssueRes);
+						$errorText .= ', fehler code extern: '.$error->fehlernummer;
+						if (isset($person_id)) $errorText .= ', person Id: '.$person_id;
+						if (isset($prestudent_id)) $errorText .= ', prestudent Id: '.$prestudent_id;
+						$issuesErrorArr[] = $errorText;
 					}
 				}
+				elseif (isset($error->issue_fehler_kurzbz)) // add custom fhc error if no fehlernummer, but issue_kurzbz
+				{
+					$addIssueRes = $this->_ci->issueslib->addFhcIssue(
+						$error->issue_fehler_kurzbz,
+						$person_id,
+						$oe_kurzbz,
+						$error->issue_fehlertext_params,
+						$error->issue_resolution_params
+					);
 
-				if (!isEmptyArray($issuesErrorArr))
-					$issuesResObj = error('Error when adding issue(s)', $issuesErrorArr);
-
-				return $issuesResObj;
+					// if error when adding issue, add person Id, prestudent Id to error text
+					if (isError($addIssueRes))
+					{
+						$errorText = getError($addIssueRes);
+						$errorText .= ', fehler kurzbz: '.$error->issue_fehler_kurzbz;
+						if (isset($person_id)) $errorText .= ', person Id: '.$person_id;
+						if (isset($prestudent_id)) $errorText .= ', prestudent Id: '.$prestudent_id;
+						$issuesErrorArr[] = $errorText;
+					}
+				}
 			}
+
+			// return error object if errors occured when writing issues
+			if (!isEmptyArray($issuesErrorArr))
+				$issuesResObj = error('Error when adding issue(s)', $issuesErrorArr);
+
+			return $issuesResObj;
 		}
 
 		return success('No issues to add');
+	}
+
+	/**
+	 *
+	 * @param
+	 * @return object success or error
+	 */
+	public function getIssueString($issue)
+	{
+		$issueString = '';
+
+		if (isError($issue))
+		{
+			$issueData = getError($issueData);
+
+			if (is_string($issueData))
+				return $issueData;
+
+
+			if (is_array($issueData))
+			{
+				foreach ($issueData as $data)
+				{
+					if (isset($data->issue_fehlertext))
+					{
+						if (isset($data->issue_fehlertext_params) && is_array($data->issue_fehlertext_params)
+							&& count($data->issue_fehlertext_params) == substr_count($data->issue_fehlertext, '%s'))
+						{
+							$issueString .= vsprintf($data->issue_fehlertext, $data->issue_fehlertext_params);
+						}
+					}
+				}
+			}
+			elseif (isset($issueData->issue_fehlertext))
+				return $issueData->issue_fehlertext;
+		}
+
+		return $issueString;
 	}
 }
