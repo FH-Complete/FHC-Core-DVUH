@@ -104,8 +104,8 @@ class XMLReaderLib
 
 				foreach ($elements as $element)
 				{
-					// if node with children, save as php object
-					if (isset($element->childNodes) && count($element->childNodes) > 0)
+					// if element node with children, save as php object
+					if ($element->nodeType == XML_ELEMENT_NODE && ($element->childNodes) && count($element->childNodes) > 0)
 					{
 						$obj = new stdClass();
 						$this->_convertDomElementToPhpObj($element, $obj);
@@ -159,7 +159,7 @@ class XMLReaderLib
 
 					foreach ($errObject->childNodes as $errAttr)
 					{
-						$errResultobj->{$errAttr->tagName} = $errAttr->nodeValue;
+						$errResultobj->{$errAttr->nodeName} = $errAttr->nodeValue;
 					}
 
 					$errResultobj->fehlertextKomplett = $errResultobj->fehlernummer . ': ' .
@@ -189,37 +189,37 @@ class XMLReaderLib
 	 */
 	private function _convertDomElementToPhpObj($domElement, &$phpObject)
 	{
-		// for all child nodes fo element
+		// for all child nodes of element
 		foreach ($domElement->childNodes as $child)
 		{
-			// fill continue recursion if there are child nodes
-			if (isset($child->childNodes))
+			// continue recursion if it is an element node and there are child nodes
+			if ($child->nodeType == XML_ELEMENT_NODE && isset($child->childNodes))
 			{
 				if ($child->childNodes->length > 0)
 				{
 					// if there is already element with same name on this level...
-					if (isset($phpObject->{$child->tagName}))
+					if (isset($phpObject->{$child->nodeName}))
 					{
 						// ...create array if multiple elements with same name
-						if (!is_array($phpObject->{$child->tagName}))
-							$phpObject->{$child->tagName} = array($phpObject->{$child->tagName});
+						if (!is_array($phpObject->{$child->nodeName}))
+							$phpObject->{$child->nodeName} = array($phpObject->{$child->nodeName});
 
 						// add new element to array
-						$phpObject->{$child->tagName}[] = new stdClass();
+						$phpObject->{$child->nodeName}[] = new stdClass();
 
 						// recursive call for new array element to fill child data
-						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->tagName}[count($phpObject->{$child->tagName}) -1]);
+						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->nodeName}[count($phpObject->{$child->nodeName}) -1]);
 					}
-					else // if elment does not exist yet, create it and go down one level
+					else // if element does not exist yet, create it and go down one level
 					{
-						$phpObject->{$child->tagName} = new stdClass();
-						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->tagName});
+						$phpObject->{$child->nodeName} = new stdClass();
+						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->nodeName});
 					}
 				}
-				else // empty string if children have no value
-					$phpObject->{$child->tagName} = '';
+				else // empty string if no children
+					$phpObject->{$child->nodeName} = '';
 			}
-			else // no children anymore, send the value
+			else // no children anymore, set the value
 			{
 				$phpObject = $child->nodeValue;
 			}
