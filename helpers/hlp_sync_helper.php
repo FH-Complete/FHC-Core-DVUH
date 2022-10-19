@@ -69,7 +69,7 @@ function dateDiff($datum1, $datum2)
  * @param array $issue_resolution_params parameters used for check if issue is resolved, associative array
  * @return object the error
  */
-function createError($issue_fehlertext, $issue_fehlertext_params = null, $issue_resolution_params = null)
+function createError($issue_fehlertext, $issue_fehler_kurzbz, $issue_fehlertext_params = null, $issue_resolution_params = null)
 {
 	$error = new stdClass();
 	$error->issue_fehlertext = $issue_fehlertext;

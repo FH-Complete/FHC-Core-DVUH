@@ -338,7 +338,7 @@ var DVUHMenu = {
 			}
 			else
 			{
-				DVUHMenu._writeError(data, boxid);
+				DVUHMenu._writeError(FHC_AjaxClient.getError(data), boxid);
 			}
 		}
 
@@ -472,7 +472,7 @@ var DVUHMenu = {
 				},
 				errorCallback: function(jqXHR, textStatus, errorThrown)
 				{
-					DVUHMenu._writeResult("Fehler beim Vorausfüllen", 'dvuhOutput', 'error');
+					DVUHMenu._writeError("Fehler beim Vorausfüllen", 'dvuhOutput');
 				}
 			}
 		);
@@ -595,98 +595,91 @@ var DVUHMenu = {
 	},
 	_writeError: function(resultToWrite, boxid)
 	{
-		var intro = 'Abfrage ausgeführt, Antwort:';
-		var textToWrite = "";
+		//var intro = 'Abfrage ausgeführt, Antwort:';
+		var intro = "Fehler aufgetreten:";
+		var contentToWrite = '';
 
 		// if error, display error text
-		console.log(resultToWrite);
-		intro = 'Fehler aufgetreten, Antwort:';
-		textToWrite = resultToWrite;
+		if (typeof resultToWrite === 'string')
+			contentToWrite += resultToWrite;
+		else if ($.isArray(resultToWrite))
+			contentToWrite += resultToWrite.join('<br />');
 
 		var spanid = boxid+"Span";
-		var span = '<b>'+intro+'</b><br /><span class="text-danger" id="'+spanid+'"></span>';
+		var htmlToWrite = '<b>'+intro+'</b><br /><span class="text-danger" id="'+spanid+'">'+contentToWrite+'</span>';
 
 		// hide menu to avoid scroll down
 		DVUHMenu._toggleMenu(true);
 
 		// write the results
-		$("#"+boxid).html(span);
-
-		if (isError)
-			$("#"+spanid).text(textToWrite);
+		$("#"+boxid).html(htmlToWrite);
 	},
-	_writeResult: function(resultToWrite, boxid, type)
+	_writeResult: function(resultToWrite, boxid)
 	{
 		var colorClass = '';
 		var intro = 'Abfrage ausgeführt, Antwort:';
 		var textToWrite = "";
-		var isError = false;
 
-		// if error, display error text
-		if (type == 'error')
+		// display infos
+		if (resultToWrite.infos)
 		{
-			console.log(resultToWrite);
-			colorClass = ' class="text-danger"';
-			intro = 'Fehler aufgetreten, Antwort:';
-			isError = true;
-			textToWrite = resultToWrite;
+			for (var i = 0; i < resultToWrite.infos.length; i++)
+			{
+				textToWrite += "<span class='text-success'>";
+				textToWrite += resultToWrite.infos[i];
+				textToWrite += "</span><br />";
+			}
 		}
-		else // if not error, display infos, warnings
+
+		// display warnings
+		if (resultToWrite.warnings)
 		{
-			if (resultToWrite.infos)
+			for (var i = 0; i < resultToWrite.warnings.length; i++)
 			{
-				for (var i = 0; i < resultToWrite.infos.length; i++)
-				{
-					textToWrite += "<span class='text-success'>";
-					textToWrite += resultToWrite.infos[i];
-					textToWrite += "</span><br />";
-				}
-			}
+				if (!FHC_AjaxClient.isError(resultToWrite.warnings[i]))
+					continue;
 
-			if (resultToWrite.warnings)
+				var warning = resultToWrite.warnings[i];
+
+				textToWrite += "<span class='text-warning'>";
+				if (typeof resultToWrite.warnings[i] === 'string')
+					textToWrite += resultToWrite.warnings[i];
+				else if (resultToWrite.warnings[i].issue_fehlertext)
+					textToWrite += resultToWrite.warnings[i].issue_fehlertext;
+				textToWrite += "</span><br />";
+			}
+		}
+
+		// print the result
+		var result = null
+		if (resultToWrite.result)
+		{
+			result = resultToWrite.result;
+		}
+		else if (typeof resultToWrite == 'string')
+		{
+			result = resultToWrite;
+		}
+
+		// if multiple requests, display all requests
+		if (jQuery.isArray(result))
+		{
+			for (var i = 0; i < result.length; i++)
 			{
-				for (var i = 0; i < resultToWrite.warnings.length; i++)
-				{
-					if (!FHC_AjaxClient.isError(resultToWrite.warnings[i]))
-						continue;
+				textToWrite += "<b>Anfrage " + (i + 1) + "</b>:<br />";
 
-					textToWrite += "<span class='text-warning'>";
-					textToWrite += FHC_AjaxClient.getError(resultToWrite.warnings[i]);
-					textToWrite += "</span><br />";
-				}
-			}
+				// display error if error for a request returned
+				if (FHC_AjaxClient.isError(result[i]))
+					textToWrite += FHC_AjaxClient.getError(result[i]);
+				else // print xml result if no error
+					textToWrite += DVUHMenu._printXmlTree(FHC_AjaxClient.getData(result[i]));
 
-			// print the result
-			var result = null
-			if (resultToWrite.result)
-			{
-				result = resultToWrite.result;
+				textToWrite += "<br />";
 			}
-			else if (typeof resultToWrite == 'string')
-			{
-				result = resultToWrite;
-			}
-
-			// if multiple requests, display all requests
-			if (jQuery.isArray(result))
-			{
-				for (var i = 0; i < result.length; i++)
-				{
-					textToWrite += "<b>Anfrage " + (i + 1) + "</b>:<br />";
-
-					// display error if error for a request returned
-					if (FHC_AjaxClient.isError(result[i]))
-						textToWrite += FHC_AjaxClient.getError(result[i]);
-					else // print xml result if no error
-						textToWrite += DVUHMenu._printXmlTree(FHC_AjaxClient.getData(result[i]));
-
-					textToWrite += "<br />";
-				}
-			}
-			else // if result is no array, print the xml tree with result data
-			{
-				textToWrite += DVUHMenu._printXmlTree(result);
-			}
+		}
+		else // if result is no array, print the xml tree with result data
+		{
+			textToWrite += DVUHMenu._printXmlTree(result);
 		}
 
 		var spanid = boxid+"Span";
@@ -698,10 +691,7 @@ var DVUHMenu = {
 		// write the results
 		$("#"+boxid).html(span);
 
-		if (isError)
-			$("#"+spanid).text(textToWrite);
-		else
-			$("#"+spanid).html(textToWrite);
+		$("#"+spanid).html(textToWrite);
 	},
 	_writeSyncoutputBox: function()
 	{

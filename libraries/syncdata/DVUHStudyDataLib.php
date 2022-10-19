@@ -493,7 +493,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 		}
 
 		if ($this->hasError())
-			return error("Fehler beim Holen der Studiendaten", $this->readErrors());
+			return error($this->readErrors());
 
 		return success($resultObj);
 	}

@@ -53,7 +53,6 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	public function sendMasterData($person_id, $studiensemester, $matrikelnummer = null, $preview = false)
 	{
 		$infos = array();
-		$warnings = array();
 
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 		$all_buchungstypen_kurzbz = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
@@ -97,6 +96,8 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 
 		if (!hasData($studentinfoRes))
 			return error('Keine Stammdaten gefunden');
+
+		$warnings = $this->_ci->dvuhstammdatenlib->readWarnings();
 
 		$studentinfo = getData($studentinfoRes);
 

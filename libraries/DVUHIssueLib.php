@@ -145,40 +145,41 @@ class DVUHIssueLib
 	}
 
 	/**
-	 *
-	 * @param
-	 * @return object success or error
+	 * Gets all issue text from an issue error object.
+	 * @param $issue issue error object
+	 * @return array with issue text strings
 	 */
-	public function getIssueString($issue)
+	public function getIssueTexts($issue)
 	{
-		$issueString = '';
-
 		if (isError($issue))
 		{
-			$issueData = getError($issueData);
+			$issueData = getError($issue);
 
+			// if string, return only one text
 			if (is_string($issueData))
-				return $issueData;
+				return array($issueData);
 
+			$issueTexts = array();
 
-			if (is_array($issueData))
+			// for array: return all issue texts
+			if (!is_array($issueData))
+				$issueData = array($issueData);
+
+			foreach ($issueData as $data)
 			{
-				foreach ($issueData as $data)
+				if (isset($data->issue_fehlertext))
 				{
-					if (isset($data->issue_fehlertext))
+					if (isset($data->issue_fehlertext_params) && is_array($data->issue_fehlertext_params)
+						&& count($data->issue_fehlertext_params) == substr_count($data->issue_fehlertext, '%s'))
 					{
-						if (isset($data->issue_fehlertext_params) && is_array($data->issue_fehlertext_params)
-							&& count($data->issue_fehlertext_params) == substr_count($data->issue_fehlertext, '%s'))
-						{
-							$issueString .= vsprintf($data->issue_fehlertext, $data->issue_fehlertext_params);
-						}
+						$issueTexts[] = vsprintf($data->issue_fehlertext, $data->issue_fehlertext_params);
 					}
+					else
+						$issueTexts[] = $data->issue_fehlertext;
 				}
 			}
-			elseif (isset($issueData->issue_fehlertext))
-				return $issueData->issue_fehlertext;
 		}
 
-		return $issueString;
+		return $issueTexts;
 	}
 }

@@ -248,7 +248,7 @@ class DVUHStammdatenLib extends DVUHErrorProducerLib
 			}
 
 			if ($this->hasError())
-				return error("Fehler beim Holen der Stammdaten");
+				return error($this->readErrors());
 
 			return success($studentinfo);
 		}
@@ -406,7 +406,7 @@ class DVUHStammdatenLib extends DVUHErrorProducerLib
 			$vorschreibung['studiengebuehrnachfrist'] = abs($vorschreibung['studiengebuehrnachfrist']) * 100;
 
 		if ($this->hasError())
-			return error("Fehler beim Holen der Vorschreibung", $this->readErrors());
+			return error($this->readErrors());
 
 		return success($vorschreibung);
 	}
