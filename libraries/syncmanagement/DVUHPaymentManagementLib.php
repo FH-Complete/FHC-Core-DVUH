@@ -90,7 +90,7 @@ class DVUHPaymentManagementLib extends DVUHManagementLib
 					null,
 					null,
 					array(
-						createError(
+						createIssueObj(
 							"Es gibt noch offene Buchungen.",
 							'offeneBuchungen',
 							null,
@@ -118,7 +118,7 @@ class DVUHPaymentManagementLib extends DVUHManagementLib
 
 					if (abs($charge->betrag) != $buchung->summe_zahlungen)
 					{
-						return createError(
+						return createIssueError(
 							"Buchung: ".$charge->buchungsnr.": Zahlungsbetrag abweichend von Vorschreibungsbetrag",
 							'zlgUngleichVorschreibung',
 							array($charge->buchungsnr), // text params
@@ -133,7 +133,7 @@ class DVUHPaymentManagementLib extends DVUHManagementLib
 						null,
 						null,
 						array(
-							createError(
+							createIssueObj(
 								"Buchung $buchungsnr: Zahlung nicht gesendet, vor der Zahlung wurde keine Vorschreibung an DVUH gesendet",
 								'zlgKeineVorschreibungGesendet',
 								array($buchungsnr),

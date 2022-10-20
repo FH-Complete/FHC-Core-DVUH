@@ -596,7 +596,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 							$isSentToSap = getData($sentToSap)[0];
 							if ($isSentToSap === true)
 							{
-								$warnings[] = createError(
+								$warnings[] = createIssueObj(
 									"Buchung $buchungsnr ist in SAP gespeichert,"
 									." obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde",
 									'andereBeBezahltSapGesendet',

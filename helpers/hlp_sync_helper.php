@@ -63,13 +63,13 @@ function dateDiff($datum1, $datum2)
 }
 
 /**
- * Helper function for creating a custom error object with issue data.
+ * Helper function for creating a custom object with issue data.
  * @param string $issue_fehler_kurzbz short unique text id of issue
  * @param array $issue_fehlertext_params parameters for replacement of issue error text
  * @param array $issue_resolution_params parameters used for check if issue is resolved, associative array
  * @return object the error
  */
-function createError($issue_fehlertext, $issue_fehler_kurzbz, $issue_fehlertext_params = null, $issue_resolution_params = null)
+function createIssueObj($issue_fehlertext, $issue_fehler_kurzbz, $issue_fehlertext_params = null, $issue_resolution_params = null)
 {
 	$error = new stdClass();
 	$error->issue_fehlertext = $issue_fehlertext;
@@ -81,7 +81,19 @@ function createError($issue_fehlertext, $issue_fehler_kurzbz, $issue_fehlertext_
 }
 
 /**
- * Helper function for creating a external error object for errors produced by DVUH.
+ * Helper function for creating a custom error object with issue data.
+ * @param string $issue_fehler_kurzbz short unique text id of issue
+ * @param array $issue_fehlertext_params parameters for replacement of issue error text
+ * @param array $issue_resolution_params parameters used for check if issue is resolved, associative array
+ * @return object the error
+ */
+function createIssueError($issue_fehlertext, $issue_fehler_kurzbz, $issue_fehlertext_params = null, $issue_resolution_params = null)
+{
+	return error(createIssueObj($issue_fehlertext, $issue_fehler_kurzbz, $issue_fehlertext_params, $issue_resolution_params));
+}
+
+/**
+ * Helper function for creating a external issue object for errors produced by DVUH.
  * @param string $fehlertext
  * @param string $fehlernummer DVUH error number
  * @return object the error

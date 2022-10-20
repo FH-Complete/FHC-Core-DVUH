@@ -63,8 +63,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 
 			if (isEmptyString($person->matr_nr))
 				$this->addError('Matrikelnummer nicht gesetzt', 'matrNrFehlt');
-
-			if (!$this->_ci->dvuhcheckinglib->checkMatrikelnummer($person->matr_nr))
+			elseif (!$this->_ci->dvuhcheckinglib->checkMatrikelnummer($person->matr_nr))
 				$this->addError("Matrikelnummer ungültig", 'matrikelnrUngueltig', array($person->matr_nr));
 
 			$resultObj->matrikelnummer = $person->matr_nr;
@@ -715,12 +714,12 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 				$this->_ci->ZweckModel->addSelect('tbl_zweck.zweck_code');
 				$this->_ci->ZweckModel->addJoin('bis.tbl_bisio_zweck', 'zweck_code');
 				$bisio_zweck_result = $this->_ci->ZweckModel->loadWhere(array('bisio_id' => $bisio_id));
+				$zweck_code_arr = array();
 
 				if (hasData($bisio_zweck_result))
 				{
 					$bisio_zweck = getData($bisio_zweck_result);
 
-					$zweck_code_arr = array();
 
 					// Bei Incomings...
 					if ($prestudentstatus->status_kurzbz == 'Incoming')
@@ -960,7 +959,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 		if (!isset($prestudentstatus->zgv_code))
 		{
 			$this->addWarning(
-				'Zgv fehlt',
+				'ZGV fehlt',
 				'zgvFehlt',
 				null,
 				array('prestudent_id' => $prestudentstatus->prestudent_id)
@@ -1030,7 +1029,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 			if (!isset($prestudentstatus->zgvmas_code))
 			{
 				$this->addWarning(
-					'Zgv Master fehlt',
+					'ZGV Master fehlt',
 					'zgvMasterFehlt',
 					null,
 					array('prestudent_id' => $prestudentstatus->prestudent_id)

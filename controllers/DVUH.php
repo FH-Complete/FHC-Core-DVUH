@@ -503,11 +503,14 @@ class DVUH extends Auth_Controller
 
 		$this->outputJsonSuccess($permittedMethods);
 	}
-	
+
+	/**
+	 * Outputs errors or result in JSON DVUH format
+	 */
 	private function _outputJsonDVUH($result)
 	{
 		if (isError($result))
-			$this->outputJsonError($this->dvuhissuelib->getIssueTexts($result));
+			$this->outputJsonError($this->dvuhissuelib->getIssueTexts(getError($result)));
 		else
 			$this->outputJson($result);
 	}

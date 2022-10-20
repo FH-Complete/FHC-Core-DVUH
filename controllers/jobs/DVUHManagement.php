@@ -535,21 +535,18 @@ class DVUHManagement extends JQW_Controller
 			}
 		}
 
-		if (isset($resultarr['warnings']) && is_array($resultarr['warnings']))
+		if (isset($resultarr['warnings']) && !isEmptyArray($resultarr['warnings']))
 		{
+			//var_dump($resultarr['warnings']);
+			$warningTxt = implode('; ', $this->dvuhissuelib->getIssueTexts($resultarr['warnings']));
+
+			foreach ($idArr as $idname => $idvalue)
+			{
+				$warningTxt .= ", $idname: $idvalue";
+			}
+			$this->logWarning($warningTxt);
 			foreach ($resultarr['warnings'] as $warning)
 			{
-				if (!isError($warning))
-					continue;
-
-				$warningTxt = getError($warning);
-
-				foreach ($idArr as $idname => $idvalue)
-				{
-					$warningTxt .= ", $idname: $idvalue";
-				}
-
-				$this->logWarning($warningTxt);
 				$person_id = isset($idArr['person_id']) ? $idArr['person_id'] : null;
 				$prestudent_id = isset($idArr['prestudent_id']) ? $idArr['prestudent_id'] : null;
 				$this->_addDVUHIssue($warning, $person_id, $prestudent_id, true);
@@ -576,23 +573,26 @@ class DVUHManagement extends JQW_Controller
 	 */
 	private function _logDVUHError($logging_prefix, $errorObj, $person_id = null, $prestudent_id = null)
 	{
+		if (!isError($errorObj))
+			return;
+
 		// write in webserive log
-		$this->logError($logging_prefix.': '.implode('; ', $this->dvuhissuelib->getIssueTexts($errorObj)));
+		$this->logError($logging_prefix.': '.implode('; ', $this->dvuhissuelib->getIssueTexts(getError($errorObj))));
 
 		// optionally add issue
-		$this->_addDVUHIssue($errorObj, $person_id, $prestudent_id);
+		$this->_addDVUHIssue(getError($errorObj), $person_id, $prestudent_id);
 	}
 
 	/**
 	 * Adds DVUH issue. Logs error if issue adding failed.
-	 * @param $errorObj
+	 * @param $issue
 	 * @param int $person_id
 	 * @param int $prestudent_id
 	 * @param string $force_predefined_for_external
 	 */
-	private function _addDVUHIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
+	private function _addDVUHIssue($issue, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
-		$issueRes = $this->dvuhissuelib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined_for_external);
+		$issueRes = $this->dvuhissuelib->addIssue($issue, $person_id, $prestudent_id, $force_predefined_for_external);
 
 		if (isError($issueRes))
 		{

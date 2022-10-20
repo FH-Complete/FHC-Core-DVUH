@@ -82,7 +82,6 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 			$this->_be,
 			$pruefungsaktivitaetenData,
 			$dvuh_studiensemester
-			//$prestudentsToPost
 		);
 
 		if (isError($pruefungsaktivitaetenPostResult))

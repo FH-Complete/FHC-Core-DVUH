@@ -32,7 +32,7 @@ class DVUHErrorProducerLib
 		}
 		else
 		{
-			$this->_errors[] = createError($errortext, $issue_fehler_kurzbz, $issue_fehlertext_params, $issue_resolution_prams);
+			$this->_errors[] = createIssueObj($errortext, $issue_fehler_kurzbz, $issue_fehlertext_params, $issue_resolution_prams);
 		}
 	}
 
@@ -51,7 +51,7 @@ class DVUHErrorProducerLib
 		}
 		else
 		{
-			$this->_warnings[] = createError($warningtext, $issue_fehler_kurzbz, $issue_fehlertext_params, $issue_resolution_prams);
+			$this->_warnings[] = createIssueObj($warningtext, $issue_fehler_kurzbz, $issue_fehlertext_params, $issue_resolution_prams);
 		}
 	}
 

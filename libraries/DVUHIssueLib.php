@@ -28,19 +28,18 @@ class DVUHIssueLib
 
 	/**
 	 * Initializes adding of an issue.
-	 * @param object $errorObj containing info for writing the issue.
+	 * @param object $issue containing info for writing the issue.
 	 * @param int $person_id person for which issue occured.
 	 * @param int $prestudent_id prestudent for which issue occured, will be resolved to oe_kurzbz.
 	 * @param bool $force_predefined_for_external if true, external issues won't be added if no error/warning is predefined
 	 * @return object success or error
 	 */
-	public function addIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
+	public function addIssue($issue, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
 		$oe_kurzbz = null;
-		$errorData = getError($errorObj);
 
 		// add as issue to be processed
-		if (isset($errorData) && (isset($person_id) || isset($prestudent_id)))
+		if (isset($issue) && (isset($person_id) || isset($prestudent_id)))
 		{
 			// get person_id and oe_kurzbz from prestudent if necessary
 			if (isset($prestudent_id))
@@ -64,22 +63,22 @@ class DVUHIssueLib
 			}
 
 			// if only a single issue, wrap into array
-			if (isEmptyArray($errorData))
-				$errorData = array($errorData);
+			if (isEmptyArray($issue))
+				$issue = array($issue);
 
 			// optimistic assumption
 			$issuesResObj = success('Successfully added issue(s)');
 			$issuesErrorArr = array();
 
-			foreach($errorData as $error)
+			foreach($issue as $iss)
 			{
-				if (isset($error->fehlernummer)) // has fehlernummer if external error
+				if (isset($iss->fehlernummer)) // has fehlernummer if external error
 				{
 					// get external fehlercode (unique for each app)
 					$this->_ci->FehlerModel->addSelect('fehlercode');
 					$fehlerRes = $this->_ci->FehlerModel->loadWhere(
 						array(
-							'fehlercode_extern' => $error->fehlernummer,
+							'fehlercode_extern' => $iss->fehlernummer,
 							'app' => self::APP
 						)
 					);
@@ -96,8 +95,8 @@ class DVUHIssueLib
 
 					// add the external issue
 					$extIssueRes = $this->_ci->issueslib->addExternalIssue(
-						$error->fehlernummer,
-						$error->issue_fehlertext,
+						$iss->fehlernummer,
+						$iss->issue_fehlertext,
 						$person_id,
 						$oe_kurzbz
 					);
@@ -106,27 +105,27 @@ class DVUHIssueLib
 					if (isError($extIssueRes))
 					{
 						$errorText = getError($extIssueRes);
-						$errorText .= ', fehler code extern: '.$error->fehlernummer;
+						$errorText .= ', fehler code extern: '.$iss->fehlernummer;
 						if (isset($person_id)) $errorText .= ', person Id: '.$person_id;
 						if (isset($prestudent_id)) $errorText .= ', prestudent Id: '.$prestudent_id;
 						$issuesErrorArr[] = $errorText;
 					}
 				}
-				elseif (isset($error->issue_fehler_kurzbz)) // add custom fhc error if no fehlernummer, but issue_kurzbz
+				elseif (isset($iss->issue_fehler_kurzbz)) // add custom fhc error if no fehlernummer, but issue_kurzbz
 				{
 					$addIssueRes = $this->_ci->issueslib->addFhcIssue(
-						$error->issue_fehler_kurzbz,
+						$iss->issue_fehler_kurzbz,
 						$person_id,
 						$oe_kurzbz,
-						$error->issue_fehlertext_params,
-						$error->issue_resolution_params
+						$iss->issue_fehlertext_params,
+						$iss->issue_resolution_params
 					);
 
 					// if error when adding issue, add person Id, prestudent Id to error text
 					if (isError($addIssueRes))
 					{
 						$errorText = getError($addIssueRes);
-						$errorText .= ', fehler kurzbz: '.$error->issue_fehler_kurzbz;
+						$errorText .= ', fehler kurzbz: '.$iss->issue_fehler_kurzbz;
 						if (isset($person_id)) $errorText .= ', person Id: '.$person_id;
 						if (isset($prestudent_id)) $errorText .= ', prestudent Id: '.$prestudent_id;
 						$issuesErrorArr[] = $errorText;
@@ -145,27 +144,27 @@ class DVUHIssueLib
 	}
 
 	/**
-	 * Gets all issue text from an issue error object.
+	 * Gets all issue text from an issue object.
 	 * @param $issue issue error object
 	 * @return array with issue text strings
 	 */
 	public function getIssueTexts($issue)
 	{
-		if (isError($issue))
-		{
-			$issueData = getError($issue);
+		//~ if (isError($issue))
+		//~ {
+			//~ $issueData = getError($issue);
 
 			// if string, return only one text
-			if (is_string($issueData))
-				return array($issueData);
+			if (is_string($issue))
+				return array($issue);
 
 			$issueTexts = array();
 
 			// for array: return all issue texts
-			if (!is_array($issueData))
-				$issueData = array($issueData);
+			if (!is_array($issue))
+				$issue = array($issue);
 
-			foreach ($issueData as $data)
+			foreach ($issue as $data)
 			{
 				if (isset($data->issue_fehlertext))
 				{
@@ -178,7 +177,7 @@ class DVUHIssueLib
 						$issueTexts[] = $data->issue_fehlertext;
 				}
 			}
-		}
+		//}
 
 		return $issueTexts;
 	}
