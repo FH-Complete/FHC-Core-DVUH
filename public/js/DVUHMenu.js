@@ -602,6 +602,8 @@ var DVUHMenu = {
 		// if error, display error text
 		if (typeof resultToWrite === 'string')
 			contentToWrite += resultToWrite;
+		else if (typeof resultToWrite === 'object' && resultToWrite.issue_fehlertext)
+			contentToWrite += resultToWrite.issue_fehlertext
 		else if ($.isArray(resultToWrite))
 			contentToWrite += resultToWrite.join('<br />');
 

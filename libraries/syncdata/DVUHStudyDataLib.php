@@ -217,6 +217,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 					$zulassungsdatum = $isIncoming || $isAusserordentlich ? null : $prestudentstatus->beginndatum;
 
 					// orgform_kurzbz
+					$orgform_kurzbz = null;
 					if (isset($prestudentstatus->studienplan_orgform))
 						$orgform_kurzbz = $prestudentstatus->studienplan_orgform;
 					elseif (isset($prestudentstatus->prestudentstatus_orgform))
@@ -228,6 +229,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 					if (!$isAusserordentlich)
 					{
 						// orgform code if not ausserordentlich
+						$orgformcode = null;
 						$orgform_code = $this->_getOrgformcode($orgform_kurzbz);
 
 						if (isError($orgform_code))
@@ -880,9 +882,12 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 	 */
 	private function _getOrgformcode($orgform_kurzbz)
 	{
+		$orgformCode = null;
 		$orgform_code_array = array();
+
+		// load valid Orgforms
 		$this->_ci->OrgformModel->addSelect('orgform_kurzbz, code');
-		$orgformcodesResult = $this->_ci->OrgformModel->load();
+		$orgformcodesResult = $this->_ci->OrgformModel->loadWhere(array('rolle' => true));
 
 		if (hasData($orgformcodesResult))
 		{
@@ -898,10 +903,13 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 			if($orgform_kurzbz == 'VZ')
 				$orgform_code_array['DDP'] = $orgform_code_array['VZ'];
 
-			if (!isset($orgform_code_array[$orgform_kurzbz]))
-				return error("Orgform ungültig");
+			// error when valid Orgform not found
+			if (isset($orgform_code_array[$orgform_kurzbz]))
+				$orgformCode = $orgform_code_array[$orgform_kurzbz];
+			else
+				$this->addError("Orgform ungültig", 'orgformUngueltig');
 
-			return success($orgform_code_array[$orgform_kurzbz]);
+			return success($orgformCode);
 		}
 		else
 			return error("Fehler beim Holen der Orgform");

@@ -70,10 +70,14 @@ class DVUHIssueLib
 			$issuesResObj = success('Successfully added issue(s)');
 			$issuesErrorArr = array();
 
+//var_dump("ISSUES BEFORE WRITE");
+//var_dump($issue);
+
 			foreach($issue as $iss)
 			{
 				if (isset($iss->fehlernummer)) // has fehlernummer if external error
 				{
+					//var_dump("EXTERNAL ISSUE");
 					// get external fehlercode (unique for each app)
 					$this->_ci->FehlerModel->addSelect('fehlercode');
 					$fehlerRes = $this->_ci->FehlerModel->loadWhere(
@@ -113,6 +117,7 @@ class DVUHIssueLib
 				}
 				elseif (isset($iss->issue_fehler_kurzbz)) // add custom fhc error if no fehlernummer, but issue_kurzbz
 				{
+					//var_dump("INTERNAL ISSUE");
 					$addIssueRes = $this->_ci->issueslib->addFhcIssue(
 						$iss->issue_fehler_kurzbz,
 						$person_id,
@@ -135,7 +140,7 @@ class DVUHIssueLib
 
 			// return error object if errors occured when writing issues
 			if (!isEmptyArray($issuesErrorArr))
-				$issuesResObj = error('Error when adding issue(s)', $issuesErrorArr);
+				$issuesResObj = error($issuesErrorArr);
 
 			return $issuesResObj;
 		}
@@ -150,34 +155,30 @@ class DVUHIssueLib
 	 */
 	public function getIssueTexts($issue)
 	{
-		//~ if (isError($issue))
-		//~ {
-			//~ $issueData = getError($issue);
+		// if string, return only one text
+		if (is_string($issue))
+			return array($issue);
 
-			// if string, return only one text
-			if (is_string($issue))
-				return array($issue);
+		$issueTexts = array();
 
-			$issueTexts = array();
+		// for array: return all issue texts
+		if (!is_array($issue))
+			$issue = array($issue);
 
-			// for array: return all issue texts
-			if (!is_array($issue))
-				$issue = array($issue);
-
-			foreach ($issue as $data)
+		foreach ($issue as $data)
+		{
+			// replace placeholder if fehlertext params given
+			if (isset($data->issue_fehlertext))
 			{
-				if (isset($data->issue_fehlertext))
+				if (isset($data->issue_fehlertext_params) && is_array($data->issue_fehlertext_params)
+					&& count($data->issue_fehlertext_params) == substr_count($data->issue_fehlertext, '%s'))
 				{
-					if (isset($data->issue_fehlertext_params) && is_array($data->issue_fehlertext_params)
-						&& count($data->issue_fehlertext_params) == substr_count($data->issue_fehlertext, '%s'))
-					{
-						$issueTexts[] = vsprintf($data->issue_fehlertext, $data->issue_fehlertext_params);
-					}
-					else
-						$issueTexts[] = $data->issue_fehlertext;
+					$issueTexts[] = vsprintf($data->issue_fehlertext, $data->issue_fehlertext_params);
 				}
+				else
+					$issueTexts[] = $data->issue_fehlertext;
 			}
-		//}
+		}
 
 		return $issueTexts;
 	}

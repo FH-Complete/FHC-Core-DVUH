@@ -41,7 +41,8 @@ class XMLReaderLib
 				$errortext .= $error->issue_fehlertext;
 			}
 
-			$result = error('Error(s) occured: ' . $errortext, $errorsArr);
+			//$result = error('Error(s) occured: ' . $errortext, $errorsArr);
+			$result = error($errorsArr);
 		}
 		else
 			$result = $this->parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE);

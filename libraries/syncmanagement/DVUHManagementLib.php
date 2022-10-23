@@ -76,9 +76,6 @@ class DVUHManagementLib
 
 						foreach (getData($warningsRes) as $warning)
 						{
-							//~ if (!isEmptyString($warningtext))
-								//~ $warningtext .= ', ';
-							//~ $warningtext .= $warning->issue_fehlertext;
 							if (!isEmptyArray($warningCodesToExcludeFromIssues)
 								&& in_array($warning->fehlernummer, $warningCodesToExcludeFromIssues))
 							{
@@ -87,7 +84,7 @@ class DVUHManagementLib
 
 							$parsedWarnings[] = $warning;
 						}
-						//$responseArr['warnings'][] = error($warningtext, $parsedWarnings);
+						//var_dump($parsedWarnings);
 						$responseArr['warnings'] = array_merge($responseArr['warnings'], $parsedWarnings);
 					}
 				}

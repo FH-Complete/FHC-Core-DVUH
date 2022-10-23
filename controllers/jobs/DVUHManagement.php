@@ -71,6 +71,8 @@ class DVUHManagement extends JQW_Controller
 
 					if (isError($requestMatrnrResult))
 					{
+						//var_dump("THE RESULT");
+						//var_dump($requestMatrnrResult);
 						$this->_logDVUHError(
 							"Fehler bei Matrikelnummernvergabe, person Id $person_id, Studiensemester $studiensemester_kurzbz",
 							$requestMatrnrResult,
@@ -364,7 +366,7 @@ class DVUHManagement extends JQW_Controller
 
 						if (isError($requestBpkResult))
 						{
-							$errCode = getCode($requestBpkResult);
+							$errCode = getError($requestBpkResult);
 
 							if (isset($errCode) && is_array($errCode))
 							{
@@ -537,7 +539,6 @@ class DVUHManagement extends JQW_Controller
 
 		if (isset($resultarr['warnings']) && !isEmptyArray($resultarr['warnings']))
 		{
-			//var_dump($resultarr['warnings']);
 			$warningTxt = implode('; ', $this->dvuhissuelib->getIssueTexts($resultarr['warnings']));
 
 			foreach ($idArr as $idname => $idvalue)
@@ -592,17 +593,19 @@ class DVUHManagement extends JQW_Controller
 	 */
 	private function _addDVUHIssue($issue, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
+		//var_dump("THE ISSUE");
+		//var_dump($issue);
 		$issueRes = $this->dvuhissuelib->addIssue($issue, $person_id, $prestudent_id, $force_predefined_for_external);
 
 		if (isError($issueRes))
 		{
 			$postfix = '';
-			$errors = getCode($issueRes);
+			$errors = getError($issueRes);
 
 			if (!isEmptyArray($errors))
 				$postfix = implode(', ', $errors);
 
-			$this->logError(getError($issueRes).$postfix);
+			$this->logError('Error when adding issue(s)'.$postfix);
 		}
 	}
 }
