@@ -76,8 +76,6 @@ class DVUHPruefungsaktivitaetenManagementLib extends DVUHManagementLib
 			return $this->getResponseArr($postData, $infos);
 		}
 
-		//$prestudentsToPost = array();
-
 		$pruefungsaktivitaetenPostResult = $this->_ci->PruefungsaktivitaetenModel->post(
 			$this->_be,
 			$pruefungsaktivitaetenData,

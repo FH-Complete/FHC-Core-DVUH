@@ -84,7 +84,6 @@ class DVUHManagementLib
 
 							$parsedWarnings[] = $warning;
 						}
-						//var_dump($parsedWarnings);
 						$responseArr['warnings'] = array_merge($responseArr['warnings'], $parsedWarnings);
 					}
 				}

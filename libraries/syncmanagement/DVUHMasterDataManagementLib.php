@@ -91,13 +91,14 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 
 		$studentinfoRes = $this->_ci->dvuhstammdatenlib->getStammdatenData($person_id, $studiensemester_kurzbz);
 
+		// get and reset warnings produced by Stammdatenlib
+		$warnings = $this->_ci->dvuhstammdatenlib->readWarnings();
+
 		if (isError($studentinfoRes))
 			return $studentinfoRes;
 
 		if (!hasData($studentinfoRes))
 			return error('Keine Stammdaten gefunden');
-
-		$warnings = $this->_ci->dvuhstammdatenlib->readWarnings();
 
 		$studentinfo = getData($studentinfoRes);
 

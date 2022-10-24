@@ -71,8 +71,6 @@ class DVUHManagement extends JQW_Controller
 
 					if (isError($requestMatrnrResult))
 					{
-						//var_dump("THE RESULT");
-						//var_dump($requestMatrnrResult);
 						$this->_logDVUHError(
 							"Fehler bei Matrikelnummernvergabe, person Id $person_id, Studiensemester $studiensemester_kurzbz",
 							$requestMatrnrResult,
@@ -545,7 +543,9 @@ class DVUHManagement extends JQW_Controller
 			{
 				$warningTxt .= ", $idname: $idvalue";
 			}
+
 			$this->logWarning($warningTxt);
+
 			foreach ($resultarr['warnings'] as $warning)
 			{
 				$person_id = isset($idArr['person_id']) ? $idArr['person_id'] : null;
@@ -593,8 +593,6 @@ class DVUHManagement extends JQW_Controller
 	 */
 	private function _addDVUHIssue($issue, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
-		//var_dump("THE ISSUE");
-		//var_dump($issue);
 		$issueRes = $this->dvuhissuelib->addIssue($issue, $person_id, $prestudent_id, $force_predefined_for_external);
 
 		if (isError($issueRes))

@@ -70,14 +70,10 @@ class DVUHIssueLib
 			$issuesResObj = success('Successfully added issue(s)');
 			$issuesErrorArr = array();
 
-//var_dump("ISSUES BEFORE WRITE");
-//var_dump($issue);
-
 			foreach($issue as $iss)
 			{
 				if (isset($iss->fehlernummer)) // has fehlernummer if external error
 				{
-					//var_dump("EXTERNAL ISSUE");
 					// get external fehlercode (unique for each app)
 					$this->_ci->FehlerModel->addSelect('fehlercode');
 					$fehlerRes = $this->_ci->FehlerModel->loadWhere(
@@ -117,7 +113,6 @@ class DVUHIssueLib
 				}
 				elseif (isset($iss->issue_fehler_kurzbz)) // add custom fhc error if no fehlernummer, but issue_kurzbz
 				{
-					//var_dump("INTERNAL ISSUE");
 					$addIssueRes = $this->_ci->issueslib->addFhcIssue(
 						$iss->issue_fehler_kurzbz,
 						$person_id,
@@ -140,7 +135,9 @@ class DVUHIssueLib
 
 			// return error object if errors occured when writing issues
 			if (!isEmptyArray($issuesErrorArr))
+			{
 				$issuesResObj = error($issuesErrorArr);
+			}
 
 			return $issuesResObj;
 		}

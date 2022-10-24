@@ -65,14 +65,14 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 
 		$studiumDataResult = $this->_ci->dvuhstudydatalib->getStudyData($person_id, $fhc_studiensemester, $prestudent_id);
 
+		// get and reset warnings produced by dvuhstudydatalib
+		$warnings = $this->_ci->dvuhstudydatalib->readWarnings();
+
 		if (isError($studiumDataResult))
 			return $studiumDataResult;
 
 		if (!hasData($studiumDataResult))
 			return error('Keine Studiumdaten gefunden');
-
-		// get and reset warnings produced by dvuhstudydatalib
-		$warnings = $this->_ci->dvuhstudydatalib->readWarnings();
 
 		$studiumData = getData($studiumDataResult);
 
