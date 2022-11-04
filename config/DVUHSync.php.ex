@@ -32,6 +32,9 @@ $config['fhc_dvuh_active_student_status_kurzbz'] = array('Student', 'Incoming', 
 // All status_kurzbz which a student who finished studies can have
 $config['fhc_dvuh_finished_student_status_kurzbz'] = array('Absolvent', 'Abbrecher');
 
+// All status_kurzbz which a student who started, but hasn't finished studies can have
+$config['fhc_dvuh_unfinished_student_status_kurzbz'] = array('Student', 'Unterbrecher', 'Diplomand');
+
 // buchungstypen to be considered when sending payments to DVUH
 $config['fhc_dvuh_buchungstyp'] = array(
 	'oehbeitrag' => array('OEH'),
@@ -60,6 +63,13 @@ $config['fhc_dvuh_sync_student_statuscode'] = array(
 	'Unterbrecher' => 2,
 	'Absolvent' => 3,
 	'Abbrecher' => 4
+);
+
+$config['fhc_dvuh_sync_student_meldestatus'] = array(
+	'zugelassen_inland' => 'I',
+	'zugelassen_ausland' => 'A',
+	'unterbrochen' => 'U',
+	'storniert' => 'O'
 );
 
 //  Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
