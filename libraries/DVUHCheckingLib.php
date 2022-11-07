@@ -147,7 +147,7 @@ class DVUHCheckingLib
 		$stgkzValid = is_numeric($melde_studiengang_kz);
 
 		// length must be erhalter kz length + studiengang kz length
-		if (strlen((string)$melde_studiengang_kz) !== self::DVUH_ERHALTER_LENGTH + self::DVUH_STGKZ_LENGTH)
+		if (mb_strlen((string)$melde_studiengang_kz) !== self::DVUH_ERHALTER_LENGTH + self::DVUH_STGKZ_LENGTH)
 		{
 			$stgkzValid = false;
 		}
