@@ -3,12 +3,12 @@ $this->load->view(
 	'templates/FHC-Header',
 	array(
 		'title' => 'DVUH Feeds',
-		'jquery' => true,
-		'jqueryui' => true,
-		'bootstrap' => true,
-		'fontawesome' => true,
+		'jquery3' => true,
+		'jqueryui1' => true,
+		'bootstrap3' => true,
+		'fontawesome4' => true,
 		'navigationwidget' => true,
-		'sbadmintemplate' => true,
+		'sbadmintemplate3' => true,
 		'dialoglib' => true,
 		'ajaxlib' => true,
 		'customJSs' => array(

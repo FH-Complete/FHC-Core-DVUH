@@ -41,7 +41,6 @@ class XMLReaderLib
 				$errortext .= $error->issue_fehlertext;
 			}
 
-			//$result = error('Error(s) occured: ' . $errortext, $errorsArr);
 			$result = error($errorsArr);
 		}
 		else
