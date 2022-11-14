@@ -166,7 +166,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 					}
 
 					// booleans isIncoming, isAusserordentlich, isLehrgang
-					$isIncoming = $prestudentstatus->status_kurzbz == 'Incoming';
+					$isIncoming = $status_kurzbz == 'Incoming';
 
 					// Ausserordentlicher Studierender (4.Stelle in Personenkennzeichen = 9)
 					$isAusserordentlich = $this->_ci->dvuhcheckinglib->checkIfAusserordentlich($prestudentstatus->personenkennzeichen);
@@ -275,6 +275,18 @@ class DVUHStudyDataLib extends DVUHWarningLib
 						}
 					}
 
+					// Mobilität
+					$mobilitaet = null;
+					$mobilitaetResult = $this->_getMobilitaet($studiensemester_kurzbz, $prestudentstatus);
+
+					if (isset($mobilitaetResult) && isError($mobilitaetResult))
+						return $mobilitaetResult;
+
+					if (hasData($mobilitaetResult))
+					{
+						$mobilitaet = getData($mobilitaetResult);
+					}
+
 					// gemeinsame Studien
 					$gemeinsam = null;
 					// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
@@ -288,6 +300,17 @@ class DVUHStudyDataLib extends DVUHWarningLib
 					if (hasData($gemeinsamResult))
 					{
 						$gemeinsam = getData($gemeinsamResult);
+					}
+
+					// meldestatus
+					$meldeStatusRes = $this->_getMeldeStatus($prestudent_id, $studiensemester_kurzbz, $status_kurzbz, isset($mobilitaet));
+
+					if (isError($meldeStatusRes))
+						return $meldeStatusRes;
+
+					if (hasData($meldeStatusRes))
+					{
+						$meldestatus = getData($meldeStatusRes);
 					}
 
 					// lehrgang
@@ -309,6 +332,9 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 						if (isset($studstatuscode) && !$isExtern)
 							$lehrgang['studstatuscode'] = $studstatuscode;
+
+						if (isset($meldestatus))
+							$lehrgang['meldestatus'] = $meldestatus;
 
 						if (isset($zulassungsdatum) && !$isExtern)
 							$lehrgang['zulassungsdatum'] = $zulassungsdatum;
@@ -375,18 +401,6 @@ class DVUHStudyDataLib extends DVUHWarningLib
 							}
 						}
 
-						// Mobilität
-						$mobilitaet = null;
-						$mobilitaetResult = $this->_getMobilitaet($studiensemester_kurzbz, $prestudentstatus);
-
-						if (isset($mobilitaetResult) && isError($mobilitaetResult))
-							return $mobilitaetResult;
-
-						if (hasData($mobilitaetResult))
-						{
-							$mobilitaet = getData($mobilitaetResult);
-						}
-
 						// bmffoerderrelevant
 						$bmffoerderrelevant = null;
 						$bmffoerderrelevantResult = $this->_ci->PrestudentModel->getFoerderrelevant($prestudent_id);
@@ -444,6 +458,9 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 						if (isset($studstatuscode) && !$isExtern)
 							$studiengang['studstatuscode'] = $studstatuscode;
+
+						if (isset($meldestatus))
+							$studiengang['meldestatus'] = $meldestatus;
 
 						if (isset($zulassungsdatum) && !$isExtern)
 							$studiengang['zulassungsdatum'] = $zulassungsdatum;
@@ -937,6 +954,43 @@ class DVUHStudyDataLib extends DVUHWarningLib
 			return error("Kein Statuscode gefunden!");
 
 		return success($studstatuscode_array[$status_kurzbz]);
+	}
+
+	/**
+	 * Gets meldestatus for a prestudent in a semester.
+	 * @param int prestudent_id
+	 * @param string studiensemester_kurzbz
+	 * @param string status_kurzbz
+	 * @param bool status_kurzbz
+	 * @return object success or error with meldestatus
+	 */
+	private function _getMeldeStatus($prestudent_id, $studiensemester_kurzbz, $status_kurzbz, $hasMobilitaet)
+	{
+		$unfinished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_unfinished_student_status_kurzbz');
+		$all_meldestatus = $this->_ci->config->item('fhc_dvuh_sync_student_meldestatus');
+
+		$meldestatus = null;
+		if ($status_kurzbz == 'Abbrecher')
+		{
+			// if terminated status, check if there is a "non-finishing" status in previous Semester...
+			$previousStatusRes = $this->_ci->fhcmanagementlib->checkPreviousStatusType(
+				$prestudent_id,
+				$studiensemester_kurzbz,
+				$unfinished_status_kurzbz
+			);
+
+			if (isError($previousStatusRes))
+				return $previousStatusRes;
+
+			// ... if yes, set status zugelassen (active)
+			if (hasData($previousStatusRes) && getData($previousStatusRes)[0] === true)
+			{
+				// students with mobilität have own status
+				$meldestatus = $hasMobilitaet === true ? $all_meldestatus['zugelassen_ausland'] : $all_meldestatus['zugelassen_inland'];
+			}
+		}
+
+		return success($meldestatus);
 	}
 
 	/**

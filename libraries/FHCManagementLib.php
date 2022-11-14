@@ -383,7 +383,6 @@ class FHCManagementLib
 	public function checkPreviousStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
 	{
 		// get previous semester
-		$this->_ci->StudiensemesterModel->addSelect('studiensemester_kurzbz');
 		$previousStudiensemesterRes = $this->_ci->StudiensemesterModel->getPreviousFrom($studiensemester_kurzbz);
 
 		if (isError($previousStudiensemesterRes))
