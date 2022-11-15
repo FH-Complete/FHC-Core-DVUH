@@ -465,7 +465,19 @@ class JQMSchedulerLib
 								AND (insertamum >= max_studiumdaten_meldedatum OR updateamum >= max_studiumdaten_meldedatum)
 								AND studiensemester_kurzbz IN ?
 					)
+					AND NOT EXISTS /* exclude already storniert */
+						SELECT 1 FROM (
+							SELECT storniert
+							FROM sync.tbl_dvuh_studiumdaten
+							WHERE prestudent_id = prestudents.prestudent_id
+							AND studiensemester_kurzbz = prestudents.studiensemester_kurzbz
+							ORDER BY meldedatum DESC, insertamum DESC
+							LIMIT 1
+						) max_studiumsync
+						WHERE storniert = TRUE
+					)
 				) prestudentssem
+
 				ORDER BY start, ist_abbrecher, prestudent_id";
 
 		$params[] = $studiensemester_kurzbz_arr;
