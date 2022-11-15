@@ -1,3 +1,4 @@
+
 <?php
 
 if (!defined('BASEPATH')) exit('No direct script access allowed');
@@ -157,8 +158,8 @@ class JQMSchedulerLib
 		// get students with no BPK
 		$qry = "SELECT DISTINCT person_id
 				FROM public.tbl_person
-				    JOIN public.tbl_prestudent USING (person_id)
-				    JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+					JOIN public.tbl_prestudent USING (person_id)
+					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 					JOIN public.tbl_studiengang stg USING (studiengang_kz)
 				WHERE (tbl_person.bpk IS NULL OR tbl_person.bpk = '')
 					AND stg.melderelevant = TRUE
@@ -455,12 +456,19 @@ class JQMSchedulerLib
 					OR prestudent_status_datum = CURRENT_DATE /* if prestudent status gets active today */
 					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
 					/* data modified since last send */
-					OR pss_insertamum >= max_studiumdaten_meldedatum OR ps_insertamum >= max_studiumdaten_meldedatum
+					OR ps_insertamum >= max_studiumdaten_meldedatum
 					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
-					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
+					OR ps_updateamum >= max_studiumdaten_meldedatum
 					OR mob_updateamum >= max_studiumdaten_meldedatum OR bisio_updateamum >= max_studiumdaten_meldedatum
+					OR EXISTS(SELECT 1 FROM public.tbl_prestudentstatus pssu
+								WHERE prestudent_id = prestudents.prestudent_id
+								AND (insertamum >= max_studiumdaten_meldedatum OR updateamum >= max_studiumdaten_meldedatum)
+								AND studiensemester_kurzbz IN ?
+					)
 				) prestudentssem
 				ORDER BY start, ist_abbrecher, prestudent_id";
+
+		$params[] = $studiensemester_kurzbz_arr;
 
 		$dbModel = new DB_Model();
 
@@ -535,7 +543,7 @@ class JQMSchedulerLib
 		$params[] = $this->_angerechnet_note;
 
 		$qry .= "
-				    ) prestudenten
+					) prestudenten
 					LEFT JOIN (
 						SELECT prestudent_id,
 							   zgnisnote.studiensemester_kurzbz,
