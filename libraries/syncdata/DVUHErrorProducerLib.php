@@ -1,8 +1,8 @@
 <?php
 
 /**
- * Functionality for writing warnings.
- * Any library extending this library is capable of producing warnings.
+ * Functionality for writing errors and warnings.
+ * Any library extending this library is capable of producing errors and warnings.
  */
 class DVUHErrorProducerLib
 {
