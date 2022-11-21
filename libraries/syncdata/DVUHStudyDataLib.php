@@ -682,11 +682,11 @@ class DVUHStudyDataLib extends DVUHWarningLib
 		else
 			return error("Kein korrektes Semester angegeben");
 
-		// get Mobilitäten of the semester, no bis dates in future
+		// get Mobilitäten of the semester, stay must have already started
 		$ioResult = $this->_dbModel->execReadOnlyQuery(
 			"SELECT *
 			FROM bis.tbl_bisio WHERE student_uid=?
-			AND (bis >= ? OR bis IS NULL) AND von <= ?;",
+			AND von <= NOW() AND (bis >= ? OR bis IS NULL) AND von <= ?;",
 			array($prestudentstatus->student_uid, $semester->start, $semester->ende)
 		);
 
