@@ -382,6 +382,9 @@ class FHCManagementLib
 	 */
 	public function checkPreviousStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
 	{
+		// status_kurzbz_arr has to be array
+		if (!is_array($status_kurzbz_arr)) $status_kurzbz_arr = array($status_kurzbz_arr);
+
 		// get previous semester
 		$previousStudiensemesterRes = $this->_ci->StudiensemesterModel->getPreviousFrom($studiensemester_kurzbz);
 
@@ -401,14 +404,17 @@ class FHCManagementLib
 
 	/*
 	 * Gets previous first prestudent status date.
-	 * e.g.if a student has the same status for 3 semester, and the method is called for the third, date or the first semester is returned.
+	 * e.g.if a student has the same status for 3 semester, and the method is called for the third, date of the first semester is returned.
 	 * @param int $prestudent_id
-	 * @param string $studiensemester_kurzbz start from this semester backwards
-	 * @param string $status_kurzbz status to check
+	 * @param string $studiensemester_kurzbz start from this semester and go back
+	 * @param array $status_kurzbz status to check. If multiple, previous first status date of any of the passed status is returned.
 	 * @return object success with date or error
 	 */
-	public function getPreviousFirstStatusDate($prestudent_id, $studiensemester_kurzbz, $status_kurzbz)
+	public function getPreviousFirstStatusDate($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
 	{
+		// status_kurzbz_arr has to be array
+		if (!is_array($status_kurzbz_arr)) $status_kurzbz_arr = array($status_kurzbz_arr);
+
 		$prevFirstStatusDate = null;
 
 		$qry = '
@@ -429,7 +435,7 @@ class FHCManagementLib
 
 			foreach ($status as $st)
 			{
-				if ($st->status_kurzbz === $status_kurzbz)
+				if (in_array($st->status_kurzbz, $status_kurzbz_arr))
 					$prevFirstStatusDate = $st->datum;
 				else
 					break;

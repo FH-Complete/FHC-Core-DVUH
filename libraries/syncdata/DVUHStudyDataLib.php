@@ -374,7 +374,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 								$unterbrechungsdatumRes = $this->_ci->fhcmanagementlib->getPreviousFirstStatusDate(
 									$prestudent_id,
 									$studiensemester_kurzbz,
-									'Unterbrecher'
+									array('Unterbrecher')
 								);
 
 								if (isError($unterbrechungsdatumRes)) return $unterbrechungsdatumRes;
@@ -385,19 +385,16 @@ class DVUHStudyDataLib extends DVUHWarningLib
 							// Wiedereintrittsdatum if Student after Unterbrecher
 							if (in_array($status_kurzbz, $active_status_kurzbz))
 							{
-								$previousStatusUnterbrochenRes = $this->_ci->fhcmanagementlib->checkPreviousStatusType(
+								$wiedereintrittsdatumRes = $this->_ci->fhcmanagementlib->getPreviousFirstStatusDate(
 									$prestudent_id,
 									$studiensemester_kurzbz,
-									array('Unterbrecher')
+									$active_status_kurzbz
 								);
 
-								if (isError($previousStatusUnterbrochenRes))
-									return $previousStatusUnterbrochenRes;
+								if (isError($wiedereintrittsdatumRes))
+									return $wiedereintrittsdatumRes;
 
-								if (hasData($previousStatusUnterbrochenRes) && getData($previousStatusUnterbrochenRes)[0] === true)
-								{
-									$wiedereintrittsdatum = $prestudentstatus->status_datum;
-								}
+								$wiedereintrittsdatum = hasData($wiedereintrittsdatumRes) ? getData($wiedereintrittsdatumRes) : null;
 							}
 						}
 
