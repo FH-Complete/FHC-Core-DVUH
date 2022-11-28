@@ -289,10 +289,7 @@ class DVUHStudyDataLib extends DVUHWarningLib
 
 					// gemeinsame Studien
 					$gemeinsam = null;
-					// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
-					$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
-
-					$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $gsBeendigungsdatum);
+					$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $prestudentstatus->beendigungsdatum);
 
 					if (isset($gemeinsamResult) && isError($gemeinsamResult))
 						return $gemeinsamResult;
