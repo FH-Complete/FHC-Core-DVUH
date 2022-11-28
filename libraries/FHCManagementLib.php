@@ -380,7 +380,7 @@ class FHCManagementLib
 	 * @param array $status_kurzbz_arr status kurzbz to check
 	 * @return object success with true/false or error
 	 */
-	public function checkPreviousStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
+	public function checkPreviousPrestudentStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
 	{
 		// status_kurzbz_arr has to be array
 		if (!is_array($status_kurzbz_arr)) $status_kurzbz_arr = array($status_kurzbz_arr);
@@ -396,36 +396,28 @@ class FHCManagementLib
 		{
 			$previousStudiensemester = getData($previousStudiensemesterRes)[0]->studiensemester_kurzbz;
 
-			return $this->_checkStatusType($prestudent_id, $previousStudiensemester, $status_kurzbz_arr);
+			return $this->_checkLastStatusType($prestudent_id, $previousStudiensemester, $status_kurzbz_arr);
 		}
 
 		return success(array(false));
 	}
 
 	/*
-	 * Gets previous first prestudent status date.
+	 * Gets first status of a prestudent status series, descending from the given studiensemester_kurzbz.
 	 * e.g.if a student has the same status for 3 semester, and the method is called for the third, date of the first semester is returned.
 	 * @param int $prestudent_id
 	 * @param string $studiensemester_kurzbz start from this semester and go back
-	 * @param array $status_kurzbz status to check. If multiple, previous first status date of any of the passed status is returned.
+	 * @param array $searched_status_arr status to check. If multiple status given, series continues as long as status is one of them.
 	 * @return object success with date or error
 	 */
-	public function getPreviousFirstStatusDate($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
+	public function getFirstDateOfPrestudentStatusSeries($prestudent_id, $studiensemester_kurzbz, $searched_status_arr)
 	{
-		// status_kurzbz_arr has to be array
-		if (!is_array($status_kurzbz_arr)) $status_kurzbz_arr = array($status_kurzbz_arr);
+		// searched_status has to be array
+		if (!is_array($searched_status_arr)) $searched_status_arr = array($searched_status_arr);
 
 		$prevFirstStatusDate = null;
 
-		$qry = '
-				SELECT status.datum, status.status_kurzbz
-				FROM public.tbl_prestudentstatus status
-				JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
-				WHERE prestudent_id = ?
-				AND sem.start::date <= (SELECT start from public.tbl_studiensemester WHERE studiensemester_kurzbz = ?)::date
-				ORDER BY sem.start DESC, status.datum DESC';
-
-		$statusRes = $this->_dbModel->execReadOnlyQuery($qry, array($prestudent_id, $studiensemester_kurzbz));
+		$statusRes = $this->getAllPrestudentStatusUntilStudiensemester($prestudent_id, $studiensemester_kurzbz);
 
 		if (isError($statusRes)) return $statusRes;
 
@@ -435,14 +427,77 @@ class FHCManagementLib
 
 			foreach ($status as $st)
 			{
-				if (in_array($st->status_kurzbz, $status_kurzbz_arr))
+				// if status is a searched status, get the date
+				if (in_array($st->status_kurzbz, $searched_status_arr))
 					$prevFirstStatusDate = $st->datum;
-				else
+				else // stop when status is not a searched status anymore
 					break;
 			}
 		}
 
 		return success($prevFirstStatusDate);
+	}
+
+	/*
+	 * Gets first status of a prestudent status series, descending from the given studiensemester_kurzbz, stopping at a stop status.
+	 * e.g.if a student has the same status for 3 semester, and the method is called for the third, date of the first semester is returned.
+	 * @param int $prestudent_id
+	 * @param string $studiensemester_kurzbz start from this semester and go back
+	 * @param array $searched_status_arr status to check. If multiple status given, series continues as long as status is one of them.
+	 * @param string $search_stop_status series stops when this status is encountered.
+	 * @return object success with date or error
+	 */
+	public function getFirstDateOfPrestudentStatusSeriesAfterStatus($prestudent_id, $studiensemester_kurzbz, $searched_status_arr, $search_stop_status)
+	{
+		// status_kurzbz_arr has to be array
+		if (!is_array($searched_status_arr)) $searched_status_arr = array($searched_status_arr);
+
+		$prevFirstStatusDate = null;
+		$currentStatus = null;
+
+		$statusRes = $this->getAllPrestudentStatusUntilStudiensemester($prestudent_id, $studiensemester_kurzbz);
+
+		if (isError($statusRes)) return $statusRes;
+
+		if (hasData($statusRes))
+		{
+			$status = getData($statusRes);
+
+			foreach ($status as $st)
+			{
+				// if status is a searched status, get the date
+				if (in_array($st->status_kurzbz, $searched_status_arr))
+					$currentStatus = $st->datum;
+				else // if it is not a searched status anymore...
+				{
+					// ...save the currentStatus as previous first status if stopped at the stop status
+					if ($st->status_kurzbz === $search_stop_status)
+						$prevFirstStatusDate = $currentStatus;
+					break; // ...and stop
+				}
+			}
+		}
+
+		return success($prevFirstStatusDate);
+	}
+
+	/*
+	 * Gets all prestudent status until (incl.) a Studiensemester.
+	 * @param int $prestudent_id
+	 * @param string $studiensemester_kurzbz start from this semester and go back
+	 * @return object success or error
+	 */
+	public function getAllPrestudentStatusUntilStudiensemester($prestudent_id, $studiensemester_kurzbz)
+	{
+		$qry = '
+				SELECT status.datum, status.status_kurzbz
+				FROM public.tbl_prestudentstatus status
+				JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
+				WHERE prestudent_id = ?
+				AND sem.start::date <= (SELECT start from public.tbl_studiensemester WHERE studiensemester_kurzbz = ?)::date
+				ORDER BY sem.start DESC, status.datum DESC';
+
+		return $this->_dbModel->execReadOnlyQuery($qry, array($prestudent_id, $studiensemester_kurzbz));
 	}
 
 	/**
@@ -452,7 +507,7 @@ class FHCManagementLib
 	 * @param array $status_kurzbz_arr status kurzbz to check
 	 * @return object success with true/false or error
 	 */
-	private function _checkStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
+	private function _checkLastStatusType($prestudent_id, $studiensemester_kurzbz, $status_kurzbz_arr)
 	{
 		// get last status for the prestudent and semester
 		$lastStatusRes = $this->_ci->PrestudentstatusModel->getLastStatus($prestudent_id, $studiensemester_kurzbz);
