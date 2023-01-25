@@ -12,6 +12,15 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
 
+	// Statuscodes returned when checking Matrikelnr, resulting actions are array keys
+	private $_ekz_returncodes = array(
+		'existing' => '0', // ekz already exists
+		'new' => '1', // new ekz assigned
+		'multipleForcable' => '2', // multiple ekz returned, forceable (non-exact match)
+		'multipleNonForcable' => '4', // multiple ekz returned, non-forceable (exact match)
+		'error' => array('10', '99')
+	);
+
 	/**
 	 * Library initialization
 	 */
@@ -474,7 +483,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	}
 
 	/**
-	 * Requests EKZ from DVUH, parses returned XML object and returns info/error messages.
+	 * Requests EKZ from DVUH, returns info/error messages from result.
 	 * @param $person_id
 	 * @param string $forcierungskey
 	 * @param bool $preview
@@ -494,11 +503,155 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 			return $this->getResponseArr(getData($postData), $infos);
 		}
 
+		$ekzanfordernResult = $this->requestEkzObject($person_id, $forcierungskey);
+
+		if (isError($ekzanfordernResult))
+			return $ekzanfordernResult;
+
+		if (!hasData($ekzanfordernResult))
+			return error("Fehler bei EKZ-Anfrage");
+
+		$parsedObj = getData($ekzanfordernResult);
+
+		$infomsg = "EKZanfrage ausgeführt";
+
+		if (isset($parsedObj->returntext[0]->text))
+		{
+			$returnText = $parsedObj->returntext[0]->text;
+			if (is_string($returnText))
+				$infomsg .= "; " . $returnText;
+			elseif (is_array($returnText))
+				$infomsg .= "; " . implode(', ', $returnText);
+		}
+
+		if (isset($parsedObj->returncode[0]))
+		{
+			$returnCode = $parsedObj->returncode[0];
+
+			// if error code, return error
+			if (in_array($returnCode, $this->_ekz_returncodes['error']))
+			{
+				return error("Fehler beim Holen von Ekz aufgetreten: $infomsg; Code: $returnCode");
+			}
+		}
+
+		if (isset($parsedObj->ekz[0]))
+			$infomsg .= "; EKZ: " . implode(', ', $parsedObj->ekz);
+
+		if (isset($parsedObj->forcierungskey[0]))
+			$infomsg .= "; Forcierungskey(s) für Ekz Auswahl mit weiterer Anfrage: " . implode(', ', $parsedObj->forcierungskey);
+
+		$requestXml = $parsedObj->requestXml;
+
+		$infos[] = $infomsg;
+
+		return $this->getResponseArr(
+			$requestXml,
+			$infos,
+			null,
+			true
+		);
+	}
+
+	/**
+	 * Requests EKZ from DVUH, saves Ekz in database if one exact match is returned, returns info/error messages.
+	 * @param $person_id
+	 * @param string $forcierungskey
+	 * @return object error or success
+	 */
+	public function requestAndSaveEkz($person_id, $forcierungskey = null)
+	{
+		$infos = array();
+		$warnings = array();
+
+		$ekzanfordernResult = $this->requestEkzObject($person_id, $forcierungskey);
+
+		if (isError($ekzanfordernResult))
+			return $ekzanfordernResult;
+
+		if (!hasData($ekzanfordernResult))
+			return error("Fehler bei EKZ-Anfrage");
+
+		$parsedObj = getData($ekzanfordernResult);
+
+		if (isset($parsedObj->returncode[0]))
+		{
+			$returnCode = $parsedObj->returncode[0];
+
+			$returnText = '';
+			if (isset($parsedObj->returntext[0]->text))
+			{
+				$txt = $parsedObj->returntext[0]->text;
+				if (is_string($txt))
+					$returnText .= $txt;
+				elseif (is_array($txt))
+					$returnText .= implode(', ', $txt);
+			}
+
+			// if exactly one exactly matching ekz can be retrieved, get and save it
+			if (in_array($returnCode, array($this->_ekz_returncodes['new'], $this->_ekz_returncodes['existing'])))
+			{
+				if (isset($parsedObj->ekz[0]))
+				{
+					$ekz = $parsedObj->ekz[0];
+
+					$ekzSaveResult = $this->_ci->fhcmanagementlib->saveEkzInFhc($person_id, $ekz);
+
+					if (!hasData($ekzSaveResult))
+						return error("Fehler beim Speichern des Ekz in FHC");
+
+					$infos[] = "Ekz erfolgreich in FHC gespeichert!";
+				}
+			}
+			// if multiple ekz, write warning
+			elseif ($returnCode == $this->_ekz_returncodes['multipleForcable'])
+			{
+				$warnings[] = $returnText . '; mehrere Ekz Personenkanditaten, erneute Anfrage mit korrektem Forcierungskey notwendig';
+			}
+			elseif ($returnCode == $this->_ekz_returncodes['multipleNonForcable'])
+			{
+				$warnings[] = $returnText . '; mehrere Ekz Personenkanditaten, Stammdaten prüfen, Datenverbund kontaktieren';
+			}
+			// if error code, return error
+			elseif (in_array($returnCode, $this->_ekz_returncodes['error']))
+			{
+				return error("Fehler beim Holen von Ekz aufgetreten: $returnText; Code: $returnCode");
+			}
+			// unknown return code
+			else
+			{
+				$unknownCodeStr = "Unbekannter Fehlercode $returnCode";
+				if (!isEmptyString($returnText))
+					$unknownCodeStrStr .= $returnText;
+				return error($unknownCodeStr);
+			}
+		}
+
+		// return response with request xml string and infos
+		$requestXml = $parsedObj->requestXml;
+
+		return $this->getResponseArr(
+			$requestXml,
+			$infos,
+			$warnings,
+			true
+		);
+	}
+
+	/**
+	 * Requests EKZ from DVUH, parses returned XML object and returns object with parsed data.
+	 * @param $person_id
+	 * @param string $forcierungskey
+	 * @return object error or success
+	 */
+	public function requestEkzObject($person_id, $forcierungskey = null)
+	{
 		$ekzanfordernResult = $this->_ci->EkzanfordernModel->post($person_id, $forcierungskey);
 
 		if (isError($ekzanfordernResult))
-			$result = $ekzanfordernResult;
-		elseif (hasData($ekzanfordernResult))
+			return $ekzanfordernResult;
+
+		if (hasData($ekzanfordernResult))
 		{
 			$xmlstr = getData($ekzanfordernResult);
 
@@ -508,45 +661,25 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 			);
 
 			if (isError($parsedObj))
-				$result = $parsedObj;
-			else
+				return $parsedObj;
+
+			$parsedObj = getData($parsedObj);
+
+			if (!isset($parsedObj->responsecode[0]) || $parsedObj->responsecode[0] != '200')
 			{
-				$parsedObj = getData($parsedObj);
+				$errortext = 'Fehlerantwort bei EKZ-Anfrage.';
+				if (isset($parsedObj->responsetext[0]))
+					$errortext .= ' ' . $parsedObj->responsetext[0];
 
-				if (!isset($parsedObj->responsecode[0]) || $parsedObj->responsecode[0] != '200')
-				{
-					$errortext = 'Fehlerantwort bei EKZ-Anfrage.';
-					if (isset($parsedObj->responsetext[0]))
-						$errortext .= ' ' . $parsedObj->responsetext[0];
-
-					return error($errortext);
-				}
-
-				$infomsg = "EKZanfrage ausgeführt";
-
-				if (isset($parsedObj->returntext[0]->text))
-					$infomsg .= ", " . $parsedObj->returntext[0]->text;
-
-				if (isset($parsedObj->ekz[0]))
-					$infomsg .= ", EKZ: " . $parsedObj->ekz[0];
-
-				if (isset($parsedObj->forcierungskey[0]))
-					$infomsg .= ", Forcierungskey für Anfrage eines neuen EKZ: " . $parsedObj->forcierungskey[0];
-
-				$infos[] = $infomsg;
-
-				$result = $this->getResponseArr(
-					$xmlstr,
-					$infos,
-					null,
-					true
-				);
+				return error($errortext);
 			}
+
+			$parsedObj->requestXml = $xmlstr;
+
+			return success($parsedObj);
 		}
 		else
-			$result = error("Fehler bei EKZ-Anfrage");
-
-		return $result;
+			return error("Fehler bei EKZ-Anfrage");
 	}
 
 	// --------------------------------------------------------------------------------------------
