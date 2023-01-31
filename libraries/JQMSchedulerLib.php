@@ -1,4 +1,3 @@
-
 <?php
 
 if (!defined('BASEPATH')) exit('No direct script access allowed');
@@ -521,23 +520,37 @@ class JQMSchedulerLib
 			return error("Kein Studiensemester angegeben");
 
 		$params = array(
+			$this->_angerechnet_note, // add note angerechnet type params
+			$this->_angerechnet_note,
 			$studiensemester_kurzbz_arr
 		);
 
 		$qry = "SELECT DISTINCT person_id, studiensemester_kurzbz
 				FROM (
 					SELECT prestudenten.studiensemester_kurzbz, person_id, prestudenten.prestudent_id,
-						   COALESCE(SUM(ects_angerechnet), 0) AS summe_ects_angerechnet,
-						   COALESCE(SUM(ects_erworben), 0) AS summe_ects_erworben
+						COALESCE(SUM(ects_angerechnet), 0) AS summe_ects_angerechnet,
+						COALESCE(SUM(ects_erworben), 0) AS summe_ects_erworben
 					FROM
 					(
-						SELECT DISTINCT pss.studiensemester_kurzbz, person_id, ps.prestudent_id
-						 FROM public.tbl_prestudent ps
-						 JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
-						 JOIN public.tbl_studiengang stg USING (studiengang_kz)
-						 WHERE ps.bismelden = TRUE
-						 AND stg.melderelevant = TRUE
-						 AND pss.studiensemester_kurzbz IN ?";
+						SELECT DISTINCT pss.studiensemester_kurzbz, person_id, ps.prestudent_id, lehrveranstaltung_id,
+						CASE WHEN note.aktiv AND note.offiziell AND note.positiv AND lv.zeugnis AND note.note IN ?
+							THEN ects
+							ELSE 0
+						END AS ects_angerechnet,
+						CASE WHEN note.aktiv AND note.offiziell AND note.positiv AND lv.zeugnis AND note.note NOT IN ?
+							THEN ects
+							ELSE 0
+						END AS ects_erworben
+						FROM public.tbl_prestudent ps
+						JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+						JOIN public.tbl_studiengang stg USING (studiengang_kz)
+						LEFT JOIN public.tbl_student USING (prestudent_id)
+						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote ON tbl_student.student_uid = zgnisnote.student_uid AND pss.studiensemester_kurzbz = zgnisnote.studiensemester_kurzbz
+						LEFT JOIN lehre.tbl_note note ON zgnisnote.note = note.note
+						LEFT JOIN lehre.tbl_lehrveranstaltung lv USING (lehrveranstaltung_id)
+						WHERE ps.bismelden = TRUE
+						AND stg.melderelevant = TRUE
+						AND pss.studiensemester_kurzbz IN ?";
 
 		if (!isEmptyArray($this->_oe_kurzbz))
 		{
@@ -551,45 +564,27 @@ class JQMSchedulerLib
 			$params[] = $this->_status_kurzbz[self::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN];
 		}
 
-		$params[] = $this->_angerechnet_note; // add note angerechnet type params
-		$params[] = $this->_angerechnet_note;
-
 		$qry .= "
 					) prestudenten
-					LEFT JOIN (
-						SELECT prestudent_id,
-							   zgnisnote.studiensemester_kurzbz,
-							   CASE WHEN note.note IN ? THEN ects ELSE 0 END AS ects_angerechnet,
-							   CASE WHEN note.note NOT IN ? THEN ects ELSE 0 END AS ects_erworben
-						FROM public.tbl_student
-						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote USING (student_uid)
-						LEFT JOIN lehre.tbl_note note ON zgnisnote.note = note.note
-						LEFT JOIN lehre.tbl_lehrveranstaltung lv USING (lehrveranstaltung_id)
-						WHERE note.aktiv
-						AND note.offiziell
-						AND note.positiv
-						AND lv.zeugnis
-					) anzahl_ects ON prestudenten.prestudent_id = anzahl_ects.prestudent_id AND
-						prestudenten.studiensemester_kurzbz = anzahl_ects.studiensemester_kurzbz
-					GROUP BY prestudenten.studiensemester_kurzbz, person_id, prestudenten.prestudent_id
+					GROUP BY studiensemester_kurzbz, person_id, prestudent_id
 				) summen_ects
 				WHERE (/*summe_ects_angerechnet <>
-							(SELECT COALESCE(SUM(last_ects_ar), 0)
-								FROM (SELECT ects_angerechnet as last_ects_ar
-								FROM sync.tbl_dvuh_pruefungsaktivitaeten
-								WHERE prestudent_id = summen_ects.prestudent_id
-								AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
-								ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_ar
-							) OR */
-							summe_ects_erworben <> /* different ects sums sent last time */
-							(SELECT COALESCE(SUM(last_ects_er), 0)
-								FROM (SELECT ects_erworben as last_ects_er
-								FROM sync.tbl_dvuh_pruefungsaktivitaeten
-								WHERE prestudent_id = summen_ects.prestudent_id
-								AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
-								ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_er
-							)
-						)";
+					(SELECT COALESCE(SUM(last_ects_ar), 0)
+						FROM (SELECT ects_angerechnet as last_ects_ar
+						FROM sync.tbl_dvuh_pruefungsaktivitaeten
+						WHERE prestudent_id = summen_ects.prestudent_id
+						AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
+						ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_ar
+					) OR */
+					summe_ects_erworben <> /* different ects sums sent last time */
+					(SELECT COALESCE(SUM(last_ects_er), 0)
+						FROM (SELECT ects_erworben as last_ects_er
+						FROM sync.tbl_dvuh_pruefungsaktivitaeten
+						WHERE prestudent_id = summen_ects.prestudent_id
+						AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
+						ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_er
+					)
+				)";
 
 		$dbModel = new DB_Model();
 
