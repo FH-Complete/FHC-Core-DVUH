@@ -404,7 +404,7 @@ class JQMSchedulerLib
 									ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum,
 									mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
 									max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum,
-									bisio.bis AS bisio_endedatum,
+									bisio.bis AS bisio_endedatum, bisio.von AS bisio_startdatum,
 									CASE
 										WHEN EXISTS (SELECT 1
 											FROM public.tbl_prestudentstatus
@@ -448,16 +448,21 @@ class JQMSchedulerLib
 		}
 
 		$qry .= 		" GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
-							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum, bisio.bis, pss.datum
+							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum,
+							 bisio.updateamum, bisio.von, bisio.bis, pss.datum
 					) prestudents
 					JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
-					WHERE max_studiumdaten_meldedatum IS NULL /* not sent to DVUH */
+					WHERE
+					(/* not sent to DVUH and no IO data or it's time to send the IO data */
+						max_studiumdaten_meldedatum IS NULL
+						AND (bisio_startdatum IS NULL OR bisio_startdatum <= NOW())
+					)
 					OR prestudent_status_datum = CURRENT_DATE /* if prestudent status gets active today */
 					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
 					/* data modified since last send */
 					OR ps_insertamum >= max_studiumdaten_meldedatum
 					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
-					OR ps_updateamum >= max_studiumdaten_meldedatum
+					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
 					OR mob_updateamum >= max_studiumdaten_meldedatum OR bisio_updateamum >= max_studiumdaten_meldedatum
 					OR EXISTS(SELECT 1 FROM public.tbl_prestudentstatus pssu
 								WHERE prestudent_id = prestudents.prestudent_id
