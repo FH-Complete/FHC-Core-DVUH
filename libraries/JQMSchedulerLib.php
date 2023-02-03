@@ -453,23 +453,26 @@ class JQMSchedulerLib
 					) prestudents
 					JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
 					WHERE
-					(/* not sent to DVUH and no IO data or it's time to send the IO data */
-						max_studiumdaten_meldedatum IS NULL
-						AND (bisio_startdatum IS NULL OR bisio_startdatum <= NOW())
-					)
-					OR prestudent_status_datum = CURRENT_DATE /* if prestudent status gets active today */
-					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
-					/* data modified since last send */
-					OR ps_insertamum >= max_studiumdaten_meldedatum
-					OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
-					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
-					OR mob_updateamum >= max_studiumdaten_meldedatum OR bisio_updateamum >= max_studiumdaten_meldedatum
-					OR EXISTS(SELECT 1 FROM public.tbl_prestudentstatus pssu
-								WHERE prestudent_id = prestudents.prestudent_id
-								AND (insertamum >= max_studiumdaten_meldedatum OR updateamum >= max_studiumdaten_meldedatum)
-								AND studiensemester_kurzbz IN ?
+					(
+						(/* not sent to DVUH and no IO data or it's time to send the IO data */
+							max_studiumdaten_meldedatum IS NULL
+							AND (bisio_startdatum IS NULL OR bisio_startdatum <= NOW())
+						)
+						OR prestudent_status_datum = CURRENT_DATE /* if prestudent status gets active today */
+						OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
+						/* data modified since last send */
+						OR ps_insertamum >= max_studiumdaten_meldedatum
+						OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
+						OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
+						OR mob_updateamum >= max_studiumdaten_meldedatum OR bisio_updateamum >= max_studiumdaten_meldedatum
+						OR EXISTS(SELECT 1 FROM public.tbl_prestudentstatus pssu
+									WHERE prestudent_id = prestudents.prestudent_id
+									AND (insertamum >= max_studiumdaten_meldedatum OR updateamum >= max_studiumdaten_meldedatum)
+									AND studiensemester_kurzbz IN ?
+						)
 					)
 					AND NOT EXISTS /* exclude already storniert */
+					(
 						SELECT 1 FROM (
 							SELECT storniert
 							FROM sync.tbl_dvuh_studiumdaten
@@ -481,7 +484,6 @@ class JQMSchedulerLib
 						WHERE storniert = TRUE
 					)
 				) prestudentssem
-
 				ORDER BY start, ist_abbrecher, prestudent_id";
 
 		$params[] = $studiensemester_kurzbz_arr;
