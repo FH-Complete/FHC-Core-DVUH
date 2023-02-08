@@ -291,10 +291,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 
 					// gemeinsame Studien
 					$gemeinsam = null;
-					// beendigungsdatum for gemeinsame Studien, needs to be set only if extern
-					$gsBeendigungsdatum = $isExtern ? $prestudentstatus->beendigungsdatum : null;
-
-					$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $gsBeendigungsdatum);
+					$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $prestudentstatus->beendigungsdatum);
 
 					if (isset($gemeinsamResult) && isError($gemeinsamResult))
 						return $gemeinsamResult;
@@ -373,10 +370,10 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 							// Unterbrechungsdatum if Unterbrecher
 							if ($status_kurzbz == 'Unterbrecher')
 							{
-								$unterbrechungsdatumRes = $this->_ci->fhcmanagementlib->getPreviousFirstStatusDate(
+								$unterbrechungsdatumRes = $this->_ci->fhcmanagementlib->getFirstDateOfPrestudentStatusSeries(
 									$prestudent_id,
 									$studiensemester_kurzbz,
-									'Unterbrecher'
+									array('Unterbrecher')
 								);
 
 								if (isError($unterbrechungsdatumRes)) return $unterbrechungsdatumRes;
@@ -387,19 +384,17 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 							// Wiedereintrittsdatum if Student after Unterbrecher
 							if (in_array($status_kurzbz, $active_status_kurzbz))
 							{
-								$previousStatusUnterbrochenRes = $this->_ci->fhcmanagementlib->checkPreviousStatusType(
+								$wiedereintrittsdatumRes = $this->_ci->fhcmanagementlib->getFirstDateOfPrestudentStatusSeriesAfterStatus(
 									$prestudent_id,
 									$studiensemester_kurzbz,
-									array('Unterbrecher')
+									$active_status_kurzbz,
+									'Unterbrecher'
 								);
 
-								if (isError($previousStatusUnterbrochenRes))
-									return $previousStatusUnterbrochenRes;
+								if (isError($wiedereintrittsdatumRes))
+									return $wiedereintrittsdatumRes;
 
-								if (hasData($previousStatusUnterbrochenRes) && getData($previousStatusUnterbrochenRes)[0] === true)
-								{
-									$wiedereintrittsdatum = $prestudentstatus->status_datum;
-								}
+								$wiedereintrittsdatum = hasData($wiedereintrittsdatumRes) ? getData($wiedereintrittsdatumRes) : null;
 							}
 						}
 
@@ -687,11 +682,11 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 		else
 			return error("Kein korrektes Semester angegeben");
 
-		// get Mobilitäten of the semester, no bis dates in future
+		// get Mobilitäten of the semester, stay must have already started
 		$ioResult = $this->_dbModel->execReadOnlyQuery(
 			"SELECT *
 			FROM bis.tbl_bisio WHERE student_uid=?
-			AND (bis >= ? OR bis IS NULL) AND von <= ?;",
+			AND von <= NOW() AND (bis >= ? OR bis IS NULL) AND von <= ?;",
 			array($prestudentstatus->student_uid, $semester->start, $semester->ende)
 		);
 
@@ -987,7 +982,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 		if ($status_kurzbz == 'Abbrecher')
 		{
 			// if terminated status, check if there is a "non-finishing" status in previous Semester...
-			$previousStatusRes = $this->_ci->fhcmanagementlib->checkPreviousStatusType(
+			$previousStatusRes = $this->_ci->fhcmanagementlib->checkPreviousPrestudentStatusType(
 				$prestudent_id,
 				$studiensemester_kurzbz,
 				$unfinished_status_kurzbz
