@@ -35,6 +35,7 @@ class DVUHClientLib
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHAuthLib');
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 
 		$this->_setPropertiesDefault(); // properties initialization
 		$this->_setConnection(); // sets the connection parameters
@@ -188,7 +189,10 @@ class DVUHClientLib
 		}
 		else
 		{
-			$this->_error(self::REQUEST_FAILED, 'HTTP Code not starting with 2 - Value:'.$curl_info['http_code'].' '.$url.' '.print_r($response,true));
+			$this->_error(
+				self::REQUEST_FAILED,
+				'HTTP Code not starting with 2 - Value:'.$curl_info['http_code'].' '.$url.' '.$this->_getErrorInfoFromResponse($response)
+			);
 			return null;
 		}
 	}
@@ -200,5 +204,35 @@ class DVUHClientLib
 	{
 		$this->_error = true;
 		$this->_errorMessage = $code.': '.$message;
+	}
+
+	/**
+	 * Gets error information from returned response object.
+	 */
+	private function _getErrorInfoFromResponse($response)
+	{
+		// by default, error info is whole printed response
+		$errorInfo = print_r($response,true);
+		$errorObj = $this->_ci->xmlreaderlib->parseXml($response, array('fehler'));
+
+		if (hasData($errorObj))
+		{
+			$errorObj = getData($errorObj);
+			if (isset($errorObj->fehler) && is_array($errorObj->fehler))
+			{
+				// if error data present, create string with the data
+				foreach ($errorObj->fehler as $err)
+				{
+					$fehlernummer = isset($err->fehlernummer) ? $err->fehlernummer.': ' : '';
+					$fehlertext = isset($err->fehlertext) ? ' '.$err->fehlertext : '';
+					$massnahme = isset($err->massnahme) ? '; '.$err->massnahme : '';
+					$datenfeld = isset($err->fehlerquelle->datenfeld) ? $err->fehlerquelle->datenfeld : '';
+
+					$errorInfo = $fehlernummer.$datenfeld.$fehlertext.$massnahme;
+				}
+			}
+		}
+
+		return $errorInfo;
 	}
 }

@@ -31,7 +31,7 @@ class DVUHIssueLib
 	 * @param object $issue containing info for writing the issue.
 	 * @param int $person_id person for which issue occured.
 	 * @param int $prestudent_id prestudent for which issue occured, will be resolved to oe_kurzbz.
-	 * @param bool $force_predefined_for_external if true, external issues won't be added if no error/warning is predefined
+	 * @param bool $force_predefined_for_external if true, external issues won't be added if no external error/warning is predefined
 	 * @return object success or error
 	 */
 	public function addIssue($issue, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
