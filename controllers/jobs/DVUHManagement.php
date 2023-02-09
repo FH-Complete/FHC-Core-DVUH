@@ -577,11 +577,30 @@ class DVUHManagement extends JQW_Controller
 		if (!isError($errorObj))
 			return;
 
-		// write in webserive log
-		$this->logError($logging_prefix.': '.implode('; ', $this->dvuhissuelib->getIssueTexts(getError($errorObj))));
+		// get all errors from object
+		$errorArr = getError($errorObj);
 
-		// optionally add issue
-		$this->_addDVUHIssue(getError($errorObj), $person_id, $prestudent_id);
+		// if error is text, wrap it into array
+		if (!is_array($errorArr))
+			$errorArr = array($errorArr);
+
+		// for each error
+		foreach ($errorArr as $err)
+		{
+			$errorText = $logging_prefix.': '.implode('; ', $this->dvuhissuelib->getIssueTexts($err));
+			// if error is an issue...
+			if (isset($err->fehlernummer) || isset($err->issue_fehler_kurzbz))
+			{
+				// ...log as warning and add issue
+				$this->logWarning($errorText);
+				$this->_addDVUHIssue(getError($errorObj), $person_id, $prestudent_id);
+			}
+			else
+			{
+				// ...otherwise just log the error in webservice log
+				$this->logError($errorText);
+			}
+		}
 	}
 
 	/**
