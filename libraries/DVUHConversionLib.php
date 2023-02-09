@@ -141,7 +141,7 @@ class DVUHConversionLib
 			// check studiengang kz for validity
 			if (!$this->_ci->dvuhcheckinglib->checkStudiengangkz($melde_studiengang_kz))
 			{
-				return createError( // TODO phrase?
+				return createIssueError( // TODO phrase?
 					"Ungültige Meldestudiengangskennzahl für Studiengang $studiengang_kz,"
 					." gültiges Format: (3 Stellen für Erhalter wenn Lehrgang) [4 Stellen Studiengang]",
 					'ungueltigeMeldeStudiengangskennzahl',

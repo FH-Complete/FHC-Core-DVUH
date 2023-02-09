@@ -33,30 +33,36 @@ class Matrikelpruefung_model extends DVUHClientModel
 	 * @param string $vorname First Name
 	 * @return object success or error
 	 */
-	public function get($bpk = null, $ekz = null, $geburtsdatum = null, $matrikelnummer = null,
-						$nachname = null, $svnr = null, $vorname = null)
-	{
+	public function get(
+		$bpk = null,
+		$ekz = null,
+		$geburtsdatum = null,
+		$matrikelnummer = null,
+		$nachname = null,
+		$svnr = null,
+		$vorname = null
+	) {
 		$callParametersArray = array(
 			'uuid' => getUUID()
 		);
 
 		if (($vorname != '' || $nachname != '') && $geburtsdatum == '')
 		{
-			$result = createError(
+			$result = createIssueError(
 				'Wenn der Name angegeben ist muss auch ein Geburtsdatum angegeben werden',
 				'nameUndGebdatumAngeben'
 			);
 		}
 		elseif (!isEmptyString($ekz) && !$this->dvuhcheckinglib->checkEkz($ekz))
 		{
-			$result = createError(
+			$result = createIssueError(
 				'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
 				'ersatzkennzeichenUngueltig'
 			);
 		}
 		elseif (!isEmptyString($bpk) && !$this->dvuhcheckinglib->checkBpk($bpk))
 		{
-			$result = createError(
+			$result = createIssueError(
 				'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
 				'bpkUngueltig'
 			);

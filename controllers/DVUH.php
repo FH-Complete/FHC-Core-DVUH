@@ -46,6 +46,7 @@ class DVUH extends Auth_Controller
 		);
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMatrikelnummerManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMasterDataManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
@@ -319,7 +320,7 @@ class DVUH extends Auth_Controller
 
 		$json = $this->dvuhmasterdatamanagementlib->sendMasterdata($person_id, $semester, null, $preview);
 
-		$this->outputJson($json);
+		$this->_outputJsonDVUH($json);
 	}
 
 	public function postPayment()
@@ -350,7 +351,7 @@ class DVUH extends Auth_Controller
 
 		$json = $this->dvuhstudydatamanagementlib->sendStudyData($semester, $person_id, $prestudent_id,  $preview);
 
-		$this->outputJson($json);
+		$this->_outputJsonDVUH($json);
 	}
 
 	public function postErnpmeldung()
@@ -501,5 +502,16 @@ class DVUH extends Auth_Controller
 		}
 
 		$this->outputJsonSuccess($permittedMethods);
+	}
+
+	/**
+	 * Outputs errors or result in JSON DVUH format
+	 */
+	private function _outputJsonDVUH($result)
+	{
+		if (isError($result))
+			$this->outputJsonError($this->dvuhissuelib->getIssueTexts(getError($result)));
+		else
+			$this->outputJson($result);
 	}
 }

@@ -65,6 +65,9 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 
 		$studiumDataResult = $this->_ci->dvuhstudydatalib->getStudyData($person_id, $fhc_studiensemester, $prestudent_id);
 
+		// get and reset warnings produced by dvuhstudydatalib
+		$warnings = $this->_ci->dvuhstudydatalib->readWarnings();
+
 		if (isError($studiumDataResult))
 			return $studiumDataResult;
 
@@ -80,7 +83,7 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 			if (isError($postData))
 				return $postData;
 
-			return $this->getResponseArr(getData($postData));
+			return $this->getResponseArr(getData($postData), null, $warnings);
 		}
 
 		// put if only for one prestudent, with post all data would be updated.
@@ -88,9 +91,6 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 			$studiumResult = $this->_ci->StudiumModel->put($this->_be, $studiumData, $dvuh_studiensemester);
 		else
 			$studiumResult = $this->_ci->StudiumModel->post($this->_be, $studiumData, $dvuh_studiensemester);
-
-		// get and reset warnings produced by dvuhstudydatalib
-		$warnings = $this->_ci->dvuhstudydatalib->readWarnings();
 
 		if (isError($studiumResult))
 			$result = $studiumResult;

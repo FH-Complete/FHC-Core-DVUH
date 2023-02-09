@@ -31,6 +31,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SS_0014', 'studienkennunguniUngueltig', NULL, 'Ungültige Studienkennung Uni für GS mit Programmcode %s, muss z.B. UUT190593347UA sein', 'error', 'dvuh'),
 ('DVUH_SS_0015', 'herkunftslandFehlt', NULL, 'Herkunftsland fehlt', 'error', 'dvuh'),
 ('DVUH_SS_0016', 'gsdatenFehlen', NULL, 'Daten für gemeinsames Studium fehlen: %s', 'error', 'dvuh'),
+('DVUH_SS_0017', 'orgformUngueltig', NULL, 'Orgform ungültig', 'error', 'dvuh'),
 /* DVUH Errors */
 ('DVUH_ERROR', 'dvuhFehler', NULL, 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
 ('DVUH_SM_MATRNR_STATUS_2', NULL, 'MATRNR_STATUS_2', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, Datenverbund kontaktieren.', 'error', 'dvuh'),

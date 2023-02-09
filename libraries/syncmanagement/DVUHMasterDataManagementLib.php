@@ -53,7 +53,6 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	public function sendMasterData($person_id, $studiensemester, $matrikelnummer = null, $preview = false)
 	{
 		$infos = array();
-		$warnings = array();
 
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 		$all_buchungstypen_kurzbz = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
@@ -91,6 +90,9 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist'] : null;
 
 		$studentinfoRes = $this->_ci->dvuhstammdatenlib->getStammdatenData($person_id, $studiensemester_kurzbz);
+
+		// get and reset warnings produced by Stammdatenlib
+		$warnings = $this->_ci->dvuhstammdatenlib->readWarnings();
 
 		if (isError($studentinfoRes))
 			return $studentinfoRes;
@@ -595,7 +597,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 							$isSentToSap = getData($sentToSap)[0];
 							if ($isSentToSap === true)
 							{
-								$warnings[] = createError(
+								$warnings[] = createIssueObj(
 									"Buchung $buchungsnr ist in SAP gespeichert,"
 									." obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde",
 									'andereBeBezahltSapGesendet',
