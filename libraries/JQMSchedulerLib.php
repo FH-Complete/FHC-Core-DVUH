@@ -418,7 +418,7 @@ class JQMSchedulerLib
 							JOIN public.tbl_student USING (prestudent_id)
 							JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id
 							LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-							LEFT JOIN bis.tbl_bisio bisio ON tbl_student.student_uid = bisio.student_uid
+							LEFT JOIN bis.tbl_bisio bisio ON tbl_student.prestudent_id = bisio.prestudent_id
 							LEFT JOIN bis.tbl_mobilitaet mob ON ps.prestudent_id = mob.prestudent_id
 							LEFT JOIN sync.tbl_dvuh_studiumdaten studd ON pss.studiensemester_kurzbz = studd.studiensemester_kurzbz
 																			AND ps.prestudent_id = studd.prestudent_id
@@ -552,7 +552,8 @@ class JQMSchedulerLib
 						JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 						JOIN public.tbl_studiengang stg USING (studiengang_kz)
 						LEFT JOIN public.tbl_student USING (prestudent_id)
-						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote ON tbl_student.student_uid = zgnisnote.student_uid AND pss.studiensemester_kurzbz = zgnisnote.studiensemester_kurzbz
+						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote ON tbl_student.student_uid = zgnisnote.student_uid
+							AND pss.studiensemester_kurzbz = zgnisnote.studiensemester_kurzbz
 						LEFT JOIN lehre.tbl_note note ON zgnisnote.note = note.note
 						LEFT JOIN lehre.tbl_lehrveranstaltung lv USING (lehrveranstaltung_id)
 						WHERE ps.bismelden = TRUE

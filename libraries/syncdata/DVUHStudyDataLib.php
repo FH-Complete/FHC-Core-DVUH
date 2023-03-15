@@ -188,6 +188,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 						$melde_studiengang_kz = getData($meldeStudiengangRes);
 
 					// studtyp - if extern, certain data should not be sent to DVUH
+					$studtyp = null;
 					$gsstudientyp_kurzbz = $prestudentstatus->gsstudientyp_kurzbz;
 
 					$kodex_studientyp_array = array();
@@ -291,7 +292,12 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 
 					// gemeinsame Studien
 					$gemeinsam = null;
-					$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $prestudentstatus->beendigungsdatum);
+					$gemeinsamResult = $this->_getGemeinsameStudien(
+						$prestudent_id,
+						$studiensemester_kurzbz,
+						$studtyp,
+						$prestudentstatus->beendigungsdatum
+					);
 
 					if (isset($gemeinsamResult) && isError($gemeinsamResult))
 						return $gemeinsamResult;
@@ -685,9 +691,9 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 		// get Mobilitäten of the semester, stay must have already started
 		$ioResult = $this->_dbModel->execReadOnlyQuery(
 			"SELECT *
-			FROM bis.tbl_bisio WHERE student_uid=?
+			FROM bis.tbl_bisio WHERE prestudent_id=?
 			AND von <= NOW() AND (bis >= ? OR bis IS NULL) AND von <= ?;",
-			array($prestudentstatus->student_uid, $semester->start, $semester->ende)
+			array($prestudentstatus->prestudent_id, $semester->start, $semester->ende)
 		);
 
 		$mobilitaeten = array();
@@ -991,7 +997,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 			if (isError($previousStatusRes))
 				return $previousStatusRes;
 
-			// ... if yes, set status zugelassen (active)
+			// ... if yes, set status zugelassen (active) - otherwise automatic Storno by DVUH
 			if (hasData($previousStatusRes) && getData($previousStatusRes)[0] === true)
 			{
 				// students with mobilität have own status
