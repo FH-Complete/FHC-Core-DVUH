@@ -43,6 +43,9 @@ class DVUHStammdatenLib extends DVUHErrorProducerLib
 	 */
 	public function getStammdatenData($person_id, $studiensemester_kurzbz)
 	{
+		// get config flag for sending university mails
+		$send_university_mails = $this->_ci->config->item('fhc_dvuh_send_university_mail');
+
 		$stammdaten = $this->_ci->PersonModel->getPersonStammdaten($person_id);
 
 		if (hasData($stammdaten))
@@ -145,18 +148,21 @@ class DVUHStammdatenLib extends DVUHErrorProducerLib
 			}
 
 			// university mail
-			$uids = $this->_ci->fhcmanagementlib->getUids($person_id, $studiensemester_kurzbz);
-
-			if (hasData($uids))
+			if ($send_university_mails !== false)
 			{
-				$uids = getData($uids);
+				$uids = $this->_ci->fhcmanagementlib->getUids($person_id, $studiensemester_kurzbz);
 
-				foreach ($uids as $uid)
+				if (hasData($uids))
 				{
-					$bsmail = array();
-					$bsmail['emailadresse'] = $uid->uid . '@' . DOMAIN;
-					$bsmail['emailtyp'] = 'BE';
-					$emailliste[] = $bsmail;
+					$uids = getData($uids);
+
+					foreach ($uids as $uid)
+					{
+						$bsmail = array();
+						$bsmail['emailadresse'] = $uid->uid . '@' . DOMAIN;
+						$bsmail['emailtyp'] = 'BE';
+						$emailliste[] = $bsmail;
+					}
 				}
 			}
 
