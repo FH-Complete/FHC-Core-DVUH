@@ -298,7 +298,8 @@ class DVUHStammdatenLib extends DVUHErrorProducerLib
 					$oehbeitragAmounts = getData($oehbeitragAmountsRes)[0];
 					$studierendenBeitragAmount = $oehbeitragAmounts->studierendenbeitrag;
 
-					if ($beitragAmount < 0) // no insurance if oehbeitrag is 0
+					// no insurance if oehbeitrag is 0 or insurance is greater than ÖH-Beitrag
+					if ($beitragAmount < 0 && $oehbeitragAmounts->versicherung < abs($beitragAmount))
 					{
 						$versicherungBeitragAmount = $oehbeitragAmounts->versicherung;
 
