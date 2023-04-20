@@ -495,7 +495,7 @@ class FHCManagementLib
 				JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
 				WHERE prestudent_id = ?
 				AND sem.start::date <= (SELECT start from public.tbl_studiensemester WHERE studiensemester_kurzbz = ?)::date
-				ORDER BY sem.start DESC, status.datum DESC';
+				ORDER BY sem.start DESC, status.datum DESC, status.insertamum DESC';
 
 		return $this->_dbModel->execReadOnlyQuery($qry, array($prestudent_id, $studiensemester_kurzbz));
 	}
