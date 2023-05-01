@@ -44,6 +44,9 @@ $config['fhc_dvuh_buchungstyp'] = array(
 // if set, only students assigned to this oe or a child oe (determined by Studiengang) are sent to DVUH
 $config['fhc_dvuh_oe_kurzbz'] = null;
 
+// if false, no Bildungseinrichtung mails are sent to DVUH
+$config['fhc_dvuh_send_university_mail'] = true;
+
 $config['fhc_dvuh_sync_days_valutadatum'] = 30; // days after buchungsdatum for valutadatum for payment Frist
 $config['fhc_dvuh_sync_days_valutadatumnachfrist'] = 90; // Nachfrist in days after valutadatum for payments
 $config['fhc_dvuh_sync_euros_studiengebuehrnachfrist'] = 0; // amount to be added to studiengebuehr when Nachfrist is set
@@ -65,6 +68,7 @@ $config['fhc_dvuh_sync_student_statuscode'] = array(
 	'Abbrecher' => 4
 );
 
+// Meldestatus names and codes
 $config['fhc_dvuh_sync_student_meldestatus'] = array(
 	'zugelassen_inland' => 'I',
 	'zugelassen_ausland' => 'A',
