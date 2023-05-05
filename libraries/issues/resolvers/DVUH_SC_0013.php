@@ -27,25 +27,14 @@ class DVUH_SC_0013 implements IIssueResolvedChecker
 		$buchungstypen = $params['buchungstypen'];
 		$studiensemester_kurzbz = $params['studiensemester_kurzbz'];
 
-		// get charges of a student
-		$buchungenResult = $this->_ci->fhcmanagementlib->getBuchungenOfStudent($params['issue_person_id'], $studiensemester_kurzbz, $buchungstypen);
-
-		$vorschreibung = array();
-
-		if (isError($buchungenResult))
-			return $buchungenResult;
-
 		// get Vorschreibung data from the found charges
-		if (hasData($buchungenResult))
-		{
-			$buchungen = getData($buchungenResult);
 
-			$vorschreibung = $this->_ci->dvuhstammdatenlib->getVorschreibungData($buchungen, $studiensemester_kurzbz);
+		// get charges of a student
+		$vorschreibung = $this->_ci->dvuhstammdatenlib->getVorschreibungData($params['issue_person_id'], $studiensemester_kurzbz, $buchungstypen);
 
-			// if the issue does not persist, no error is returned
-			if (isSuccess($vorschreibung))
-				return success(true);
-		}
+		// if the issue does not persist, no error is returned
+		if (isSuccess($vorschreibung))
+			return success(true);
 
 		return success(false); // not resolved
 	}

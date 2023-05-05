@@ -54,32 +54,19 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	{
 		$infos = array();
 
-		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
-		$all_buchungstypen_kurzbz = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
 		$studiensemester_kurzbz = $this->_ci->dvuhconversionlib->convertSemesterToFHC($studiensemester);
 		$dvuh_studiensemester = $this->_ci->dvuhconversionlib->convertSemesterToDVUH($studiensemester);
 
-		// get Buchungen for Vorschreibung
-		$buchungenResult = $this->_ci->fhcmanagementlib->getBuchungenOfStudent($person_id, $studiensemester_kurzbz, $all_buchungstypen_kurzbz);
-
 		$vorschreibung = array();
 
-		if (isError($buchungenResult))
-			return $buchungenResult;
+		// get vorschreibung
+		$vorschreibungRes = $this->_ci->dvuhstammdatenlib->getVorschreibungData($person_id, $studiensemester_kurzbz);
 
-		// calculate values for ÖH-Beitrag, Studiengebühr
-		if (hasData($buchungenResult))
-		{
-			$buchungen = getData($buchungenResult);
+		if (isError($vorschreibungRes))
+			return $vorschreibungRes;
 
-			$vorschreibung = $this->_ci->dvuhstammdatenlib->getVorschreibungData($buchungen, $studiensemester_kurzbz);
-
-			if (isError($vorschreibung))
-				return $vorschreibung;
-
-			if (hasData($vorschreibung))
-				$vorschreibung = getData($vorschreibung);
-		}
+		if (hasData($vorschreibungRes))
+			$vorschreibung = getData($vorschreibungRes);
 
 		// set Vorschreibungdata
 		$oehbeitrag = isset($vorschreibung['oehbeitrag']) ? $vorschreibung['oehbeitrag'] : null;
@@ -89,6 +76,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$valutadatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
 		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist'] : null;
 
+		// get stammdaten (master data)
 		$studentinfoRes = $this->_ci->dvuhstammdatenlib->getStammdatenData($person_id, $studiensemester_kurzbz);
 
 		// get and reset warnings produced by Stammdatenlib

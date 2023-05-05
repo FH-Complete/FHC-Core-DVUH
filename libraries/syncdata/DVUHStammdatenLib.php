@@ -24,6 +24,7 @@ class DVUHStammdatenLib extends DVUHErrorProducerLib
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+		$this->_ci->load->model('codex/Oehbeitrag_model', 'OehbeitragModel');
 
 		// load helpers
 		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
@@ -264,19 +265,35 @@ class DVUHStammdatenLib extends DVUHErrorProducerLib
 
 	/*
 	 * Gets Charge (Vorschreibung) data from FHC Buchungen as needed by DVUH.
-	 * @param array $buchungen contain charges from FHC
+	 * @param int $person_id only amounts for this student are returned
 	 * @param string $studiensemester_kurzbz mainly for getting pre-defined amounts for a semester
+	 * @param array $buchungstypen_kurzbz get only Buchungen with this types
 	 * @return success with vorschreibung data or error (e.g. when checks failed)
 	 */
-	public function getVorschreibungData($buchungen, $studiensemester_kurzbz)
+	public function getVorschreibungData($person_id, $studiensemester_kurzbz, $buchungstypen_kurzbz = null)
 	{
+		// get configs
 		$valutadatum_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatum');
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 
+		if (!isset($buchungstypen_kurzbz))
+			$buchungstypen_kurzbz = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
+
+		// get Buchungen for Vorschreibung
+		$buchungen = array();
 		$vorschreibung = array();
 
+		$buchungenRes = $this->_ci->fhcmanagementlib->getBuchungenOfStudent($person_id, $studiensemester_kurzbz, $buchungstypen_kurzbz);
+
+		if (isError($buchungenRes))
+			return $buchungenRes;
+
+		if (hasData($buchungenRes))
+			$buchungen = getData($buchungenRes);
+
+		// fill vorschreibung data from Buchungen
 		foreach ($buchungen as $buchung)
 		{
 			// add Vorschreibung

@@ -335,7 +335,7 @@ class DVUH extends Auth_Controller
 
 		$json = $this->dvuhpaymentmanagementlib->sendPayment($person_id, $semester, $preview);
 
-		$this->outputJson($json);
+		$this->_outputJsonDVUH($json);
 	}
 
 	public function postStudium()
