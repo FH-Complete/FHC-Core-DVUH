@@ -47,7 +47,7 @@ var Plausichecks = {
 				}
 			}
 		);
-	},
+	}
 
 };
 
