@@ -591,6 +591,12 @@ class JQMSchedulerLib
 						AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
 						ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_er
 					)
+				)
+				AND EXISTS (
+					SELECT 1
+					FROM sync.tbl_dvuh_studiumdaten
+					WHERE prestudent_id = summen_ects.prestudent_id
+					AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
 				)";
 
 		$dbModel = new DB_Model();

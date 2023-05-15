@@ -595,7 +595,6 @@ var DVUHMenu = {
 	},
 	_writeError: function(resultToWrite, boxid)
 	{
-		//var intro = 'Abfrage ausgeführt, Antwort:';
 		var intro = "Fehler aufgetreten:";
 		var contentToWrite = '';
 
@@ -605,7 +604,22 @@ var DVUHMenu = {
 		else if (typeof resultToWrite === 'object' && resultToWrite.issue_fehlertext)
 			contentToWrite += resultToWrite.issue_fehlertext
 		else if ($.isArray(resultToWrite))
-			contentToWrite += resultToWrite.join('<br />');
+		{
+
+			for (idx in resultToWrite)
+			{
+				var err = resultToWrite[idx];
+
+				if (typeof err === 'string')
+					contentToWrite += err;
+				else if (typeof err === 'object' && err.issue_fehlertext)
+					contentToWrite += err.issue_fehlertext;
+				else
+					contentToWrite += 'Unbekannter Fehler';
+
+				contentToWrite += '</ br>';
+			}
+		}
 
 		var spanid = boxid+"Span";
 		var htmlToWrite = '<b>'+intro+'</b><br /><span class="text-danger" id="'+spanid+'">'+contentToWrite+'</span>';
