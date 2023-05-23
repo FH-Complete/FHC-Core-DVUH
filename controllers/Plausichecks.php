@@ -53,20 +53,8 @@ class Plausichecks extends Auth_Controller
 		$studiengang_kz = $this->input->get('studiengang_kz');
 		$fehler_kurzbz = $this->input->get('fehler_kurzbz');
 
-		// all fehler kurzbz which are going to be checked
-		$fehlerKurzbz = array();
-
-		// if no particular fehler_kurzbz given...
-		if (isEmptyString($fehler_kurzbz))
-		{
-			// ...get all dvuh fehler
-			$fehlerKurzbz = $this->_getDVUHFehler();
-		}
-		else
-		{
-			// ...otherwise use only given fehler_kurzbz
-			$fehlerKurzbz[] = $fehler_kurzbz;
-		}
+		// all fehler which are going to be checked
+		$fehler = $this->_getDVUHFehler($fehler_kurzbz);
 
 		// set Studiengang to null if not passed
 		if (isEmptyString($studiengang_kz)) $studiengang_kz = null;
@@ -115,7 +103,7 @@ class Plausichecks extends Auth_Controller
 					if (is_array($vorschreibungErr)) $stammdatenErrors = array_merge($stammdatenErrors, $vorschreibungErr);
 				}
 
-				// add stammdaten Errors
+				// add stammdaten errors
 				foreach ($stammdatenErrors as $err)
 				{
 					$err->person_id = $prestudent->person_id;
@@ -189,8 +177,6 @@ class Plausichecks extends Auth_Controller
 		}
 
 		$allIssues = array_merge($allErrors, $allWarnings);
-		// issues array for passing issue texts
-		$issueTexts = array_fill_keys($fehlerKurzbz, array());
 
 		// display all the issues
 		foreach ($allIssues as $issue)
@@ -199,7 +185,7 @@ class Plausichecks extends Auth_Controller
 			$type = $issue->type;
 
 			// skip excluded fehler_kurzbz
-			if (in_array($fehler_kurzbz, $this->_fehlerKurzbzToExclude) || !isset($issueTexts[$fehler_kurzbz])) continue;
+			if (in_array($fehler_kurzbz, $this->_fehlerKurzbzToExclude) || !isset($fehler[$fehler_kurzbz])) continue;
 
 			// optionally replace fehler parameters in text, output the fehlertext
 			if (isset($issue->issue_fehlertext))
@@ -212,11 +198,11 @@ class Plausichecks extends Auth_Controller
 				$issueObj = new StdClass();
 				$issueObj->fehlertext = $fehlerText;
 				$issueObj->type = $type;
-				$issueTexts[$fehler_kurzbz][] = $issueObj;
+				$fehler[$fehler_kurzbz]['data'][] = $issueObj;
 			}
 		}
 
-		$this->outputJsonSuccess($issueTexts);
+		$this->outputJsonSuccess($fehler);
 	}
 
 	/**
@@ -241,13 +227,13 @@ class Plausichecks extends Auth_Controller
 
 		if (isError($studiengaengeRes)) show_error(getError($studiengaengeRes));
 
-		$fehlerKurzbz = $this->_getDVUHFehler();
+		$fehlerKurzbzCodeMappings = $this->_getDVUHFehler();
 
 		return array(
 			'semester' => hasData($studiensemesterRes) ? getData($studiensemesterRes) : array(),
 			'currsemester' => hasData($currSemRes) ? getData($currSemRes) : array(),
 			'studiengaenge' => hasData($studiengaengeRes) ? getData($studiengaengeRes) : array(),
-			'fehler' => $fehlerKurzbz
+			'fehlerKurzbzCodeMappings' => $fehlerKurzbzCodeMappings
 		);
 	}
 
@@ -255,26 +241,42 @@ class Plausichecks extends Auth_Controller
 	 * Get all self-defined dvuh fehler.
 	 * @return array with fehler_kurzbz
 	 */
-	private function _getDVUHFehler()
+	private function _getDVUHFehler($fehler_kurzbz = null)
 	{
-		$fehlerKurzbz = array();
-		$this->FehlerModel->addSelect('fehler_kurzbz');
-		$this->FehlerModel->addOrder("CASE WHEN fehlertyp_kurzbz = 'error' THEN 0 ELSE 1 END, fehlertyp_kurzbz, fehler_kurzbz");
-		$fehlerRes = $this->FehlerModel->loadWhere(
-			"app = '".DVUHIssueLib::APP
-			."' AND fehler_kurzbz IS NOT NULL AND fehler_kurzbz NOT IN ('".implode("', '", $this->_fehlerKurzbzToExclude)."')"
-		);
+		$fehler = array();
+
+		$db = new DB_Model();
+
+		// get fehler_kurzbz and fehlercodes
+		$qry = '
+			SELECT
+				fehler_kurzbz, fehlercode
+			FROM
+				system.tbl_fehler
+			WHERE
+				app = ?
+				AND fehler_kurzbz IS NOT NULL
+				AND fehler_kurzbz NOT IN ?';
+
+		$params = array(DVUHIssueLib::APP, $this->_fehlerKurzbzToExclude);
+
+		if (!isEmptyString($fehler_kurzbz))
+		{
+			$qry .= ' AND fehler_kurzbz = ?';
+			$params[] = $fehler_kurzbz;
+		}
+
+		$fehlerRes = $db-> execReadOnlyQuery($qry, $params);
 
 		if (hasData($fehlerRes))
 		{
-			$fehlerKurzbzData = getData($fehlerRes);
-
-			foreach ($fehlerKurzbzData as $fk)
+			$fehlerData = getData($fehlerRes);
+			foreach ($fehlerData as $fe)
 			{
-				$fehlerKurzbz[] = $fk->fehler_kurzbz;
+				$fehler[$fe->fehler_kurzbz] = array('fehlercode' => $fe->fehlercode, 'data' => array());
 			}
 		}
 
-		return $fehlerKurzbz;
+		return $fehler;
 	}
 }
