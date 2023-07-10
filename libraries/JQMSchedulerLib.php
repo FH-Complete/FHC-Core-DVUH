@@ -394,15 +394,15 @@ class JQMSchedulerLib
 		$params = array($studiensemester_kurzbz_arr);
 
 		// get students with Vorschreibung which have no Studiumsmeldung or have a data change
-		// data change: prestudent, prestudentstatus, bisio, mobilitaet
+		// data change: prestudent, prestudentstatus, bisio, mobilitaet, abschlusspruefung
 		$qry = "SELECT prestudent_id, studiensemester_kurzbz FROM (
 					SELECT DISTINCT prestudents.prestudent_id, prestudents.studiensemester_kurzbz, sem.start, ist_abbrecher
 					FROM (
 							SELECT ps.prestudent_id, pss.studiensemester_kurzbz,
 									ps.insertamum AS ps_insertamum, pss.insertamum AS pss_insertamum,
-									mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum,
+									mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum, pr.insertamum AS pr_insertamum,
 									ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum,
-									mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
+									mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum, pr.updateamum AS pr_updateamum,
 									max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum,
 									bisio.bis AS bisio_endedatum, bisio.von AS bisio_startdatum,
 									CASE
@@ -415,13 +415,14 @@ class JQMSchedulerLib
 										ELSE 0
 									END AS ist_abbrecher
 							FROM public.tbl_prestudent ps
-							JOIN public.tbl_student USING (prestudent_id)
+							JOIN public.tbl_student stud USING (prestudent_id)
 							JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id
 							LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-							LEFT JOIN bis.tbl_bisio bisio ON tbl_student.student_uid = bisio.student_uid
+							LEFT JOIN bis.tbl_bisio bisio ON stud.student_uid = bisio.student_uid
 							LEFT JOIN bis.tbl_mobilitaet mob ON ps.prestudent_id = mob.prestudent_id
 							LEFT JOIN sync.tbl_dvuh_studiumdaten studd ON pss.studiensemester_kurzbz = studd.studiensemester_kurzbz
 																			AND ps.prestudent_id = studd.prestudent_id
+							LEFT JOIN lehre.tbl_abschlusspruefung pr ON stud.student_uid = pr.student_uid
 							WHERE ps.bismelden = TRUE
 							AND stg.melderelevant = TRUE
 							AND pss.studiensemester_kurzbz IN ?
@@ -447,9 +448,10 @@ class JQMSchedulerLib
 			$params[] = $this->_oe_kurzbz;
 		}
 
-		$qry .= 		" GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
-							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum,
-							 bisio.updateamum, bisio.von, bisio.bis, pss.datum
+		$qry .= 		" GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum,
+							mob.insertamum, bisio.insertamum, pr.insertamum,
+							ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum, pr.updateamum,
+							bisio.von, bisio.bis, pss.datum
 					) prestudents
 					JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
 					WHERE
@@ -463,8 +465,10 @@ class JQMSchedulerLib
 						/* data modified since last send */
 						OR ps_insertamum >= max_studiumdaten_meldedatum
 						OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
+						OR pr_insertamum >= max_studiumdaten_meldedatum
 						OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
 						OR mob_updateamum >= max_studiumdaten_meldedatum OR bisio_updateamum >= max_studiumdaten_meldedatum
+						OR pr_updateamum >= max_studiumdaten_meldedatum
 						OR EXISTS(SELECT 1 FROM public.tbl_prestudentstatus pssu
 									WHERE prestudent_id = prestudents.prestudent_id
 									AND (insertamum >= max_studiumdaten_meldedatum OR updateamum >= max_studiumdaten_meldedatum)
