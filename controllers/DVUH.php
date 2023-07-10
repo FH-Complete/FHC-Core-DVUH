@@ -63,7 +63,7 @@ class DVUH extends Auth_Controller
 	{
 		$this->load->library('WidgetLib');
 
-		// display system path (e.g. rws or sandbox)
+		// display system path (e.g. rws or sandbox) and api version
 		$environment = $this->config->item(DVUHClientLib::URL_PATH);
 		$apiVersion = $this->config->item(DVUHClientLib::API_VERSION);
 
@@ -263,14 +263,13 @@ class DVUH extends Auth_Controller
 	 */
 	public function getDvuhMenuData()
 	{
-		$menuData = array(
-			'permittedMethods' => array()
-		);
+		$menuData = array();
 
 		$language = getUserLanguage();
 
 		$nationTextFieldName = $language == 'German' ? 'langtext' : 'engltext';
 
+		// get nation list
 		$this->load->model('codex/Nation_model', 'NationModel');
 
 		$this->NationModel->addSelect("nation_code, $nationTextFieldName AS nation_text");
@@ -285,6 +284,20 @@ class DVUH extends Auth_Controller
 
 		if (hasData($nationRes))
 			$menuData['nations'] = getData($nationRes);
+
+		//get current Studiensemester for textfield prefill
+		$this->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
+
+		$currSemRes = $this->StudiensemesterModel->getAkt();
+
+		if (isError($currSemRes))
+		{
+			$this->outputJsonError(getError($currSemRes));
+			return;
+		}
+
+		if (hasData($currSemRes))
+			$menuData['current_studiensemester'] = getData($currSemRes)[0]->studiensemester_kurzbz;
 
 		$this->outputJsonSuccess($menuData);
 	}

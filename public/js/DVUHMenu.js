@@ -10,8 +10,7 @@ $(document).ready(function() {
 		$("#toggleMenu").click(
 			function()
 			{
-				var visible = $("#menuContainer").is(":visible");
-				DVUHMenu._toggleMenu(visible);
+				DVUHMenu._toggleMenu($("#menuContainer").is(":visible"));
 			}
 		);
 
@@ -19,28 +18,32 @@ $(document).ready(function() {
 		$(".dvuhMenu li").click(
 			function()
 			{
-				var id = $(this).prop('id');
-				DVUHMenu.printFormWithFhcData(id);
+				DVUHMenu.printForm($(this).prop('id'));
 			}
 		);
 
 		// scroll to top button
 		DVUHMenu._setScrollToTop();
 
-		// get hash params from url and show appropriate form (if coming from external site)
-		var hash = window.location.hash.substr(1);
+		DVUHMenu.getDvuhMenuData(
+			function()
+			{
+				// get hash params from url and show appropriate form (if coming from external site)
+				var hash = window.location.hash.substr(1);
 
-		var result = hash.split('&').reduce(function(res, item)
-		{
-			var parts = item.split('=');
-			res[parts[0]] = parts[1];
-			return res;
-		}, {});
+				var result = hash.split('&').reduce(function(res, item)
+				{
+					var parts = item.split('=');
+					res[parts[0]] = parts[1];
+					return res;
+				}, {});
 
-		if (result.page && result.page.length > 0)
-		{
-			DVUHMenu.printFormWithFhcData(result.page, result);
-		}
+				if (result.page && result.page.length > 0)
+				{
+					DVUHMenu.printForm(result.page, result);
+				}
+			}
+		);
 	}
 
 	DVUHMenu.getPermittedActions(callback);
@@ -48,23 +51,6 @@ $(document).ready(function() {
 
 var DVUHMenu = {
 	fhcData: null,
-	actionsRequireFhcData: ['postErnpmeldung', 'postStudiumStorno'],
-	printFormWithFhcData: function(action, params)
-	{
-		if ($.inArray(action, DVUHMenu.actionsRequireFhcData) !== -1)
-		{
-			DVUHMenu.getDvuhMenuData(
-				function()
-				{
-					DVUHMenu.printForm(action, params);
-				}
-			);
-		}
-		else
-		{
-			DVUHMenu.printForm(action, params);
-		}
-	},
 	printForm: function(action, params)
 	{
 		var html = '';
@@ -505,7 +491,16 @@ var DVUHMenu = {
 	},
 	_getSemesterRow: function(value)
 	{
-		return DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016', 6, value)
+		// prefill Studiensemester value
+		if (!value && DVUHMenu.fhcData.current_studiensemester) var value = DVUHMenu.fhcData.current_studiensemester;
+
+		return DVUHMenu._getTextfieldHtml(
+			'semester',
+			'Studiensemester',
+			'z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016',
+			6,
+			value
+		)
 	},
 	_getTextfieldHtml: function(name, title, hint, maxlength, value)
 	{

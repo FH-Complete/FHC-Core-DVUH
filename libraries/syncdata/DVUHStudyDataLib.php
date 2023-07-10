@@ -90,25 +90,23 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 						) AS beginndatum,
 						(
 							SELECT COALESCE (pr_datum.datum, ps_datum.datum) FROM
-								(
-									SELECT prestudent_id, pss_datum.datum
-									FROM public.tbl_prestudentstatus pss_datum
-									WHERE pss_datum.prestudent_id=ps.prestudent_id
-									AND pss_datum.studiensemester_kurzbz = pss.studiensemester_kurzbz
-									AND pss_datum.status_kurzbz IN ?
-									AND pss_datum.datum <= NOW()
-									ORDER BY datum DESC
-									LIMIT 1
-								) ps_datum
-								LEFT JOIN -- if there is an abschlusspruefung date, use it as end date instead
-								(
-									SELECT std.prestudent_id, pr.datum
-									FROM lehre.tbl_abschlusspruefung pr
-									JOIN public.tbl_student std USING (student_uid)
-									WHERE pr.datum <= NOW()
-									ORDER BY pr.datum DESC NULLS LAST
-									LIMIT 1
-								) pr_datum USING (prestudent_id)
+							(
+								SELECT prestudent_id, pss_datum.datum
+								FROM public.tbl_prestudentstatus pss_datum
+								WHERE pss_datum.prestudent_id=ps.prestudent_id
+								AND pss_datum.studiensemester_kurzbz = pss.studiensemester_kurzbz
+								AND pss_datum.status_kurzbz IN ?
+								AND pss_datum.datum <= NOW()
+							) ps_datum
+							LEFT JOIN -- if there is an abschlusspruefung date, use it as end date instead
+							(
+								SELECT std.prestudent_id, pr.datum
+								FROM lehre.tbl_abschlusspruefung pr
+								JOIN public.tbl_student std USING (student_uid)
+								WHERE pr.datum <= NOW()
+							) pr_datum USING (prestudent_id)
+							ORDER BY pr_datum.datum DESC NULLS LAST, ps_datum.datum DESC
+							LIMIT 1
 						) AS beendigungsdatum
 					FROM public.tbl_prestudent ps
 					JOIN public.tbl_student using(prestudent_id)
