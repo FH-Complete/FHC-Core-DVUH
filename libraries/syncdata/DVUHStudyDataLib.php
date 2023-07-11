@@ -82,16 +82,32 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 						tbl_lgartcode.lgart_biscode, pss.orgform_kurzbz AS studentstatus_orgform, pss.ausbildungssemester, ps.berufstaetigkeit_code,
 						tbl_student.matrikelnr AS personenkennzeichen, ps.zgv_code, ps.zgvdatum, ps.zgvnation,
 						ps.zgvmas_code, ps.zgvmadatum, ps.zgvmanation, ps.gsstudientyp_kurzbz, ps.dual,
-						(SELECT datum FROM public.tbl_prestudentstatus
+						(
+							SELECT datum FROM public.tbl_prestudentstatus
 							WHERE prestudent_id=ps.prestudent_id
 							AND status_kurzbz IN ('Student', 'Unterbrecher', 'Incoming')
-							ORDER BY datum ASC LIMIT 1) AS beginndatum,
-						(SELECT datum FROM public.tbl_prestudentstatus
-							WHERE prestudent_id=ps.prestudent_id
-    						AND tbl_prestudentstatus.studiensemester_kurzbz = pss.studiensemester_kurzbz
-							AND status_kurzbz IN ?
-							AND datum <= NOW()
-							ORDER BY datum DESC LIMIT 1) AS beendigungsdatum
+							ORDER BY datum ASC LIMIT 1
+						) AS beginndatum,
+						(
+							SELECT COALESCE (pr_datum.datum, ps_datum.datum) FROM
+							(
+								SELECT prestudent_id, pss_datum.datum
+								FROM public.tbl_prestudentstatus pss_datum
+								WHERE pss_datum.prestudent_id=ps.prestudent_id
+								AND pss_datum.studiensemester_kurzbz = pss.studiensemester_kurzbz
+								AND pss_datum.status_kurzbz IN ?
+								AND pss_datum.datum <= NOW()
+							) ps_datum
+							LEFT JOIN -- if there is an abschlusspruefung date, use it as end date instead
+							(
+								SELECT std.prestudent_id, pr.datum
+								FROM lehre.tbl_abschlusspruefung pr
+								JOIN public.tbl_student std USING (student_uid)
+								WHERE pr.datum <= NOW()
+							) pr_datum USING (prestudent_id)
+							ORDER BY pr_datum.datum DESC NULLS LAST, ps_datum.datum DESC
+							LIMIT 1
+						) AS beendigungsdatum
 					FROM public.tbl_prestudent ps
 					JOIN public.tbl_student using(prestudent_id)
 					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
