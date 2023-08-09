@@ -356,11 +356,11 @@ class BPKManagementLib
 				// no bpk found
 				if (isEmptyArray($parsedObj->bpk))
 				{
-					$bpkRes = array('bpk' => null, 'personData' => $personData, 'numberPersonsFound' => count($parsedObj->personInfo));
+					$bpkRes = array('bpk' => null, 'personData' => $personData, 'numberPersonsFound' => numberOfElements($parsedObj->personInfo));
 				}
 				else // bpk found
 				{
-					$bpkRes = array('bpk' => $parsedObj->bpk[0], 'personData' => $personData, 'numberPersonsFound' => count($parsedObj->bpk));
+					$bpkRes = array('bpk' => $parsedObj->bpk[0], 'personData' => $personData, 'numberPersonsFound' => numberOfElements($parsedObj->bpk));
 				}
 			}
 		}
@@ -384,7 +384,7 @@ class BPKManagementLib
 			return;
 
 		$bpkResAlreadyExists = false;
-		for ($i = 0; $i < count($allBpkResults); $i++)
+		for ($i = 0; $i < numberOfElements($allBpkResults); $i++)
 		{
 			// if same bPK result already returned by other request combination, add the combination to request data of already known result
 			if ($this->_checkBpkResponsesForEquality($bpkResponseData, $allBpkResults[$i]['responseData']))
@@ -444,7 +444,7 @@ class BPKManagementLib
 			}
 		}
 
-		$paramsCnt = count($replaceParts);
+		$paramsCnt = numberOfElements($replaceParts);
 		$combinations = array();
 		$combinationsCnt = pow(2, $paramsCnt);
 
@@ -476,9 +476,9 @@ class BPKManagementLib
 		$combinations = array();
 		$firstNameEqFirstNameCombinations = array();
 
-		for ($i = 0; $i < count($names); $i++) // come from front
+		for ($i = 0; $i < numberOfElements($names); $i++) // come from front
 		{
-			for ($j = count($names) - 1; $j >= 0; $j--) // come from behind
+			for ($j = numberOfElements($names) - 1; $j >= 0; $j--) // come from behind
 			{
 				$vorname = $names[$i];
 
@@ -541,10 +541,10 @@ class BPKManagementLib
 
 		if (isset($responseA['personData']) && isset($responseB['personData']))
 		{
-			$responseSize = count($responseA['personData']);
+			$responseSize = numberOfElements($responseA['personData']);
 
 			// if different size of person data response, responses are not equal
-			if ($responseSize !== count($responseB['personData']))
+			if ($responseSize !== numberOfElements($responseB['personData']))
 				return false;
 
 			for ($i = 0; $i < $responseSize; $i++)

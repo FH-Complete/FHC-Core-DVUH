@@ -151,7 +151,7 @@ $this->load->view(
 											<tbody>
 											<?php
 												$austrianAdressExists = false;
-												if (count($stammdaten->adressen) <= 0):
+												if (numberOfElements($stammdaten->adressen) <= 0):
 													echo '<tr><td colspan="5" class="text-center">Keine Adressen vorhanden</td></tr>';
 												else:
 													foreach($stammdaten->adressen as $adresse):
@@ -186,7 +186,7 @@ $this->load->view(
 											<?php
 												$meldezettelExists = false;
 												$austrianMeldezettelExists = false;
-												if (count($dokumente) <= 0):
+												if (numberOfElements($dokumente) <= 0):
 													echo '<tr><td colspan="5" class="text-center">Keine Dokumente vorhanden</td></tr>';
 												else:
 													foreach($dokumente as $dokument):

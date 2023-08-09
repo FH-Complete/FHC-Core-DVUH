@@ -132,7 +132,7 @@ class FHCManagementLib
 		return $this->_dbModel->execReadOnlyQuery(
 			"SELECT person_id, studiengang_kz, buchungsdatum, betrag, buchungsnr, zahlungsreferenz, buchungstyp_kurzbz,
 				   studiensemester_kurzbz, buchungstext, buchungsdatum,
-					(SELECT count(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
+					(SELECT COUNT(*) FROM public.tbl_konto kto /* no Gegenbuchung yet */
 								WHERE kto.person_id = tbl_konto.person_id
 								AND kto.buchungsnr_verweis = tbl_konto.buchungsnr) AS bezahlt
 			FROM public.tbl_konto
