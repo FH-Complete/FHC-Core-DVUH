@@ -10,6 +10,7 @@
 	</ernpmeldung>
 	<?php endif; ?>
 	<personmeldung xmlns="http://www.brz.gv.at/datenverbund-unis">
+		<adresseAusland><?php echo $personmeldung['adresseAusland']; ?></adresseAusland>
 		<be><?php echo $personmeldung['be']; ?></be>
 		<?php
 			if (isset($personmeldung['bpk']) && $personmeldung['bpk'] != '')

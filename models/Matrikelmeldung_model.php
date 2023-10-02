@@ -67,6 +67,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 			$this->load->model('crm/Prestudent_model', 'PrestudentModel');
 			$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 
+			// get person Stammdaten, only Zustellkontakte
 			$stammdatenDataResult = $this->PersonModel->getPersonStammdaten($person_id, true);
 
 			if (isError($stammdatenDataResult))
@@ -74,6 +75,8 @@ class Matrikelmeldung_model extends DVUHClientModel
 			elseif (hasData($stammdatenDataResult))
 			{
 				$stammdatenData = getData($stammdatenDataResult);
+
+				if (!isset($stammdatenData->adressen) || isEmptyArray($stammdatenData->adressen)) return error('Keine Zustelladresse vorhanden');
 
 				$this->PrestudentModel->addSelect('zgvdatum');
 				$this->PrestudentModel->addOrder('zgvdatum', 'DESC');
@@ -111,6 +114,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 				$geschlecht = $this->dvuhconversionlib->convertGeschlechtToDVUH($stammdatenData->geschlecht);
 
 				$params['personmeldung'] = array(
+					'adresseAusland' => $stammdatenData->adressen[0]->strasse,
 					'be' => $be,
 					'bpk' => $stammdatenData->bpk,
 					'gebdat' => $stammdatenData->gebdatum,
