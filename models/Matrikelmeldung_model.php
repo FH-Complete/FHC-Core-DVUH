@@ -7,6 +7,8 @@ require_once APPPATH.'/models/extensions/FHC-Core-DVUH/DVUHClientModel.php';
  */
 class Matrikelmeldung_model extends DVUHClientModel
 {
+	const NATION_OESTERREICH = 'A';
+
 	/**
 	 * Set the properties to perform calls
 	 */
@@ -67,13 +69,33 @@ class Matrikelmeldung_model extends DVUHClientModel
 			$this->load->model('crm/Prestudent_model', 'PrestudentModel');
 			$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 
-			$stammdatenDataResult = $this->PersonModel->getPersonStammdaten($person_id, true);
+			// get person Stammdaten
+			$stammdatenDataResult = $this->PersonModel->getPersonStammdaten($person_id);
 
 			if (isError($stammdatenDataResult))
 				$result = $stammdatenDataResult;
 			elseif (hasData($stammdatenDataResult))
 			{
 				$stammdatenData = getData($stammdatenDataResult);
+
+				if (!isset($stammdatenData->adressen) || isEmptyArray($stammdatenData->adressen)) return error('Keine Adressen vorhanden');
+
+				// get latest Heimatadresse, preferably not austrian
+				$addressToSend = null;
+				foreach ($stammdatenData->adressen as $adresse)
+				{
+					if ($adresse->heimatadresse === true)
+					{
+						if ($adresse->nation !== self::NATION_OESTERREICH)
+						{
+							$addressToSend = $adresse;
+							break;
+						}
+						if (!isset($addressToSend)) $addressToSend = $adresse;
+					}
+				}
+				// fallback: first address
+				if (!isset($addressToSend)) $addressToSend = $stammdatenData->adressen[0];
 
 				$this->PrestudentModel->addSelect('zgvdatum');
 				$this->PrestudentModel->addOrder('zgvdatum', 'DESC');
@@ -111,14 +133,15 @@ class Matrikelmeldung_model extends DVUHClientModel
 				$geschlecht = $this->dvuhconversionlib->convertGeschlechtToDVUH($stammdatenData->geschlecht);
 
 				$params['personmeldung'] = array(
+					'adresseAusland' => $addressToSend->strasse,
 					'be' => $be,
 					'bpk' => $stammdatenData->bpk,
 					'gebdat' => $stammdatenData->gebdatum,
 					'geschlecht' => $geschlecht,
 					'matrikelnummer' => $stammdatenData->matr_nr,
 					'nachname' => $stammdatenData->nachname,
-					'plz' => $stammdatenData->adressen[0]->plz,
-					'staat' => $stammdatenData->adressen[0]->nation,
+					'plz' => $addressToSend->plz,
+					'staat' => $addressToSend->nation,
 					'svnr' => $svnr,
 					'vorname' => $stammdatenData->vorname,
 					'writeonerror' => $writeonerror,
