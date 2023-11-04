@@ -18,6 +18,11 @@ class DVUHClientLib
 	const WS_REQUEST_FAILED = 'ERR003';
 	const REQUEST_FAILED = 'ERR004';
 
+	const METHOD_HEAD = 'HEAD';
+	const METHOD_GET = 'GET';
+	const METHOD_PUT = 'PUT';
+	const METHOD_POST = 'POST';
+
 	private $_connectionsArray;		// connections array
 	private $_urlPath;				// url path
 
@@ -132,8 +137,10 @@ class DVUHClientLib
 		if (isset($getParametersArray) && !isEmptyArray($getParametersArray))
 		{
 			$params = array();
-			foreach($getParametersArray as $key=>$val)
+			foreach($getParametersArray as $key => $val)
 			{
+				// replace single quotes by spaces, as server cannot handle single quotes for GET requests
+				if ($method == self::METHOD_GET) $val = str_replace("'", " ", $val);
 				$params[] = $key.'='.curl_escape($curl, $val);
 			}
 			$url .= '?'.implode('&', $params);
@@ -155,23 +162,23 @@ class DVUHClientLib
 
 		switch ($method)
 		{
-			case 'POST':
+			case self::METHOD_POST:
 				curl_setopt($curl, CURLOPT_POST, true);
 				if (!is_null($postData))
 					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 				break;
 
-			case 'PUT':
-				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, "PUT");
+			case self::METHOD_PUT:
+				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, self::METHOD_PUT);
 				if (!is_null($postData))
 					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 				break;
 
-			case 'HEAD':
+			case self::METHOD_HEAD:
 				curl_setopt($curl, CURLOPT_NOBODY, true);
 				break;
 
-			case 'GET':
+			case self::METHOD_GET:
 			default:
 				$headers[] = 'Content-Length: 0';
 				break;
@@ -183,7 +190,7 @@ class DVUHClientLib
 		$curl_info = curl_getinfo($curl);
 		curl_close($curl);
 
-		if (substr($curl_info['http_code'], 0,1) == '2')
+		if (substr($curl_info['http_code'], 0, 1) == '2')
 		{
 			return $response;
 		}
@@ -212,7 +219,7 @@ class DVUHClientLib
 	private function _getErrorInfoFromResponse($response)
 	{
 		// by default, error info is whole printed response
-		$errorInfo = print_r($response,true);
+		$errorInfo = print_r($response, true);
 		$errorObj = $this->_ci->xmlreaderlib->parseXml($response, array('fehler'));
 
 		if (hasData($errorObj))
