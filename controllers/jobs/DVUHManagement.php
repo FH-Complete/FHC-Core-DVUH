@@ -345,8 +345,9 @@ class DVUHManagement extends JQW_Controller
 			);
 
 			$person_arr = $this->_getInputObjArray(getData($lastJobs));
-			$resendBpkQueryCount = 0;
 			$maxResendBpkQueryCount = 5; // limit for sleeping times because of "too many szr requests" error
+			$totalRequestAmount = 0; // threshold for total amount of API calls before sleep
+			$sleepSecondsAmount = 30; // seconds to sleep for
 
 			foreach ($person_arr as $persobj)
 			{
@@ -356,11 +357,21 @@ class DVUHManagement extends JQW_Controller
 				{
 					$person_id = $persobj->person_id;
 					$continueLoop = true;
+					$resendBpkQueryCount = 0; // number of times request has been made for this person
 
 					while ($continueLoop)
 					{
 						$continueLoop = false;
 						$requestBpkResult = $this->dvuhmasterdatamanagementlib->requestBpk($person_id);
+
+						// sleep if number of requests exceeds threshold
+						$totalRequestAmount++;
+						if ($totalRequestAmount > $this->config->item('fhc_dvuh_sync_pruefe_bpk_max_requests'))
+						{
+							sleep($sleepSecondsAmount);
+							// reset request amount
+							$totalRequestAmount = 0;
+						}
 
 						if (isError($requestBpkResult))
 						{
@@ -370,13 +381,13 @@ class DVUHManagement extends JQW_Controller
 							{
 								foreach ($errCode as $code)
 								{
-									// if "too many szr requests per minute" error, sleep for 30 seconds and retry for the person.
+									// if "too many szr requests per minute" error, sleep and retry for the person.
 									if (isset($code->fehlernummer) && $code->fehlernummer == self::ERRORCODE_TOO_MANY_SZR_REQUESTS)
 									{
 										$resendBpkQueryCount++;
 										if ($resendBpkQueryCount <= $maxResendBpkQueryCount)
 										{
-											sleep(30);
+											sleep($sleepSecondsAmount);
 											$continueLoop = true;
 										}
 									}
@@ -537,7 +548,18 @@ class DVUHManagement extends JQW_Controller
 
 		if (isset($resultarr['warnings']) && !isEmptyArray($resultarr['warnings']))
 		{
+			// get issue texts
 			$warningTxt = implode('; ', $this->dvuhissuelib->getIssueTexts($resultarr['warnings']));
+
+			// add warning texts for non-issue warnings
+			foreach ($resultarr['warnings'] as $warning)
+			{
+				if (isError($warning))
+				{
+					$errText = getError($warning);
+					if (is_string($errText)) $warningTxt .= (isEmptyString($warningTxt) ? '' : '; ').$errText;
+				}
+			}
 
 			foreach ($idArr as $idname => $idvalue)
 			{
@@ -546,6 +568,7 @@ class DVUHManagement extends JQW_Controller
 
 			$this->logWarning($warningTxt);
 
+			// save DVUH issues in database
 			foreach ($resultarr['warnings'] as $warning)
 			{
 				$person_id = isset($idArr['person_id']) ? $idArr['person_id'] : null;
