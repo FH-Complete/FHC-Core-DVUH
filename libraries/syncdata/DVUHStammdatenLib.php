@@ -1,12 +1,12 @@
 <?php
 
-require_once 'DVUHWarningLib.php';
+require_once 'DVUHErrorProducerLib.php';
 
 /**
  * Library for retrieving Stammdaten data from FHC for DVUH.
  * Extracts data from FHC db, performs data quality checks and puts data in DVUH form.
  */
-class DVUHStammdatenLib extends DVUHWarningLib
+class DVUHStammdatenLib extends DVUHErrorProducerLib
 {
 	private $_ci;
 
@@ -24,6 +24,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
+		$this->_ci->load->model('codex/Oehbeitrag_model', 'OehbeitragModel');
 
 		// load helpers
 		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
@@ -43,6 +44,9 @@ class DVUHStammdatenLib extends DVUHWarningLib
 	 */
 	public function getStammdatenData($person_id, $studiensemester_kurzbz)
 	{
+		// get config flag for sending university mails
+		$send_university_mails = $this->_ci->config->item('fhc_dvuh_send_university_mail');
+
 		$stammdaten = $this->_ci->PersonModel->getPersonStammdaten($person_id);
 
 		if (hasData($stammdaten))
@@ -82,7 +86,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 
 				if (isError($addrCheck))
 				{
-					return createError(
+					$this->addError(
 						"Adresse ungültig: " . getError($addrCheck),
 						'adresseUngueltig',
 						array(getError($addrCheck)),
@@ -90,6 +94,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 					);
 				}
 
+				// get newest Zustelladresse (defined by insertamum field)
 				if ($adresse->zustelladresse)
 				{
 					if (is_null($zustellInsertamum) || $adresse->insertamum > $zustellInsertamum)
@@ -100,6 +105,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 					}
 				}
 
+				// and Heimatadresse
 				if ($adresse->heimatadresse)
 				{
 					if (is_null($heimatInsertamum) || $adresse->insertamum > $heimatInsertamum)
@@ -112,10 +118,10 @@ class DVUHStammdatenLib extends DVUHWarningLib
 			}
 
 			if (isEmptyString($zustellAdresse))
-				return createError('Zustelladresse fehlt', 'keineZustelladresse');
+				$this->addError('Zustelladresse fehlt', 'keineZustelladresse');
 
 			if (isEmptyString($heimatAdresse))
-				return createError('Heimatadresse fehlt', 'keineHeimatadresse');
+				$this->addError('Heimatadresse fehlt', 'keineHeimatadresse');
 
 			$adressen[] = $zustellAdresse;
 			$adressen[] = $heimatAdresse;
@@ -126,12 +132,14 @@ class DVUHStammdatenLib extends DVUHWarningLib
 				if ($kontakt->kontakttyp == 'email')
 				{
 					if (!validateXmlTextValue($kontakt->kontakt))
-						return createError(
+					{
+						$this->addError(
 							'Email enthält Sonderzeichen',
 							'emailEnthaeltSonderzeichen',
 							null, // issue_fehlertext_params
 							array('kontakt_id' => $kontakt->kontakt_id) // issue_resolution_params
 						);
+					}
 
 					$knt = array();
 					$knt['emailadresse'] = $kontakt->kontakt;
@@ -141,18 +149,21 @@ class DVUHStammdatenLib extends DVUHWarningLib
 			}
 
 			// university mail
-			$uids = $this->_ci->fhcmanagementlib->getUids($person_id, $studiensemester_kurzbz);
-
-			if (hasData($uids))
+			if ($send_university_mails !== false)
 			{
-				$uids = getData($uids);
+				$uids = $this->_ci->fhcmanagementlib->getUids($person_id, $studiensemester_kurzbz);
 
-				foreach ($uids as $uid)
+				if (hasData($uids))
 				{
-					$bsmail = array();
-					$bsmail['emailadresse'] = $uid->uid . '@' . DOMAIN;
-					$bsmail['emailtyp'] = 'BE';
-					$emailliste[] = $bsmail;
+					$uids = getData($uids);
+
+					foreach ($uids as $uid)
+					{
+						$bsmail = array();
+						$bsmail['emailadresse'] = $uid->uid . '@' . DOMAIN;
+						$bsmail['emailtyp'] = 'BE';
+						$emailliste[] = $bsmail;
+					}
 				}
 			}
 
@@ -172,7 +183,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 			foreach ($studentinfo as $idx => $item)
 			{
 				if (!isset($item) || isEmptyString($item))
-					return createError('Stammdaten fehlen: ' . $idx, 'stammdatenFehlen', array($idx));
+					$this->addError('Stammdaten fehlen: ' . $idx, 'stammdatenFehlen', array($idx));
 			}
 
 			if (isset($stammdaten->matr_nr))
@@ -182,7 +193,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 			{
 				if (!$this->_ci->dvuhcheckinglib->checkTitel($stammdaten->titelpre))
 				{
-					return createError(
+					$this->addError(
 						'Titel pre hat ungültiges Format',
 						'titelpreUngueltig'
 					);
@@ -195,7 +206,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 			{
 				if (!$this->_ci->dvuhcheckinglib->checkTitel($stammdaten->titelpost))
 				{
-					return createError(
+					$this->addError(
 						'Titel post hat ungültiges Format',
 						'titelpostUngueltig'
 					);
@@ -211,7 +222,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 			{
 				if (!$this->_ci->dvuhcheckinglib->checkEkz($stammdaten->ersatzkennzeichen))
 				{
-					return createError(
+					$this->addError(
 						'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
 						'ersatzkennzeichenUngueltig'
 					);
@@ -224,7 +235,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 			{
 				if (!$this->_ci->dvuhcheckinglib->checkBpk($stammdaten->bpk))
 				{
-					return createError(
+					$this->addError(
 						'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
 						'bpkUngueltig'
 					);
@@ -239,13 +250,14 @@ class DVUHStammdatenLib extends DVUHWarningLib
 			{
 				if (isset($studentinfo[$textValue]) && !validateXmlTextValue($studentinfo[$textValue]))
 				{
-					return createError("$textValue enthält ungültige Sonderzeichen", 'ungueltigeSonderzeichen', array($textValue));
+					$this->addError("$textValue enthält ungültige Sonderzeichen", 'ungueltigeSonderzeichen', array($textValue));
 				}
 			}
 
-			return success(
-				$studentinfo
-			);
+			if ($this->hasError())
+				return error($this->readErrors());
+
+			return success($studentinfo);
 		}
 		else
 			return error("keine Stammdaten gefunden");
@@ -253,19 +265,35 @@ class DVUHStammdatenLib extends DVUHWarningLib
 
 	/*
 	 * Gets Charge (Vorschreibung) data from FHC Buchungen as needed by DVUH.
-	 * @param array $buchungen contain charges from FHC
+	 * @param int $person_id only amounts for this student are returned
 	 * @param string $studiensemester_kurzbz mainly for getting pre-defined amounts for a semester
+	 * @param array $buchungstypen_kurzbz get only Buchungen with this types
 	 * @return success with vorschreibung data or error (e.g. when checks failed)
 	 */
-	public function getVorschreibungData($buchungen, $studiensemester_kurzbz)
+	public function getVorschreibungData($person_id, $studiensemester_kurzbz, $buchungstypen_kurzbz = null)
 	{
+		// get configs
 		$valutadatum_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatum');
 		$valutadatumnachfrist_days = $this->_ci->config->item('fhc_dvuh_sync_days_valutadatumnachfrist');
 		$studiengebuehrnachfrist_euros = $this->_ci->config->item('fhc_dvuh_sync_euros_studiengebuehrnachfrist');
 		$buchungstypen = $this->_ci->config->item('fhc_dvuh_buchungstyp');
 
+		if (!isset($buchungstypen_kurzbz))
+			$buchungstypen_kurzbz = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
+
+		// get Buchungen for Vorschreibung
+		$buchungen = array();
 		$vorschreibung = array();
 
+		$buchungenRes = $this->_ci->fhcmanagementlib->getBuchungenOfStudent($person_id, $studiensemester_kurzbz, $buchungstypen_kurzbz);
+
+		if (isError($buchungenRes))
+			return $buchungenRes;
+
+		if (hasData($buchungenRes))
+			$buchungen = getData($buchungenRes);
+
+		// fill vorschreibung data from Buchungen
 		foreach ($buchungen as $buchung)
 		{
 			// add Vorschreibung
@@ -287,7 +315,8 @@ class DVUHStammdatenLib extends DVUHWarningLib
 					$oehbeitragAmounts = getData($oehbeitragAmountsRes)[0];
 					$studierendenBeitragAmount = $oehbeitragAmounts->studierendenbeitrag;
 
-					if ($beitragAmount < 0) // no insurance if oehbeitrag is 0
+					// no insurance if oehbeitrag is 0 or insurance is greater than ÖH-Beitrag
+					if ($beitragAmount < 0 && $oehbeitragAmounts->versicherung < abs($beitragAmount))
 					{
 						$versicherungBeitragAmount = $oehbeitragAmounts->versicherung;
 
@@ -298,7 +327,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 				else
 				{
 					// no oehbeitrag amounts predefined
-					return createError(
+					$this->addError(
 						"Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester $studiensemester_kurzbz spezifiziert,"
 						."Buchung " . $buchung->buchungsnr,
 						'oehbeitragNichtSpezifiziert',
@@ -386,7 +415,7 @@ class DVUHStammdatenLib extends DVUHWarningLib
 		{
 			$buchungstypen_str = implode(', ', $invalidBuchungstypenKeys);
 
-			return createError(
+			$this->addError(
 				"Vorschreibung ungültig, Zahlungstypen: ".$buchungstypen_str,
 				'vorschreibungUngueltig',
 				array($buchungstypen_str),
@@ -399,6 +428,9 @@ class DVUHStammdatenLib extends DVUHWarningLib
 
 		if (isset($vorschreibung['studiengebuehrnachfrist']))
 			$vorschreibung['studiengebuehrnachfrist'] = abs($vorschreibung['studiengebuehrnachfrist']) * 100;
+
+		if ($this->hasError())
+			return error($this->readErrors());
 
 		return success($vorschreibung);
 	}

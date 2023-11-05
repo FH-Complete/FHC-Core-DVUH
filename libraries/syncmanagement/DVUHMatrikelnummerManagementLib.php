@@ -260,7 +260,7 @@ class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 					}
 					elseif (in_array($statuscode, $this->_matrnr_statuscodes['error']))
 					{
-						return createExternalError($statusmeldung, 'MATRNR_STATUS_'.$statuscode);
+						return createExternalIssueError($statusmeldung, 'MATRNR_STATUS_'.$statuscode);
 					}
 					else
 					{

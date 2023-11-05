@@ -364,7 +364,7 @@ class DVUHManagement extends JQW_Controller
 
 						if (isError($requestBpkResult))
 						{
-							$errCode = getCode($requestBpkResult);
+							$errCode = getError($requestBpkResult);
 
 							if (isset($errCode) && is_array($errCode))
 							{
@@ -535,21 +535,19 @@ class DVUHManagement extends JQW_Controller
 			}
 		}
 
-		if (isset($resultarr['warnings']) && is_array($resultarr['warnings']))
+		if (isset($resultarr['warnings']) && !isEmptyArray($resultarr['warnings']))
 		{
+			$warningTxt = implode('; ', $this->dvuhissuelib->getIssueTexts($resultarr['warnings']));
+
+			foreach ($idArr as $idname => $idvalue)
+			{
+				$warningTxt .= ", $idname: $idvalue";
+			}
+
+			$this->logWarning($warningTxt);
+
 			foreach ($resultarr['warnings'] as $warning)
 			{
-				if (!isError($warning))
-					continue;
-
-				$warningTxt = getError($warning);
-
-				foreach ($idArr as $idname => $idvalue)
-				{
-					$warningTxt .= ", $idname: $idvalue";
-				}
-
-				$this->logWarning($warningTxt);
 				$person_id = isset($idArr['person_id']) ? $idArr['person_id'] : null;
 				$prestudent_id = isset($idArr['prestudent_id']) ? $idArr['prestudent_id'] : null;
 				$this->_addDVUHIssue($warning, $person_id, $prestudent_id, true);
@@ -576,33 +574,55 @@ class DVUHManagement extends JQW_Controller
 	 */
 	private function _logDVUHError($logging_prefix, $errorObj, $person_id = null, $prestudent_id = null)
 	{
-		// write in webserive log
-		$this->logError($logging_prefix.': '.getError($errorObj), $errorObj);
+		if (!isError($errorObj))
+			return;
 
-		// optionally add issue
-		$this->_addDVUHIssue($errorObj, $person_id, $prestudent_id);
+		// get all errors from object
+		$errorArr = getError($errorObj);
+
+		// if error is text, wrap it into array
+		if (!is_array($errorArr))
+			$errorArr = array($errorArr);
+
+		// for each error
+		foreach ($errorArr as $err)
+		{
+			$errorText = $logging_prefix.': '.implode('; ', $this->dvuhissuelib->getIssueTexts($err));
+			// if error is an issue...
+			if (isset($err->fehlernummer) || isset($err->issue_fehler_kurzbz))
+			{
+				// ...log as warning and add issue
+				$this->logWarning($errorText);
+				$this->_addDVUHIssue(getError($errorObj), $person_id, $prestudent_id);
+			}
+			else
+			{
+				// ...otherwise just log the error in webservice log
+				$this->logError($errorText);
+			}
+		}
 	}
 
 	/**
 	 * Adds DVUH issue. Logs error if issue adding failed.
-	 * @param $errorObj
+	 * @param $issue
 	 * @param int $person_id
 	 * @param int $prestudent_id
 	 * @param string $force_predefined_for_external
 	 */
-	private function _addDVUHIssue($errorObj, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
+	private function _addDVUHIssue($issue, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
-		$issueRes = $this->dvuhissuelib->addIssue($errorObj, $person_id, $prestudent_id, $force_predefined_for_external);
+		$issueRes = $this->dvuhissuelib->addIssue($issue, $person_id, $prestudent_id, $force_predefined_for_external);
 
 		if (isError($issueRes))
 		{
 			$postfix = '';
-			$errors = getCode($issueRes);
+			$errors = getError($issueRes);
 
 			if (!isEmptyArray($errors))
 				$postfix = implode(', ', $errors);
 
-			$this->logError(getError($issueRes).$postfix);
+			$this->logError('Error when adding issue(s)'.$postfix);
 		}
 	}
 }

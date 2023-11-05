@@ -44,28 +44,49 @@ class FHCManagementLib
 	 */
 	public function getPrestudentsOfPerson($person_id, $studiensemester, $status_kurzbz = null)
 	{
-		$params = array(
-			$person_id,
-			$studiensemester
-		);
+		return $this->getReportablePrestudents($studiensemester, null, $status_kurzbz, $person_id);
+	}
 
-		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id,
-						stg.studiengang_kz, stg.erhalter_kz,
+	/**
+	 * Gets all valid prestudents of a person which should be reported to BIS.
+	 * @param string $studiensemester
+	 * @param int $studiengang_kz
+	 * @param array $status_kurzbz
+	 * @param int $person_id
+	 * @return object success with prestudents or error
+	 */
+	public function getReportablePrestudents($studiensemester, $studiengang_kz = null, $status_kurzbz = null, $person_id = null)
+	{
+		$params = array($studiensemester);
+
+		$prstQry = "SELECT DISTINCT ON (prestudent_id) prestudent_id, person_id,
+						stg.studiengang_kz, stg.erhalter_kz, stg.oe_kurzbz,
 						pers.matr_nr, stud.matrikelnr AS personenkennzeichen
 					FROM public.tbl_prestudent ps
 					JOIN public.tbl_prestudentstatus pss USING(prestudent_id)
 					JOIN public.tbl_person pers USING(person_id)
 					JOIN public.tbl_studiengang stg USING(studiengang_kz)
 					LEFT JOIN public.tbl_student stud USING (prestudent_id)
-					WHERE person_id = ?
-					AND pss.studiensemester_kurzbz = ?
+					WHERE pss.studiensemester_kurzbz = ?
 					AND ps.bismelden = TRUE
 					AND stg.melderelevant = TRUE";
+
+		if (isset($studiengang_kz))
+		{
+			$prstQry .= " AND stg.studiengang_kz = ?";
+			$params[] = $studiengang_kz;
+		}
 
 		if (isset($status_kurzbz) && !isEmptyArray($status_kurzbz))
 		{
 			$prstQry .= " AND pss.status_kurzbz IN ?";
 			$params[] = $status_kurzbz;
+		}
+
+		if (isset($person_id))
+		{
+			$prstQry .= " AND pers.person_id = ?";
+			$params[] = $person_id;
 		}
 
 		return $this->_dbModel->execReadOnlyQuery(
@@ -518,7 +539,7 @@ class FHCManagementLib
 				JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
 				WHERE prestudent_id = ?
 				AND sem.start::date <= (SELECT start from public.tbl_studiensemester WHERE studiensemester_kurzbz = ?)::date
-				ORDER BY sem.start DESC, status.datum DESC';
+				ORDER BY sem.start DESC, status.datum DESC, status.insertamum DESC';
 
 		return $this->_dbModel->execReadOnlyQuery($qry, array($prestudent_id, $studiensemester_kurzbz));
 	}

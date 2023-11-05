@@ -46,6 +46,7 @@ class DVUH extends Auth_Controller
 		);
 
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMatrikelnummerManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMasterDataManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
@@ -62,7 +63,7 @@ class DVUH extends Auth_Controller
 	{
 		$this->load->library('WidgetLib');
 
-		// display system path (e.g. rws or sandbox)
+		// display system path (e.g. rws or sandbox) and api version
 		$environment = $this->config->item(DVUHClientLib::URL_PATH);
 		$apiVersion = $this->config->item(DVUHClientLib::API_VERSION);
 
@@ -262,14 +263,13 @@ class DVUH extends Auth_Controller
 	 */
 	public function getDvuhMenuData()
 	{
-		$menuData = array(
-			'permittedMethods' => array()
-		);
+		$menuData = array();
 
 		$language = getUserLanguage();
 
 		$nationTextFieldName = $language == 'German' ? 'langtext' : 'engltext';
 
+		// get nation list
 		$this->load->model('codex/Nation_model', 'NationModel');
 
 		$this->NationModel->addSelect("nation_code, $nationTextFieldName AS nation_text");
@@ -284,6 +284,20 @@ class DVUH extends Auth_Controller
 
 		if (hasData($nationRes))
 			$menuData['nations'] = getData($nationRes);
+
+		//get current Studiensemester for textfield prefill
+		$this->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
+
+		$currSemRes = $this->StudiensemesterModel->getAkt();
+
+		if (isError($currSemRes))
+		{
+			$this->outputJsonError(getError($currSemRes));
+			return;
+		}
+
+		if (hasData($currSemRes))
+			$menuData['current_studiensemester'] = getData($currSemRes)[0]->studiensemester_kurzbz;
 
 		$this->outputJsonSuccess($menuData);
 	}
@@ -319,7 +333,7 @@ class DVUH extends Auth_Controller
 
 		$json = $this->dvuhmasterdatamanagementlib->sendMasterdata($person_id, $semester, null, $preview);
 
-		$this->outputJson($json);
+		$this->_outputJsonDVUH($json);
 	}
 
 	public function postPayment()
@@ -334,7 +348,7 @@ class DVUH extends Auth_Controller
 
 		$json = $this->dvuhpaymentmanagementlib->sendPayment($person_id, $semester, $preview);
 
-		$this->outputJson($json);
+		$this->_outputJsonDVUH($json);
 	}
 
 	public function postStudium()
@@ -350,7 +364,7 @@ class DVUH extends Auth_Controller
 
 		$json = $this->dvuhstudydatamanagementlib->sendStudyData($semester, $person_id, $prestudent_id,  $preview);
 
-		$this->outputJson($json);
+		$this->_outputJsonDVUH($json);
 	}
 
 	public function postErnpmeldung()
@@ -501,5 +515,16 @@ class DVUH extends Auth_Controller
 		}
 
 		$this->outputJsonSuccess($permittedMethods);
+	}
+
+	/**
+	 * Outputs errors or result in JSON DVUH format
+	 */
+	private function _outputJsonDVUH($result)
+	{
+		if (isError($result))
+			$this->outputJsonError($this->dvuhissuelib->getIssueTexts(getError($result)));
+		else
+			$this->outputJson($result);
 	}
 }

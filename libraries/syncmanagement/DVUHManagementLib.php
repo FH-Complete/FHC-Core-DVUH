@@ -37,16 +37,18 @@ class DVUHManagementLib
 	 * Info is passed for logging/displaying.
 	 * @param object $result main response data
 	 * @param array $infos array with info strings
-	 * @param array $warnings array with warning strings
+	 * @param array $warnings array with warnings
 	 * @param bool $getWarningsFromResult if true, parse the result for warnings and include them in response
 	 * @param array $warningCodesToExcludeFromIssues array with fehlercodes which are not considered issues
 	 * @return object response object with result, infos and warnings
 	 */
 	protected function getResponseArr(
 		$result,
-		$infos = null, $warnings = null, $getWarningsFromResult = false, $warningCodesToExcludeFromIssues = array()
-	)
-	{
+		$infos = null,
+		$warnings = null,
+		$getWarningsFromResult = false,
+		$warningCodesToExcludeFromIssues = array()
+	) {
 		$responseArr = array();
 		$responseArr['infos'] = isset($infos) ? $infos : array();
 		$responseArr['result'] = $result;
@@ -74,9 +76,6 @@ class DVUHManagementLib
 
 						foreach (getData($warningsRes) as $warning)
 						{
-							if (!isEmptyString($warningtext))
-								$warningtext .= ', ';
-							$warningtext .= $warning->fehlertextKomplett;
 							if (!isEmptyArray($warningCodesToExcludeFromIssues)
 								&& in_array($warning->fehlernummer, $warningCodesToExcludeFromIssues))
 							{
@@ -85,7 +84,7 @@ class DVUHManagementLib
 
 							$parsedWarnings[] = $warning;
 						}
-						$responseArr['warnings'][] = error($warningtext, $parsedWarnings);
+						$responseArr['warnings'] = array_merge($responseArr['warnings'], $parsedWarnings);
 					}
 				}
 			}

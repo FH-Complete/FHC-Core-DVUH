@@ -78,7 +78,7 @@ $this->load->view('templates/FHC-Header', array(
 							<div class="panel-heading">Stammdatenmanagement</div>
 							<div class="panel-body">
 								<ul class="list-unstyled dvuhMenu">
-									<li id="getStammdaten"><a href="javascript:void(0)">Stammdaten und Zahlungsvorschreibung abfragen
+									<li id="getStammdaten"><a href="javascript:void(0)">Stammdaten und Zahlungsvorschreibung abfragen</a></li>
 									<li id="postMasterData"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden</a></li>
 									<li id="postErnpmeldung"><a href="javascript:void(0)">ERnP Meldung durchführen</a></li>
 								</ul>

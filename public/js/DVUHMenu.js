@@ -4,68 +4,53 @@
 
 $(document).ready(function() {
 
-		var callback = function()
-		{
-			// show / hide menu
-			$("#toggleMenu").click(
-				function()
-				{
-					var visible = $("#menuContainer").is(":visible");
-					DVUHMenu._toggleMenu(visible);
-				}
-			);
-
-			// print form when clicking on menu entry
-			$(".dvuhMenu li").click(
-				function()
-				{
-					var id = $(this).prop('id');
-					DVUHMenu.printFormWithFhcData(id);
-				}
-			);
-
-			// scroll to top button
-			DVUHMenu._setScrollToTop();
-
-			// get hash params from url and show appropriate form (if coming from external site)
-			var hash = window.location.hash.substr(1);
-
-			var result = hash.split('&').reduce(function(res, item)
+	var callback = function()
+	{
+		// show / hide menu
+		$("#toggleMenu").click(
+			function()
 			{
-				var parts = item.split('=');
-				res[parts[0]] = parts[1];
-				return res;
-			}, {});
-
-			if (result.page && result.page.length > 0)
-			{
-				DVUHMenu.printFormWithFhcData(result.page, result);
+				DVUHMenu._toggleMenu($("#menuContainer").is(":visible"));
 			}
-		}
+		);
 
-		DVUHMenu.getPermittedActions(callback);
+		// print form when clicking on menu entry
+		$(".dvuhMenu li").click(
+			function()
+			{
+				DVUHMenu.printForm($(this).prop('id'));
+			}
+		);
+
+		// scroll to top button
+		DVUHMenu._setScrollToTop();
+
+		DVUHMenu.getDvuhMenuData(
+			function()
+			{
+				// get hash params from url and show appropriate form (if coming from external site)
+				var hash = window.location.hash.substr(1);
+
+				var result = hash.split('&').reduce(function(res, item)
+				{
+					var parts = item.split('=');
+					res[parts[0]] = parts[1];
+					return res;
+				}, {});
+
+				if (result.page && result.page.length > 0)
+				{
+					DVUHMenu.printForm(result.page, result);
+				}
+			}
+		);
 	}
-);
+
+	DVUHMenu.getPermittedActions(callback);
+});
 
 var DVUHMenu = {
 	fhcData: null,
-	actionsRequireFhcData: ['postErnpmeldung', 'postStudiumStorno'],
-	printFormWithFhcData: function(action, params)
-	{
-		if ($.inArray(action, DVUHMenu.actionsRequireFhcData) !== -1)
-		{
-			DVUHMenu.getDvuhMenuData(
-				function()
-				{
-					DVUHMenu.printForm(action, params);
-				}
-			);
-		}
-		else
-		{
-			DVUHMenu.printForm(action, params);
-		}
-	},
 	printForm: function(action, params)
 	{
 		var html = '';
@@ -339,13 +324,13 @@ var DVUHMenu = {
 			}
 			else
 			{
-				DVUHMenu._writeResult(FHC_AjaxClient.getError(data), boxid, 'error');
+				DVUHMenu._writeError(FHC_AjaxClient.getError(data), boxid);
 			}
 		}
 
 		var errorCallback = function(jqXHR, textStatus, errorThrown)
 		{
-			DVUHMenu._writeResult("Error when calling " + action, boxid, 'error');
+			DVUHMenu._writeError("Error when calling " + action, boxid, 'error');
 		}
 
 		if (method == 'get')
@@ -473,7 +458,7 @@ var DVUHMenu = {
 				},
 				errorCallback: function(jqXHR, textStatus, errorThrown)
 				{
-					DVUHMenu._writeResult("Fehler beim Vorausfüllen", 'dvuhOutput', 'error');
+					DVUHMenu._writeError("Fehler beim Vorausfüllen", 'dvuhOutput');
 				}
 			}
 		);
@@ -506,7 +491,16 @@ var DVUHMenu = {
 	},
 	_getSemesterRow: function(value)
 	{
-		return DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016', 6, value)
+		// prefill Studiensemester value
+		if (!value && DVUHMenu.fhcData.current_studiensemester) var value = DVUHMenu.fhcData.current_studiensemester;
+
+		return DVUHMenu._getTextfieldHtml(
+			'semester',
+			'Studiensemester',
+			'z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016',
+			6,
+			value
+		)
 	},
 	_getTextfieldHtml: function(name, title, hint, maxlength, value)
 	{
@@ -594,73 +588,109 @@ var DVUHMenu = {
 
 		return result;
 	},
-	_writeResult: function(resultToWrite, boxid, type)
+	_writeError: function(resultToWrite, boxid)
+	{
+		var intro = "Fehler aufgetreten:";
+		var contentToWrite = '';
+
+		// if error, display error text
+		if (typeof resultToWrite === 'string')
+			contentToWrite += resultToWrite;
+		else if (typeof resultToWrite === 'object' && resultToWrite.issue_fehlertext)
+			contentToWrite += resultToWrite.issue_fehlertext
+		else if ($.isArray(resultToWrite))
+		{
+
+			for (idx in resultToWrite)
+			{
+				var err = resultToWrite[idx];
+
+				if (typeof err === 'string')
+					contentToWrite += err;
+				else if (typeof err === 'object' && err.issue_fehlertext)
+					contentToWrite += err.issue_fehlertext;
+				else
+					contentToWrite += 'Unbekannter Fehler';
+
+				contentToWrite += '</ br>';
+			}
+		}
+
+		var spanid = boxid+"Span";
+		var htmlToWrite = '<b>'+intro+'</b><br /><span class="text-danger" id="'+spanid+'">'+contentToWrite+'</span>';
+
+		// hide menu to avoid scroll down
+		DVUHMenu._toggleMenu(true);
+
+		// write the results
+		$("#"+boxid).html(htmlToWrite);
+	},
+	_writeResult: function(resultToWrite, boxid)
 	{
 		var colorClass = '';
 		var intro = 'Abfrage ausgeführt, Antwort:';
 		var textToWrite = "";
-		var isError = false;
 
-		if (type == 'error')
+		// display infos
+		if (resultToWrite.infos)
 		{
-			colorClass = ' class="text-danger"';
-			intro = 'Fehler aufgetreten, Antwort:';
-			isError = true;
-			textToWrite = resultToWrite;
+			for (var i = 0; i < resultToWrite.infos.length; i++)
+			{
+				textToWrite += "<span class='text-success'>";
+				textToWrite += resultToWrite.infos[i];
+				textToWrite += "</span><br />";
+			}
 		}
-		else
+
+		// display warnings
+		if (resultToWrite.warnings)
 		{
-			if (resultToWrite.infos)
+			for (var i = 0; i < resultToWrite.warnings.length; i++)
 			{
-				for (var i = 0; i < resultToWrite.infos.length; i++)
-				{
-					textToWrite += "<span class='text-success'>";
-					textToWrite += resultToWrite.infos[i];
-					textToWrite += "</span><br />";
-				}
-			}
+				if (!FHC_AjaxClient.isError(resultToWrite.warnings[i]))
+					continue;
 
-			if (resultToWrite.warnings)
+				var warning = resultToWrite.warnings[i];
+
+				textToWrite += "<span class='text-warning'>";
+				if (typeof resultToWrite.warnings[i] === 'string')
+					textToWrite += resultToWrite.warnings[i];
+				else if (resultToWrite.warnings[i].issue_fehlertext)
+					textToWrite += resultToWrite.warnings[i].issue_fehlertext;
+				textToWrite += "</span><br />";
+			}
+		}
+
+		// print the result
+		var result = null
+		if (resultToWrite.result)
+		{
+			result = resultToWrite.result;
+		}
+		else if (typeof resultToWrite == 'string')
+		{
+			result = resultToWrite;
+		}
+
+		// if multiple requests, display all requests
+		if (jQuery.isArray(result))
+		{
+			for (var i = 0; i < result.length; i++)
 			{
-				for (var i = 0; i < resultToWrite.warnings.length; i++)
-				{
-					if (!FHC_AjaxClient.isError(resultToWrite.warnings[i]))
-						continue;
+				textToWrite += "<b>Anfrage " + (i + 1) + "</b>:<br />";
 
-					textToWrite += "<span class='text-warning'>";
-					textToWrite += FHC_AjaxClient.getError(resultToWrite.warnings[i]);
-					textToWrite += "</span><br />";
-				}
-			}
+				// display error if error for a request returned
+				if (FHC_AjaxClient.isError(result[i]))
+					textToWrite += FHC_AjaxClient.getError(result[i]);
+				else // print xml result if no error
+					textToWrite += DVUHMenu._printXmlTree(FHC_AjaxClient.getData(result[i]));
 
-			var result = null
-			if (resultToWrite.result)
-			{
-				result = resultToWrite.result;
+				textToWrite += "<br />";
 			}
-			else if (typeof resultToWrite == 'string')
-			{
-				result = resultToWrite;
-			}
-
-			if (jQuery.isArray(result))
-			{
-				for (var i = 0; i < result.length; i++)
-				{
-					textToWrite += "<b>Anfrage " + (i + 1) + "</b>:<br />";
-
-					if (FHC_AjaxClient.isError(result[i]))
-						textToWrite += FHC_AjaxClient.getError(result[i]);
-					else
-						textToWrite += DVUHMenu._printXmlTree(FHC_AjaxClient.getData(result[i]));
-
-					textToWrite += "<br />";
-				}
-			}
-			else
-			{
-				textToWrite += DVUHMenu._printXmlTree(result);
-			}
+		}
+		else // if result is no array, print the xml tree with result data
+		{
+			textToWrite += DVUHMenu._printXmlTree(result);
 		}
 
 		var spanid = boxid+"Span";
@@ -672,15 +702,13 @@ var DVUHMenu = {
 		// write the results
 		$("#"+boxid).html(span);
 
-		if (isError)
-			$("#"+spanid).text(textToWrite);
-		else
-			$("#"+spanid).html(textToWrite);
+		$("#"+spanid).html(textToWrite);
 	},
 	_writeSyncoutputBox: function()
 	{
 		if (!$("#dvuhOutputColumn").length)
 		{
+			// add output panel
 			var columns = $("#dvuhPreviewContainer").length ? 6 : 12;
 			$("#dvuhOutputContainer").append(
 				'<div class="col-lg-'+columns+'" id="dvuhOutputColumn">'+
@@ -701,6 +729,7 @@ var DVUHMenu = {
 		{
 			$("#dvuhOutputColumn").removeClass("col-lg-12").addClass("col-lg-6");
 
+			// add preview output panel
 			$("#dvuhOutputContainer").prepend(
 				'<div class="col-lg-6" id="dvuhPreviewContainer">'+
 					'<div class="well well-sm wellminheight">'+

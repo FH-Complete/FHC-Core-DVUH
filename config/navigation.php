@@ -39,5 +39,10 @@ $config['navigation_menu']['extensions/FHC-Core-DVUH/*'] = array(
 		'link' => site_url('extensions/FHC-Core-DVUH/StornoOverview/index'),
 		'description' => 'Stornoübersicht',
 		'icon' => 'history'
+	),
+	'plausichecks' => array(
+		'link' => site_url('extensions/FHC-Core-DVUH/Plausichecks/index'),
+		'description' => 'Plausichecks',
+		'icon' => 'check'
 	)
 );

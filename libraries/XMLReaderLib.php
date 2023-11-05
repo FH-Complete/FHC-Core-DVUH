@@ -38,10 +38,10 @@ class XMLReaderLib
 			{
 				if (!isEmptyString($errortext))
 					$errortext .= ', ';
-				$errortext .= $error->fehlertextKomplett;
+				$errortext .= $error->issue_fehlertext;
 			}
 
-			$result = error('Error(s) occured: ' . $errortext, $errorsArr);
+			$result = error($errorsArr);
 		}
 		else
 			$result = $this->parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE);
@@ -145,41 +145,36 @@ class XMLReaderLib
 		$doc = new DOMDocument();
 		$loadres = $doc->loadXML($xmlstr);
 
-		if ($loadres)
-		{
-			$elements = $doc->getElementsByTagNameNs(self::DVUH_NAMESPACE, self::ERRORLIST_TAG);
+		if (!$loadres)
+			return error('error when parsing xml string');
 
-			if (isset($elements[0]->childNodes))
+		$elements = $doc->getElementsByTagNameNs(self::DVUH_NAMESPACE, self::ERRORLIST_TAG);
+
+		if (isset($elements[0]->childNodes))
+		{
+			$errObjects = $elements[0]->childNodes;
+
+			foreach ($errObjects as $errObject)
 			{
-				$errObjects = $elements[0]->childNodes;
+				$errResultobj = new stdClass();
 
-				foreach ($errObjects as $errObject)
+				foreach ($errObject->childNodes as $errAttr)
 				{
-					$errResultobj = new stdClass();
-
-					foreach ($errObject->childNodes as $errAttr)
-					{
-						$errResultobj->{$errAttr->nodeName} = $errAttr->nodeValue;
-					}
-
-					$errResultobj->fehlertextKomplett = $errResultobj->fehlernummer . ': ' .
-						(isset($errResultobj->feldinhalt) && !isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
-						$errResultobj->fehlertext .
-						(isset($errResultobj->massnahme) && !isEmptyString($errResultobj->massnahme) ? ', ' . $errResultobj->massnahme : '');
-
-					if (in_array($errResultobj->kategorie, $error_categories))
-						$resultarr[] = $errResultobj;
+					$errResultobj->{$errAttr->nodeName} = $errAttr->nodeValue;
 				}
+
+				$errResultobj->issue_fehlertext =
+					$errResultobj->fehlernummer . ': ' .
+					(isset($errResultobj->feldinhalt) && !isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
+					$errResultobj->fehlertext .
+					(isset($errResultobj->massnahme) && !isEmptyString($errResultobj->massnahme) ? ', ' . $errResultobj->massnahme : '');
+
+				if (in_array($errResultobj->kategorie, $error_categories))
+					$resultarr[] = $errResultobj;
 			}
-
-			$result = success($resultarr);
-		}
-		else
-		{
-			$result = error('error when parsing xml string');
 		}
 
-		return $result;
+		return success($resultarr);
 	}
 
 	/**

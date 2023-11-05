@@ -31,6 +31,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SS_0014', 'studienkennunguniUngueltig', NULL, 'Ungültige Studienkennung Uni für GS mit Programmcode %s, muss z.B. UUT190593347UA sein', 'error', 'dvuh'),
 ('DVUH_SS_0015', 'herkunftslandFehlt', NULL, 'Herkunftsland fehlt', 'error', 'dvuh'),
 ('DVUH_SS_0016', 'gsdatenFehlen', NULL, 'Daten für gemeinsames Studium fehlen: %s', 'error', 'dvuh'),
+('DVUH_SS_0017', 'orgformUngueltig', NULL, 'Orgform ungültig', 'error', 'dvuh'),
 /* DVUH Errors */
 ('DVUH_ERROR', 'dvuhFehler', NULL, 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
 ('DVUH_SM_MATRNR_STATUS_2', NULL, 'MATRNR_STATUS_2', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, Datenverbund kontaktieren.', 'error', 'dvuh'),
@@ -43,6 +44,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SC_ZD10076', NULL, 'ZD10076', 'Es gibt eine andere, bereits scharf geschaltete Matrikelnummer. Matrikelnummer mit DVUH abgleichen.', 'error', 'dvuh'),
 ('DVUH_SC_ZD10077', NULL, 'ZD10077', 'Matrikelnummer aus Kontingent einer anderen Bildungseinrichtung, Matrikelnummer prüfen.', 'error', 'dvuh'),
 ('DVUH_SS_ZD10078', NULL, 'ZD10078', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, mit Datenverbund abklären.', 'error', 'dvuh'),
+('DVUH_YD21245', NULL, 'YD21245', 'Doppelmeldung, gleiche Daten für einen Studiengang doppelt gesendet, Korrektur der Studiendaten', 'error', 'dvuh'),
 ('DVUH_SPA_YD52608', NULL, 'YD52608', 'Keine Studiumsdatenmeldung vor Prüfungsaktivitätenmeldung, Studiumsmeldung durchführen.', 'error', 'dvuh'),
 /* self-defined FHC Warnings */
 ('DVUH_SC_W_0001', 'andereBeBezahltSapGesendet', NULL, 'Buchung %s ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde', 'warning', 'dvuh'),

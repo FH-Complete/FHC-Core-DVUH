@@ -11,6 +11,7 @@ class DVUHAuthLib
 	private $_ci; // Code igniter instance
 	private $authentication;
 	const OAUTH_TOKEN_URL = '/dvb/oauth/token';
+	const TOKEN_EXPIRATION_OFFSET = 3; // offset to make token expier earlier to avoid errors
 
 	/**
 	 * Object initialization
@@ -52,9 +53,7 @@ class DVUHAuthLib
 
 		$dtnow = new DateTime();
 		if ($this->authentication->DateTimeExpires < $dtnow)
-		{
 			return true;
-		}
 		else
 			return false;
 	}
@@ -126,7 +125,11 @@ class DVUHAuthLib
 
 			// Calculate Expire Date
 			$ttl = new DateTime();
-			$ttl->add(new DateInterval('PT'.$this->authentication->expires_in.'S'));
+			// make the date expire a bit earlier to avoid "invalid token" error
+			$expires_in_seconds = $this->authentication->expires_in > self::TOKEN_EXPIRATION_OFFSET
+				? $this->authentication->expires_in - self::TOKEN_EXPIRATION_OFFSET
+				: $this->authentication->expires_in;
+			$ttl->add(new DateInterval('PT'.($expires_in_seconds).'S'));
 			$this->authentication->DateTimeExpires = $ttl;
 
 			return success();

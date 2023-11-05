@@ -157,8 +157,8 @@ class JQMSchedulerLib
 		// get students with no BPK
 		$qry = "SELECT DISTINCT person_id
 				FROM public.tbl_person
-				    JOIN public.tbl_prestudent USING (person_id)
-				    JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+					JOIN public.tbl_prestudent USING (person_id)
+					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 					JOIN public.tbl_studiengang stg USING (studiengang_kz)
 				WHERE (tbl_person.bpk IS NULL OR tbl_person.bpk = '')
 					AND stg.melderelevant = TRUE
@@ -394,15 +394,15 @@ class JQMSchedulerLib
 		$params = array($studiensemester_kurzbz_arr);
 
 		// get students with Vorschreibung which have no Studiumsmeldung or have a data change
-		// data change: prestudent, prestudentstatus, bisio, mobilitaet
+		// data change: prestudent, prestudentstatus, bisio, mobilitaet, abschlusspruefung
 		$qry = "SELECT prestudent_id, studiensemester_kurzbz FROM (
 					SELECT DISTINCT prestudents.prestudent_id, prestudents.studiensemester_kurzbz, sem.start, ist_abbrecher
 					FROM (
 							SELECT ps.prestudent_id, pss.studiensemester_kurzbz,
 									ps.insertamum AS ps_insertamum, pss.insertamum AS pss_insertamum,
-									mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum,
+									mob.insertamum as mob_insertamum, bisio.insertamum AS bisio_insertamum, pr.insertamum AS pr_insertamum,
 									ps.updateamum AS ps_updateamum, pss.updateamum AS pss_updateamum,
-									mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum,
+									mob.updateamum AS mob_updateamum, bisio.updateamum AS bisio_updateamum, pr.updateamum AS pr_updateamum,
 									max(studd.meldedatum) AS max_studiumdaten_meldedatum, pss.datum AS prestudent_status_datum,
 									bisio.bis AS bisio_endedatum, bisio.von AS bisio_startdatum,
 									CASE
@@ -415,13 +415,14 @@ class JQMSchedulerLib
 										ELSE 0
 									END AS ist_abbrecher
 							FROM public.tbl_prestudent ps
-							JOIN public.tbl_student USING (prestudent_id)
+							JOIN public.tbl_student stud USING (prestudent_id)
 							JOIN public.tbl_prestudentstatus pss ON ps.prestudent_id = pss.prestudent_id
 							LEFT JOIN public.tbl_studiengang stg ON ps.studiengang_kz = stg.studiengang_kz
-							LEFT JOIN bis.tbl_bisio bisio ON tbl_student.student_uid = bisio.student_uid
+							LEFT JOIN bis.tbl_bisio bisio ON stud.student_uid = bisio.student_uid
 							LEFT JOIN bis.tbl_mobilitaet mob ON ps.prestudent_id = mob.prestudent_id
 							LEFT JOIN sync.tbl_dvuh_studiumdaten studd ON pss.studiensemester_kurzbz = studd.studiensemester_kurzbz
 																			AND ps.prestudent_id = studd.prestudent_id
+							LEFT JOIN lehre.tbl_abschlusspruefung pr ON stud.student_uid = pr.student_uid
 							WHERE ps.bismelden = TRUE
 							AND stg.melderelevant = TRUE
 							AND pss.studiensemester_kurzbz IN ?
@@ -447,27 +448,49 @@ class JQMSchedulerLib
 			$params[] = $this->_oe_kurzbz;
 		}
 
-		$qry .= 		" GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum, mob.insertamum, bisio.insertamum,
-							 ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum,
-							 bisio.updateamum, bisio.von, bisio.bis, pss.datum
+		$qry .= 		" GROUP BY ps.prestudent_id, pss.studiensemester_kurzbz, ps.insertamum, pss.insertamum,
+							mob.insertamum, bisio.insertamum, pr.insertamum,
+							ps.updateamum, pss.updateamum, ps.updateamum, pss.updateamum, mob.updateamum, bisio.updateamum, pr.updateamum,
+							bisio.von, bisio.bis, pss.datum
 					) prestudents
 					JOIN public.tbl_studiensemester sem USING (studiensemester_kurzbz)
 					WHERE
-					(/* not sent to DVUH and no IO data or it's time to send the IO data */
-						max_studiumdaten_meldedatum IS NULL
-						AND (bisio_startdatum IS NULL OR bisio_startdatum <= NOW())
+					(
+						(/* not sent to DVUH and no IO data or it's time to send the IO data */
+							max_studiumdaten_meldedatum IS NULL
+							AND (bisio_startdatum IS NULL OR bisio_startdatum <= NOW())
+						)
+						OR prestudent_status_datum = CURRENT_DATE /* if prestudent status gets active today */
+						OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
+						/* data modified since last send */
+						OR ps_insertamum >= max_studiumdaten_meldedatum
+						OR mob_insertamum >= max_studiumdaten_meldedatum OR bisio_insertamum >= max_studiumdaten_meldedatum
+						OR pr_insertamum >= max_studiumdaten_meldedatum
+						OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
+						OR mob_updateamum >= max_studiumdaten_meldedatum OR bisio_updateamum >= max_studiumdaten_meldedatum
+						OR pr_updateamum >= max_studiumdaten_meldedatum
+						OR EXISTS(SELECT 1 FROM public.tbl_prestudentstatus pssu
+									WHERE prestudent_id = prestudents.prestudent_id
+									AND (insertamum >= max_studiumdaten_meldedatum OR updateamum >= max_studiumdaten_meldedatum)
+									AND studiensemester_kurzbz IN ?
+						)
 					)
-					OR prestudent_status_datum = CURRENT_DATE /* if prestudent status gets active today */
-					OR bisio_endedatum = CURRENT_DATE /* if bisio ende is today, because mobilitaeten in future are sent with no endedatum */
-					/* data modified since last send */
-					OR pss_insertamum >= max_studiumdaten_meldedatum OR ps_insertamum >= max_studiumdaten_meldedatum
-					OR mob_insertamum >= max_studiumdaten_meldedatum
-					OR pss_updateamum >= max_studiumdaten_meldedatum OR ps_updateamum >= max_studiumdaten_meldedatum
-					OR mob_updateamum >= max_studiumdaten_meldedatum
-					/* if bisio was updated after it was already sent */
-					OR (bisio_updateamum >= max_studiumdaten_meldedatum AND bisio_startdatum >= max_studiumdaten_meldedatum)
+					AND NOT EXISTS /* exclude already storniert */
+					(
+						SELECT 1 FROM (
+							SELECT storniert
+							FROM sync.tbl_dvuh_studiumdaten
+							WHERE prestudent_id = prestudents.prestudent_id
+							AND studiensemester_kurzbz = prestudents.studiensemester_kurzbz
+							ORDER BY meldedatum DESC, insertamum DESC
+							LIMIT 1
+						) max_studiumsync
+						WHERE storniert = TRUE
+					)
 				) prestudentssem
 				ORDER BY start, ist_abbrecher, prestudent_id";
+
+		$params[] = $studiensemester_kurzbz_arr;
 
 		$dbModel = new DB_Model();
 
@@ -508,23 +531,37 @@ class JQMSchedulerLib
 			return error("Kein Studiensemester angegeben");
 
 		$params = array(
+			$this->_angerechnet_note, // add note angerechnet type params
+			$this->_angerechnet_note,
 			$studiensemester_kurzbz_arr
 		);
 
 		$qry = "SELECT DISTINCT person_id, studiensemester_kurzbz
 				FROM (
 					SELECT prestudenten.studiensemester_kurzbz, person_id, prestudenten.prestudent_id,
-						   COALESCE(SUM(ects_angerechnet), 0) AS summe_ects_angerechnet,
-						   COALESCE(SUM(ects_erworben), 0) AS summe_ects_erworben
+						COALESCE(SUM(ects_angerechnet), 0) AS summe_ects_angerechnet,
+						COALESCE(SUM(ects_erworben), 0) AS summe_ects_erworben
 					FROM
 					(
-						SELECT DISTINCT pss.studiensemester_kurzbz, person_id, ps.prestudent_id
-						 FROM public.tbl_prestudent ps
-						 JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
-						 JOIN public.tbl_studiengang stg USING (studiengang_kz)
-						 WHERE ps.bismelden = TRUE
-						 AND stg.melderelevant = TRUE
-						 AND pss.studiensemester_kurzbz IN ?";
+						SELECT DISTINCT pss.studiensemester_kurzbz, person_id, ps.prestudent_id, lehrveranstaltung_id,
+						CASE WHEN note.aktiv AND note.offiziell AND note.positiv AND lv.zeugnis AND note.note IN ?
+							THEN ects
+							ELSE 0
+						END AS ects_angerechnet,
+						CASE WHEN note.aktiv AND note.offiziell AND note.positiv AND lv.zeugnis AND note.note NOT IN ?
+							THEN ects
+							ELSE 0
+						END AS ects_erworben
+						FROM public.tbl_prestudent ps
+						JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+						JOIN public.tbl_studiengang stg USING (studiengang_kz)
+						LEFT JOIN public.tbl_student USING (prestudent_id)
+						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote ON tbl_student.student_uid = zgnisnote.student_uid AND pss.studiensemester_kurzbz = zgnisnote.studiensemester_kurzbz
+						LEFT JOIN lehre.tbl_note note ON zgnisnote.note = note.note
+						LEFT JOIN lehre.tbl_lehrveranstaltung lv USING (lehrveranstaltung_id)
+						WHERE ps.bismelden = TRUE
+						AND stg.melderelevant = TRUE
+						AND pss.studiensemester_kurzbz IN ?";
 
 		if (!isEmptyArray($this->_oe_kurzbz))
 		{
@@ -538,45 +575,33 @@ class JQMSchedulerLib
 			$params[] = $this->_status_kurzbz[self::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN];
 		}
 
-		$params[] = $this->_angerechnet_note; // add note angerechnet type params
-		$params[] = $this->_angerechnet_note;
-
 		$qry .= "
-				    ) prestudenten
-					LEFT JOIN (
-						SELECT prestudent_id,
-							   zgnisnote.studiensemester_kurzbz,
-							   CASE WHEN note.note IN ? THEN ects ELSE 0 END AS ects_angerechnet,
-							   CASE WHEN note.note NOT IN ? THEN ects ELSE 0 END AS ects_erworben
-						FROM public.tbl_student
-						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote USING (student_uid)
-						LEFT JOIN lehre.tbl_note note ON zgnisnote.note = note.note
-						LEFT JOIN lehre.tbl_lehrveranstaltung lv USING (lehrveranstaltung_id)
-						WHERE note.aktiv
-						AND note.offiziell
-						AND note.positiv
-						AND lv.zeugnis
-					) anzahl_ects ON prestudenten.prestudent_id = anzahl_ects.prestudent_id AND
-						prestudenten.studiensemester_kurzbz = anzahl_ects.studiensemester_kurzbz
-					GROUP BY prestudenten.studiensemester_kurzbz, person_id, prestudenten.prestudent_id
+					) prestudenten
+					GROUP BY studiensemester_kurzbz, person_id, prestudent_id
 				) summen_ects
 				WHERE (/*summe_ects_angerechnet <>
-							(SELECT COALESCE(SUM(last_ects_ar), 0)
-								FROM (SELECT ects_angerechnet as last_ects_ar
-								FROM sync.tbl_dvuh_pruefungsaktivitaeten
-								WHERE prestudent_id = summen_ects.prestudent_id
-								AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
-								ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_ar
-							) OR */
-							summe_ects_erworben <> /* different ects sums sent last time */
-							(SELECT COALESCE(SUM(last_ects_er), 0)
-								FROM (SELECT ects_erworben as last_ects_er
-								FROM sync.tbl_dvuh_pruefungsaktivitaeten
-								WHERE prestudent_id = summen_ects.prestudent_id
-								AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
-								ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_er
-							)
-						)";
+					(SELECT COALESCE(SUM(last_ects_ar), 0)
+						FROM (SELECT ects_angerechnet as last_ects_ar
+						FROM sync.tbl_dvuh_pruefungsaktivitaeten
+						WHERE prestudent_id = summen_ects.prestudent_id
+						AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
+						ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_ar
+					) OR */
+					summe_ects_erworben <> /* different ects sums sent last time */
+					(SELECT COALESCE(SUM(last_ects_er), 0)
+						FROM (SELECT ects_erworben as last_ects_er
+						FROM sync.tbl_dvuh_pruefungsaktivitaeten
+						WHERE prestudent_id = summen_ects.prestudent_id
+						AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
+						ORDER BY meldedatum DESC, insertamum DESC, pruefungsaktivitaeten_id DESC LIMIT 1) last_ects_er
+					)
+				)
+				AND EXISTS (
+					SELECT 1
+					FROM sync.tbl_dvuh_studiumdaten
+					WHERE prestudent_id = summen_ects.prestudent_id
+					AND studiensemester_kurzbz = summen_ects.studiensemester_kurzbz
+				)";
 
 		$dbModel = new DB_Model();
 
