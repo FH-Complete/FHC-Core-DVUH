@@ -78,3 +78,6 @@ $config['fhc_dvuh_sync_student_meldestatus'] = array(
 
 //  Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
 $config['fhc_dvuh_sync_note_angerechnet'] = array(6, 19);
+
+// max number of "checkbpk" requests before a sleep (for preventing server errors)
+$config['fhc_dvuh_sync_pruefe_bpk_max_requests'] = 50;
