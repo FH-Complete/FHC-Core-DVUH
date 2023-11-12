@@ -48,6 +48,7 @@ class DVUH extends Auth_Controller
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMatrikelnummerManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHEkzManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMasterDataManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHStudyDataManagementLib');
@@ -434,7 +435,7 @@ class DVUH extends Auth_Controller
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
 		$forcierungskey = isset($data['forcierungskey']) ? $data['forcierungskey'] : null;
 
-		$json = $this->dvuhmasterdatamanagementlib->requestEkz($person_id, $forcierungskey, $preview);
+		$json = $this->dvuhekzmanagementlib->requestEkz($person_id, $forcierungskey, $preview);
 
 		$this->outputJson($json);
 	}

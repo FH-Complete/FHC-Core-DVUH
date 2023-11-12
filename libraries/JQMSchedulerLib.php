@@ -11,7 +11,7 @@ class JQMSchedulerLib
 	private $_status_kurzbz = array(); // contains prestudentstatus to retrieve for each jobtype
 	private $_buchungstypen = array(); // contains Buchungstypen for which Charge should be sent
 	private $_oe_kurzbz = array(); // oe_kurzbz - only students assigned to one of descendants of this oe are retrieved
-	private $_angerechnet_note = array(); // oe_kurzbz - only students assigned to one of descendants of this oe are retrieved
+	private $_angerechnet_note = array(); // Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
 	private $_studiensemester = array(); // default Studiensemster for which data is sent
 
 	const JOB_TYPE_REQUEST_MATRIKELNUMMER = 'DVUHRequestMatrikelnummer';
@@ -19,7 +19,10 @@ class JQMSchedulerLib
 	const JOB_TYPE_SEND_PAYMENT = 'DVUHSendPayment';
 	const JOB_TYPE_SEND_STUDY_DATA = 'DVUHSendStudyData';
 	const JOB_TYPE_REQUEST_BPK = 'DVUHRequestBpk';
+	const JOB_TYPE_REQUEST_EKZ = 'DVUHRequestEkz';
 	const JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN = 'DVUHSendPruefungsaktivitaeten';
+
+	const NATION_OESTERREICH = 'A';
 
 	/**
 	 * Object initialization
@@ -169,6 +172,77 @@ class JQMSchedulerLib
 		{
 			$qry .= " AND pss.status_kurzbz IN ?";
 			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK];
+		}
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
+
+		$qry .= " ORDER BY person_id";
+
+		$dbModel = new DB_Model();
+
+		$stToSyncResult = $dbModel->execReadOnlyQuery($qry, $params);
+
+		// If error occurred while retrieving students from database then return the error
+		if (isError($stToSyncResult)) return $stToSyncResult;
+
+		// If students are present
+		if (hasData($stToSyncResult))
+		{
+			$jobInput = json_encode(getData($stToSyncResult));
+		}
+
+		$result = success($jobInput);
+
+		return $result;
+	}
+
+	/**
+	 * Gets students for input of requestEkz job.
+	 * @param string $studiensemester_kurzbz semester for which Ekz should be requested
+	 * @return object students
+	 */
+	public function requestEkz($studiensemester_kurzbz)
+	{
+		$jobInput = null;
+		$result = null;
+
+		$studiensemester_kurzbz_arr = $this->_getStudiensemester($studiensemester_kurzbz);
+
+		if (isEmptyArray($studiensemester_kurzbz_arr))
+			return error("Kein Studiensemester angegeben");
+
+		$params = array(self::NATION_OESTERREICH, $studiensemester_kurzbz_arr, self::NATION_OESTERREICH);
+
+		// get students with no SVNR and EKZ
+		$qry = "SELECT DISTINCT person_id
+				FROM public.tbl_person pers
+					JOIN public.tbl_prestudent USING (person_id)
+					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+					JOIN public.tbl_studiengang stg USING (studiengang_kz)
+				WHERE (pers.ersatzkennzeichen IS NULL OR pers.ersatzkennzeichen = '')
+					AND (pers.svnr IS NULL OR pers.svnr = '')
+					AND stg.melderelevant = TRUE
+					AND bismelden = TRUE
+					AND pers.staatsbuergerschaft <> ?
+					AND pss.studiensemester_kurzbz IN ?
+					AND NOT EXISTS (
+						SELECT 1
+						FROM
+							public.tbl_adresse
+							WHERE
+								person_id = pers.person_id
+								AND nation = ?
+
+					)";
+
+		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_EKZ]))
+		{
+			$qry .= " AND pss.status_kurzbz IN ?";
+			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_EKZ];
 		}
 
 		if (!isEmptyArray($this->_oe_kurzbz))

@@ -22,6 +22,7 @@ class DVUHManagement extends JQW_Controller
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMatrikelnummerManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMasterDataManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHEkzManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHStudyDataManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPruefungsaktivitaetenManagementLib');
@@ -427,6 +428,70 @@ class DVUHManagement extends JQW_Controller
 	}
 
 	/**
+	 * Initialises requestEkz job, handles job queue, logs infos/errors
+	 */
+	public function requestEkz()
+	{
+		$jobType = 'DVUHRequestEkz';
+		$this->logInfo('DVUHRequestEkz job start');
+
+		// Gets the latest jobs
+		$lastJobs = $this->getLastJobs($jobType);
+		if (isError($lastJobs))
+		{
+			$this->logError(getCode($lastJobs).': '.getError($lastJobs), $jobType);
+		}
+		else
+		{
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_START_TIME), // Job properties to be updated
+				array(date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			$person_arr = $this->_getInputObjArray(getData($lastJobs));
+
+			foreach ($person_arr as $persobj)
+			{
+				if (!isset($persobj->person_id))
+					$this->logError("Fehler bei Ekzabfrage, ungültige Parameter übergeben");
+				else
+				{
+					$person_id = $persobj->person_id;
+
+					$requestEkzResult = $this->dvuhekzmanagementlib->requestAndSaveEkz($person_id);
+
+					if (isError($requestEkzResult))
+					{
+						$this->_logDVUHError(
+							"Fehler bei Ekzvergabe, person Id $person_id",
+							$requestEkzResult,
+							$person_id
+						);
+					}
+					elseif (hasData($requestEkzResult))
+					{
+						$requestEkzArr = getData($requestEkzResult);
+
+						$this->_logDVUHInfosAndWarnings($requestEkzArr, array('person_id' => $person_id));
+					}
+				}
+			}
+
+			// Update jobs properties values
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_STATUS, JobsQueueLib::PROPERTY_END_TIME), // Job properties to be updated
+				array(JobsQueueLib::STATUS_DONE, date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
+		}
+
+		$this->logInfo('DVUHRequestEkz job stop');
+	}
+
+	/**
 	 * Initialises sendPruefungsaktivitaeten job, handles job queue, logs infos/errors
 	 */
 	public function sendPruefungsaktivitaeten()
@@ -559,6 +624,8 @@ class DVUHManagement extends JQW_Controller
 					$errText = getError($warning);
 					if (is_string($errText)) $warningTxt .= (isEmptyString($warningTxt) ? '' : '; ').$errText;
 				}
+				elseif (is_string($warning))
+					$warningTxt .= (isEmptyString($warningTxt) ? '' : '; ').$warning;
 			}
 
 			foreach ($idArr as $idname => $idvalue)
@@ -573,7 +640,7 @@ class DVUHManagement extends JQW_Controller
 			{
 				$person_id = isset($idArr['person_id']) ? $idArr['person_id'] : null;
 				$prestudent_id = isset($idArr['prestudent_id']) ? $idArr['prestudent_id'] : null;
-				$this->_addDVUHIssue($warning, $person_id, $prestudent_id, true);
+				$this->_addDVUHIssue($warning, $person_id, $prestudent_id, $force_predefined_for_external = true);
 			}
 		}
 	}

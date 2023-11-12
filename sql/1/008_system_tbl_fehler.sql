@@ -32,6 +32,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SS_0015', 'herkunftslandFehlt', NULL, 'Herkunftsland fehlt', 'error', 'dvuh'),
 ('DVUH_SS_0016', 'gsdatenFehlen', NULL, 'Daten für gemeinsames Studium fehlen: %s', 'error', 'dvuh'),
 ('DVUH_SS_0017', 'orgformUngueltig', NULL, 'Orgform ungültig', 'error', 'dvuh'),
+('DVUH_RE_0001', 'personMitEkzExistiert', NULL, 'Person (person Id %s) mit EKZ %s existiert bereits', 'error', 'dvuh'),
 /* DVUH Errors */
 ('DVUH_ERROR', 'dvuhFehler', NULL, 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),
 ('DVUH_SM_MATRNR_STATUS_2', NULL, 'MATRNR_STATUS_2', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, Datenverbund kontaktieren.', 'error', 'dvuh'),
@@ -46,6 +47,9 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SS_ZD10078', NULL, 'ZD10078', 'Matrikelnummer gesperrt, Matrikelnummer prüfen, mit Datenverbund abklären.', 'error', 'dvuh'),
 ('DVUH_YD21245', NULL, 'YD21245', 'Doppelmeldung, gleiche Daten für einen Studiengang doppelt gesendet, Korrektur der Studiendaten', 'error', 'dvuh'),
 ('DVUH_SPA_YD52608', NULL, 'YD52608', 'Keine Studiumsdatenmeldung vor Prüfungsaktivitätenmeldung, Studiumsmeldung durchführen.', 'error', 'dvuh'),
+('DVUH_RE_EKZ_STATUS_2', NULL, 'EKZ_STATUS_2', 'mehrere Ersatzkennzeichen Personenkanditaten, erneute Anfrage mit korrektem Forcierungskey notwendig.', 'error', 'dvuh'),
+('DVUH_RE_EKZ_STATUS_4', NULL, 'EKZ_STATUS_4', 'mehrere Ersatzkennzeichen Personenkanditaten, Stammdaten prüfen, Datenverbund kontaktieren.', 'error', 'dvuh'),
+('DVUH_RE_EKZ_STATUS_10', NULL, 'EKZ_STATUS_10', 'Fehler beim Holen vom Ersatzkennzeichen aufgetreten', 'error', 'dvuh'),
 /* self-defined FHC Warnings */
 ('DVUH_SC_W_0001', 'andereBeBezahltSapGesendet', NULL, 'Buchung %s ist in SAP gespeichert, obwohl ÖH-Beitrag bereits an anderer Bildungseinrichtung bezahlt wurde', 'warning', 'dvuh'),
 ('DVUH_SP_W_0001', 'vorgeschrBetragUngleichFestgesetzt', NULL, 'Vorgeschriebener Beitrag %s nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, %s, überein', 'warning', 'dvuh'),

@@ -20,13 +20,13 @@ class Ekzanfordern_model extends DVUHClientModel
 
 	/**
 	 * Execute post call.
-	 * @param int $person_id
+	 * @param array $ekzData
 	 * @param string $forcierungskey optional, for request of new EKZ when no results fit the person for which EKZ is needed.
 	 * @return object success or error
 	 */
-	public function post($person_id, $forcierungskey = null)
+	public function post($ekzData, $forcierungskey = null)
 	{
-		$postData = $this->retrievePostData($person_id, $forcierungskey);
+		$postData = $this->retrievePostData($ekzData, $forcierungskey);
 
 		if (isError($postData))
 			$result = $postData;
@@ -38,89 +38,28 @@ class Ekzanfordern_model extends DVUHClientModel
 
 	/**
 	 * Retrieves necessary xml person and kontakt data for performing ekzanfordern call.
-	 * @param int $person_id
+	 * @param array $ekzData
 	 * @param string $forcierungskey
 	 * @return object success or error
 	 */
-	public function retrievePostData($person_id, $forcierungskey = null)
+	public function retrievePostData($ekzData, $forcierungskey = null)
 	{
 		$result = null;
 
-		if (isEmptyString($person_id))
-			$result = error('personID nicht gesetzt');
+		if (isEmptyArray($ekzData))
+			$result = error('EKZ Daten nicht gesetzt');
 		else
 		{
-			$this->load->model('person/Person_model', 'PersonModel');
-			$stammdaten = $this->PersonModel->getPersonStammdaten($person_id);
+			$params = array(
+				'ekzbasisdaten' => $ekzData
+			);
 
-			if (hasData($stammdaten))
-			{
-				$stammdaten = getData($stammdaten);
+			if (isset($forcierungskey))
+				$params['forcierungskey'] = $forcierungskey;
 
-				// adresses
-				$heimatAdresse = null;
-				$heimatInsertamum = null;
+			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/ekzanfordern', $params, true);
 
-				foreach ($stammdaten->adressen as $adresse)
-				{
-					// get latest Heimatadresse
-					if (!$adresse->heimatadresse)
-						continue;
-
-					$addr = array();
-					$addr['ort'] = $adresse->ort;
-					$addr['plz'] = $adresse->plz;
-					$addr['strasse'] = $adresse->strasse;
-					$addr['staat'] = $adresse->nation;
-
-					$addrCheck = $this->dvuhcheckinglib->checkAdresse($addr);
-
-					if (isError($addrCheck))
-						return error("Adresse ungültig: " . getError($addrCheck));
-
-					if ($adresse->heimatadresse)
-					{
-						if (is_null($heimatInsertamum) || $adresse->insertamum > $heimatInsertamum)
-						{
-							$heimatInsertamum = $adresse->insertamum;
-							$heimatAdresse = $addr;
-						}
-					}
-				}
-
-				if (isEmptyString($heimatAdresse))
-					return error("Keine Heimatadresse angegeben!");
-
-				$geschlecht = $this->dvuhconversionlib->convertGeschlechtToDVUH($stammdaten->geschlecht);
-
-				$ekzbasisdaten = array(
-					'adresse' => $heimatAdresse,
-					'geburtsdatum' => $stammdaten->gebdatum,
-					'geschlecht' => $geschlecht,
-					'nachname' => $stammdaten->nachname,
-					'vorname' => $stammdaten->vorname,
-				);
-
-				foreach ($ekzbasisdaten as $idx => $item)
-				{
-					if (!isset($item) || isEmptyString($item))
-						return error('Stammdaten fehlen: ' . $idx);
-				}
-
-				if (isset($stammdaten->svnr))
-					$ekzbasisdaten['svnr'] = $stammdaten->svnr;
-
-				$params = array(
-					'ekzbasisdaten' => $ekzbasisdaten
-				);
-
-				if (isset($forcierungskey))
-					$params['forcierungskey'] = $forcierungskey;
-
-				$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/ekzanfordern', $params, true);
-
-				$result = success($postData);
-			}
+			$result = success($postData);
 		}
 
 		return $result;
