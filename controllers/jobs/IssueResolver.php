@@ -38,7 +38,8 @@ class IssueResolver extends IssueResolver_Controller
 			'DVUH_SS_W_0002' => 'DVUH_SS_W_0002',
 			'DVUH_SS_W_0003' => 'DVUH_SS_W_0003',
 			'DVUH_SS_W_0004' => 'DVUH_SS_W_0004',
-			'DVUH_SS_W_0005' => 'DVUH_SS_W_0005'
+			'DVUH_SS_W_0005' => 'DVUH_SS_W_0005',
+			'DVUH_RE_0001' => 'DVUH_RE_0001'
 		);
 	}
 }
