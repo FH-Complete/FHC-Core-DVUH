@@ -141,12 +141,12 @@ class DVUHEkzLib extends DVUHErrorProducerLib
 
 		if (hasData($ekzExistsRes))
 		{
-			$otherPersonId = getData($ekzExistsRes)[0]->person_id;
+			$existing_person_id = getData($ekzExistsRes)[0]->person_id;
 			$this->addError(
-				"Person (person Id $otherPersonId) mit EKZ $ersatzkennzeichen existiert bereits",
+				"Person (person Id $existing_person_id) mit EKZ $ersatzkennzeichen existiert bereits",
 				'personMitEkzExistiert',
-				array('otherPersonId' => $otherPersonId, 'ersatzkennzeichen' => $ersatzkennzeichen),
-				array('otherPersonId' => $otherPersonId, 'ersatzkennzeichen' => $ersatzkennzeichen)
+				array('existing_person_id' => $existing_person_id, 'ersatzkennzeichen' => $ersatzkennzeichen),
+				array('existing_person_id' => $existing_person_id, 'ersatzkennzeichen' => $ersatzkennzeichen)
 			);
 		}
 
