@@ -9,7 +9,6 @@ class DVUH_RE_0001 implements IIssueResolvedChecker
 {
 	public function checkIfIssueIsResolved($params)
 	{
-		var_dump("DRINN");
 		if (!isset($params['issue_person_id']) || !is_numeric($params['issue_person_id']))
 			return error('Person Id missing, issue_id: '.$params['issue_id']);
 
@@ -18,22 +17,6 @@ class DVUH_RE_0001 implements IIssueResolvedChecker
 
 		if (!isset($params['ersatzkennzeichen']) || isEmptyString($params['ersatzkennzeichen']))
 			return error('Ersatzkennzeichen missing, issue_id: '.$params['issue_id']);
-
-		//$this->_ci =& get_instance(); // get code igniter instance
-
-		//~ $this->_ci->load->model('person/Person_model', 'PersonModel');
-
-		// Get the two persons which are supposed to have the same Ersatzkennzeichen
-		//~ $this->_ci->
-		//~ $this->_ci->PersonModel->addSelect('ersatzkennzeichenn');
-		//~ $personRes = $this->_ci->PersonModel->loadWhere(
-			//~ ''
-			//~ array(
-				//~ 'person_id' => array($params['issue_person_id'], $params['existing_person_id']),
-				//~ 'ersatzkennzeichen <> ' => null
-			//~ )
-		//~ );
-
 
 		$db = new DB_Model();
 
@@ -60,8 +43,6 @@ class DVUH_RE_0001 implements IIssueResolvedChecker
 					AND ersatzkennzeichen = ?";
 
 		$personRes = $db->execReadOnlyQuery($qry, $params);
-
-		var_dump($personRes);
 
 		if (isError($personRes))
 			return $personRes;
