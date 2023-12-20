@@ -158,7 +158,7 @@ class DVUHIssueLib
 
 		$issueTexts = array();
 
-		// for array: return all issue texts
+		// if not array, put in array
 		if (!is_array($issue))
 			$issue = array($issue);
 

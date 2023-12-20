@@ -314,6 +314,29 @@ class FHCManagementLib
 	}
 
 	/**
+	 * Saves ekz in FHC db.
+	 * @param int $person_id
+	 * @param string $ersatzkennzeichen
+	 * @return object success with ekz if saved, or error
+	 */
+	public function saveEkzInFhc($person_id, $ersatzkennzeichen)
+	{
+		if (!$this->_ci->dvuhcheckinglib->checkEkz($ersatzkennzeichen))
+			return error("Invalid ekz");
+
+		return $this->_ci->PersonModel->update(
+			array(
+				'person_id' => $person_id
+			),
+			array(
+				'ersatzkennzeichen' => $ersatzkennzeichen,
+				'updateamum' => date('Y-m-d H:i:s'),
+				'updatevon' => self::DVUH_USER
+			)
+		);
+	}
+
+	/**
 	 * Sets a Buchung in FHC to 0 and creates a Gegenbuchung with 0.
 	 * @param object $buchung contains buchungsdata
 	 * @return object success or error

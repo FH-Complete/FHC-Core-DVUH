@@ -64,12 +64,30 @@ class Stammdaten_model extends DVUHClientModel
 	 * @param string $studiengebuehrnachfrist
 	 * @return object  success or error
 	 */
-	public function post($be, $studentinfo, $semester,
-							$matrikelnummer = null, $oehbeitrag = null, $sonderbeitrag = null, $studiengebuehr = null, $valutadatum = null, $valutadatumnachfrist = null,
-							$studiengebuehrnachfrist = null)
-	{
-		$postData = $this->retrievePostData($be, $studentinfo, $semester, $matrikelnummer, $oehbeitrag, $sonderbeitrag, $studiengebuehr, $valutadatum,
-			$valutadatumnachfrist, $studiengebuehrnachfrist);
+	public function post(
+		$be,
+		$studentinfo,
+		$semester,
+		$matrikelnummer = null,
+		$oehbeitrag = null,
+		$sonderbeitrag = null,
+		$studiengebuehr = null,
+		$valutadatum = null,
+		$valutadatumnachfrist = null,
+		$studiengebuehrnachfrist = null
+	) {
+		$postData = $this->retrievePostData(
+			$be,
+			$studentinfo,
+			$semester,
+			$matrikelnummer,
+			$oehbeitrag,
+			$sonderbeitrag,
+			$studiengebuehr,
+			$valutadatum,
+			$valutadatumnachfrist,
+			$studiengebuehrnachfrist
+		);
 
 		if (isError($postData))
 			$result = $postData;

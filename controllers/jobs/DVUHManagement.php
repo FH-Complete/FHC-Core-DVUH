@@ -22,6 +22,7 @@ class DVUHManagement extends JQW_Controller
 		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMatrikelnummerManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHMasterDataManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHEkzManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHStudyDataManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPruefungsaktivitaetenManagementLib');
@@ -345,8 +346,9 @@ class DVUHManagement extends JQW_Controller
 			);
 
 			$person_arr = $this->_getInputObjArray(getData($lastJobs));
-			$resendBpkQueryCount = 0;
 			$maxResendBpkQueryCount = 5; // limit for sleeping times because of "too many szr requests" error
+			$totalRequestAmount = 0; // threshold for total amount of API calls before sleep
+			$sleepSecondsAmount = 30; // seconds to sleep for
 
 			foreach ($person_arr as $persobj)
 			{
@@ -356,11 +358,21 @@ class DVUHManagement extends JQW_Controller
 				{
 					$person_id = $persobj->person_id;
 					$continueLoop = true;
+					$resendBpkQueryCount = 0; // number of times request has been made for this person
 
 					while ($continueLoop)
 					{
 						$continueLoop = false;
 						$requestBpkResult = $this->dvuhmasterdatamanagementlib->requestBpk($person_id);
+
+						// sleep if number of requests exceeds threshold
+						$totalRequestAmount++;
+						if ($totalRequestAmount > $this->config->item('fhc_dvuh_sync_pruefe_bpk_max_requests'))
+						{
+							sleep($sleepSecondsAmount);
+							// reset request amount
+							$totalRequestAmount = 0;
+						}
 
 						if (isError($requestBpkResult))
 						{
@@ -370,13 +382,13 @@ class DVUHManagement extends JQW_Controller
 							{
 								foreach ($errCode as $code)
 								{
-									// if "too many szr requests per minute" error, sleep for 30 seconds and retry for the person.
+									// if "too many szr requests per minute" error, sleep and retry for the person.
 									if (isset($code->fehlernummer) && $code->fehlernummer == self::ERRORCODE_TOO_MANY_SZR_REQUESTS)
 									{
 										$resendBpkQueryCount++;
 										if ($resendBpkQueryCount <= $maxResendBpkQueryCount)
 										{
-											sleep(30);
+											sleep($sleepSecondsAmount);
 											$continueLoop = true;
 										}
 									}
@@ -413,6 +425,70 @@ class DVUHManagement extends JQW_Controller
 		}
 
 		$this->logInfo('DVUHRequestBpk job stop');
+	}
+
+	/**
+	 * Initialises requestEkz job, handles job queue, logs infos/errors
+	 */
+	public function requestEkz()
+	{
+		$jobType = 'DVUHRequestEkz';
+		$this->logInfo('DVUHRequestEkz job start');
+
+		// Gets the latest jobs
+		$lastJobs = $this->getLastJobs($jobType);
+		if (isError($lastJobs))
+		{
+			$this->logError(getCode($lastJobs).': '.getError($lastJobs), $jobType);
+		}
+		else
+		{
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_START_TIME), // Job properties to be updated
+				array(date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			$person_arr = $this->_getInputObjArray(getData($lastJobs));
+
+			foreach ($person_arr as $persobj)
+			{
+				if (!isset($persobj->person_id))
+					$this->logError("Fehler bei Ekzabfrage, ungültige Parameter übergeben");
+				else
+				{
+					$person_id = $persobj->person_id;
+
+					$requestEkzResult = $this->dvuhekzmanagementlib->requestAndSaveEkz($person_id);
+
+					if (isError($requestEkzResult))
+					{
+						$this->_logDVUHError(
+							"Fehler bei Ekzvergabe, person Id $person_id",
+							$requestEkzResult,
+							$person_id
+						);
+					}
+					elseif (hasData($requestEkzResult))
+					{
+						$requestEkzArr = getData($requestEkzResult);
+
+						$this->_logDVUHInfosAndWarnings($requestEkzArr, array('person_id' => $person_id));
+					}
+				}
+			}
+
+			// Update jobs properties values
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_STATUS, JobsQueueLib::PROPERTY_END_TIME), // Job properties to be updated
+				array(JobsQueueLib::STATUS_DONE, date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
+		}
+
+		$this->logInfo('DVUHRequestEkz job stop');
 	}
 
 	/**
@@ -537,7 +613,20 @@ class DVUHManagement extends JQW_Controller
 
 		if (isset($resultarr['warnings']) && !isEmptyArray($resultarr['warnings']))
 		{
+			// get issue texts
 			$warningTxt = implode('; ', $this->dvuhissuelib->getIssueTexts($resultarr['warnings']));
+
+			// add warning texts for non-issue warnings
+			foreach ($resultarr['warnings'] as $warning)
+			{
+				if (isError($warning))
+				{
+					$errText = getError($warning);
+					if (is_string($errText)) $warningTxt .= (isEmptyString($warningTxt) ? '' : '; ').$errText;
+				}
+				elseif (is_string($warning))
+					$warningTxt .= (isEmptyString($warningTxt) ? '' : '; ').$warning;
+			}
 
 			foreach ($idArr as $idname => $idvalue)
 			{
@@ -546,11 +635,12 @@ class DVUHManagement extends JQW_Controller
 
 			$this->logWarning($warningTxt);
 
+			// save DVUH issues in database
 			foreach ($resultarr['warnings'] as $warning)
 			{
 				$person_id = isset($idArr['person_id']) ? $idArr['person_id'] : null;
 				$prestudent_id = isset($idArr['prestudent_id']) ? $idArr['prestudent_id'] : null;
-				$this->_addDVUHIssue($warning, $person_id, $prestudent_id, true);
+				$this->_addDVUHIssue($warning, $person_id, $prestudent_id, $force_predefined_for_external = true);
 			}
 		}
 	}

@@ -4,5 +4,6 @@ INSERT INTO system.tbl_jobtypes (type, description) VALUES
 ('DVUHSendPayment', 'Send student payment to Datenverbund'),
 ('DVUHSendStudyData', 'Send final data of enrolled students'),
 ('DVUHRequestBpk', 'Request Bpk from Datenverbund'),
+('DVUHRequestEkz', 'Request Ekz from Datenverbund'),
 ('DVUHSendPruefungsaktivitaeten', 'Send Prüfungsaktivitäten (Zeugnisnoten) to Datenverbund')
 ON CONFLICT (type) DO NOTHING;
