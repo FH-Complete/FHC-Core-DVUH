@@ -1061,6 +1061,8 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 						hasData($previousStatusRes) && getData($previousStatusRes)[0] === true ? $meldestatus_active : $all_meldestatus['storniert'];
 				}
 				break;
+			default:
+				return error("Unbekannter Statuscode");
 		}
 
 		return success($meldestatus);
