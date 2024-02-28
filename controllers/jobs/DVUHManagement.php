@@ -367,7 +367,10 @@ class DVUHManagement extends JQW_Controller
 
 						// sleep if number of requests exceeds threshold
 						$totalRequestAmount++;
-						if ($totalRequestAmount > $this->config->item('fhc_dvuh_sync_pruefe_bpk_max_requests'))
+						if (
+							$this->config->item('fhc_dvuh_sync_pruefe_bpk_max_requests') !== null
+							&& $totalRequestAmount > $this->config->item('fhc_dvuh_sync_pruefe_bpk_max_requests')
+						)
 						{
 							sleep($sleepSecondsAmount);
 							// reset request amount
