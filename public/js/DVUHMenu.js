@@ -105,7 +105,7 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016', 6)
 				method = 'get';
 				break;
-			case 'getBpk':
+			case 'getPruefeBpk':
 				html = '<h4>bPK ermitteln (manuell)</h4>';
 				html += DVUHMenu._getPreviewInputfieldHtml('bpkDatenVorausfuellen', 'bpkDatenVorausfuellenVoll');
 				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
@@ -122,9 +122,14 @@ var DVUHMenu = {
 				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
 					DVUHMenu.getPersonPrefillData(params.person_id, 'bpkDatenVorausfuellen');
 				break;
-			case 'getBpkByPersonId':
+			case 'getPruefeBpkByPersonId':
 				html = '<h4>bPK ermitteln</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
+				method = 'get';
+				break;
+			case 'getBpk':
+				html = '<h4>Alle Bpks abfragen</h4>';
+				html += DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016', 6)
 				method = 'get';
 				break;
 			case 'getPruefungsaktivitaeten':
@@ -713,7 +718,7 @@ var DVUHMenu = {
 			$("#dvuhOutputContainer").append(
 				'<div class="col-lg-'+columns+'" id="dvuhOutputColumn">'+
 					'<div class="well well-sm wellminheight">'+
-						'<div class="panel-title text-center">Syncoutput</div>'+
+						'<div class="panel-title text-center">Output</div>'+
 						'<div id="dvuhOutput" class="panel panel-body">'+
 						'</div>'+
 					'</div>'+

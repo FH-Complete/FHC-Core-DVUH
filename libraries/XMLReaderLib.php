@@ -167,6 +167,7 @@ class XMLReaderLib
 					$errResultobj->fehlernummer . ': ' .
 					(isset($errResultobj->feldinhalt) && !isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
 					$errResultobj->fehlertext .
+					(isset($errResultobj->datenfeld) ? ', '.$errResultobj->datenfeld : '') .
 					(isset($errResultobj->massnahme) && !isEmptyString($errResultobj->massnahme) ? ', ' . $errResultobj->massnahme : '');
 
 				if (in_array($errResultobj->kategorie, $error_categories))

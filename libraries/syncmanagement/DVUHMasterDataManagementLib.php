@@ -30,7 +30,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->model('codex/Oehbeitrag_model', 'OehbeitragModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ernpmeldung_model', 'ErnpmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ekzanfordern_model', 'EkzanfordernModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHZahlungen_model', 'DVUHZahlungenModel');
@@ -375,9 +375,31 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	}
 
 	/**
+	 * Gets vbpk
+	 * @param $person_id
+	 * @return object success or error
+	 */
+	//~ public function getVbpk($person_id)
+	//~ {
+		//~ $this->_ci->PersonModel->addSelect('matr_nr');
+		//~ $matrikelnummerRes = $this->_ci->PersonModel->load($person_id);
+
+		//~ if (isError($matrikelnummerRes))
+			//~ return $matrikelnummerRes;
+
+		//~ if (hasData($matrikelnummerRes))
+		//~ {
+			//~ $matrikelnummer = getData($matrikelnummerRes)[0]->matr_nr;
+		//~ }
+
+		//~ if (!isset($matrikelnummer)) return $this->getResponseArr($person_id, null, array(error("Vbpk Anfrage: Matrikelnummer fehlt")));
+
+		//~ $vpkRes = $this->_ci->bpkmanagementlib->getVbpk($matrikelnummer, $this->_be);
+	//~ }
+
+	/**
 	 * Sends Matrikelmeldung with ERnP to DVUH. Checks if data is missing.
 	 * @param $person_id
-	 * @param string $writeonerror
 	 * @param string $ausgabedatum Y-m-d
 	 * @param string $ausstellBehoerde
 	 * @param string $ausstellland country code
@@ -386,9 +408,8 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	 * @param false $preview if true, only data to post and infos are returned
 	 * @return object error or success
 	 */
-	public function sendMatrikelErnpMeldung(
+	public function sendErnpMeldung(
 		$person_id,
-		$writeonerror,
 		$ausgabedatum,
 		$ausstellBehoerde,
 		$ausstellland,
@@ -408,10 +429,9 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 
 		if ($preview)
 		{
-			$postData = $this->_ci->MatrikelmeldungModel->retrievePostData(
+			$postData = $this->_ci->ErnpmeldungModel->retrievePostData(
 				$this->_be,
 				$person_id,
-				$writeonerror,
 				$ausgabedatum,
 				$ausstellBehoerde,
 				$ausstellland,
@@ -425,10 +445,9 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 			return $this->getResponseArr(getData($postData), $infos);
 		}
 
-		$matrikelmeldungResult = $this->_ci->MatrikelmeldungModel->post(
+		$ernpmeldungResult = $this->_ci->ErnpmeldungModel->post(
 			$this->_be,
 			$person_id,
-			$writeonerror,
 			$ausgabedatum,
 			$ausstellBehoerde,
 			$ausstellland,
@@ -436,11 +455,11 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 			$dokumenttyp
 		);
 
-		if (isError($matrikelmeldungResult))
-			$result = $matrikelmeldungResult;
-		elseif (hasData($matrikelmeldungResult))
+		if (isError($ernpmeldungResult))
+			$result = $ernpmeldungResult;
+		elseif (hasData($ernpmeldungResult))
 		{
-			$xmlstr = getData($matrikelmeldungResult);
+			$xmlstr = getData($ernpmeldungResult);
 
 			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
 
@@ -448,7 +467,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 				$result = $parsedObj;
 			else
 			{
-				$infos[] = 'Personenmeldung erfolgreich';
+				$infos[] = 'Ernpmeldung erfolgreich';
 				$result = $this->getResponseArr(
 					$xmlstr,
 					$infos,
@@ -458,7 +477,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 			}
 		}
 		else
-			$result = error("Fehler beim Senden der Matrikelmeldung");
+			$result = error("Fehler beim Senden der Ernpmeldung");
 
 		return $result;
 	}

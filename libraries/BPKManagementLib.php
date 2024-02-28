@@ -21,6 +21,7 @@ class BPKManagementLib
 		$this->_ci->load->model('person/Adresse_model', 'AdresseModel');
 		$this->_ci->load->model('crm/Akte_model', 'AkteModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
 
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
@@ -367,6 +368,31 @@ class BPKManagementLib
 
 		return success($bpkRes);
 	}
+
+	/**
+	 * Gets vpk for a student.
+	 * @param $matrikelnummer
+	 * @param $be
+	 * @return object success or error
+	 */
+	//~ public function getVbpk($matrikelnummer, $be, $semester = null)
+	//~ {
+		//~ $fullstudentRes = $this->_ci->FullstudentModel->get($matrikelnummer, $be, $semester);
+
+		//~ if (isError($fullstudentRes)) return $fullstudentRes;
+
+		//~ if (hasData($fullstudentRes))
+		//~ {
+			//~ $fullstudent = getData($fullstudentRes);
+
+			//~ // parse the fullstudent result, extract vbPK
+			//~ $parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($fullstudent, array('vbpk'));
+
+			//~ var_dump($parsedObj);
+
+			//~ die();
+		//~ }
+	//~ }
 
 	// --------------------------------------------------------------------------------------------
 	// Private methods

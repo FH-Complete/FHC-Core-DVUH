@@ -284,7 +284,7 @@ $this->load->view(
 									</div>
 									<div class="col-lg-5 text-right">
 										<a href="<?php
-											echo site_url('extensions/FHC-Core-DVUH/DVUH#page=getBpk&person_id='.$stammdaten->person_id);
+											echo site_url('extensions/FHC-Core-DVUH/DVUH#page=getPruefeBpk&person_id='.$stammdaten->person_id);
 											?>" target="_blank">
 											<i class="fa fa-external-link"></i>&nbsp;Zur manuellen bPK-Prüfung
 										</a>
