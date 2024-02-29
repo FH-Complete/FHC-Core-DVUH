@@ -49,28 +49,29 @@ $this->load->view('templates/FHC-Header', array(
 			<br />
 			<div id="menuContainer">
 				<div class="row first-row">
-					<div class="col-lg-6 panelcolumn">
+					<div class="col-lg-3 panelcolumn">
 						<div class="panel panel-default">
 							<div class="panel-heading">Matrikelnummermanagement</div>
 							<div class="panel-body">
-								<div class="row">
-									<div class="col-lg-6 menucolumn">
-										<ul class="list-unstyled dvuhMenu">
-											<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
-											<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Reservierungen anzeigen</a></li>
-											<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
-											<li id="postMatrikelkorrektur"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
-										</ul>
-									</div>
-									<div class="col-lg-6 menucolumn">
-										<ul class="list-unstyled dvuhMenu">
-											<li id="getPruefeBpkByPersonId"><a href="javascript:void(0)">bPK ermitteln</a></li>
-											<li id="getPruefeBpk"><a href="javascript:void(0)">bPK manuell ermitteln</a></li>
-											<li id="getBpk"><a href="javascript:void(0)">Alle bPKs abfragen</a></li>
-											<li id="postEkzanfordern"><a href="javascript:void(0)">EKZ anfordern</a></li>
-										</ul>
-									</div>
-								</div>
+								<ul class="list-unstyled dvuhMenu">
+									<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
+									<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Reservierungen anzeigen</a></li>
+									<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
+									<li id="postMatrikelkorrektur"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
+								</ul>
+							</div>
+						</div>
+					</div>
+					<div class="col-lg-3 panelcolumn">
+						<div class="panel panel-default">
+							<div class="panel-heading">bPK Management</div>
+							<div class="list-unstyled panel-body">
+								<ul class="list-unstyled dvuhMenu">
+									<li id="getPruefeBpkByPersonId"><a href="javascript:void(0)">bPK ermitteln</a></li>
+									<li id="getPruefeBpk"><a href="javascript:void(0)">bPK manuell ermitteln</a></li>
+									<li id="getBpk"><a href="javascript:void(0)">Alle bPKs abfragen</a></li>
+									<li id="postErnpmeldung"><a href="javascript:void(0)">ERnP Meldung durchführen</a></li>
+								</ul>
 							</div>
 						</div>
 					</div>
@@ -81,7 +82,7 @@ $this->load->view('templates/FHC-Header', array(
 								<ul class="list-unstyled dvuhMenu">
 									<li id="getStammdaten"><a href="javascript:void(0)">Stammdaten und Zahlungsvorschreibung abfragen</a></li>
 									<li id="postMasterData"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden</a></li>
-									<li id="postErnpmeldung"><a href="javascript:void(0)">ERnP Meldung durchführen</a></li>
+									<li id="postEkzanfordern"><a href="javascript:void(0)">EKZ anfordern</a></li>
 								</ul>
 							</div>
 						</div>
