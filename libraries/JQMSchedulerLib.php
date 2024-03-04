@@ -19,6 +19,7 @@ class JQMSchedulerLib
 	const JOB_TYPE_SEND_PAYMENT = 'DVUHSendPayment';
 	const JOB_TYPE_SEND_STUDY_DATA = 'DVUHSendStudyData';
 	const JOB_TYPE_REQUEST_BPK = 'DVUHRequestBpk';
+	const JOB_TYPE_REQUEST_VBPK = 'DVUHRequestVbpk';
 	const JOB_TYPE_REQUEST_EKZ = 'DVUHRequestEkz';
 	const JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN = 'DVUHSendPruefungsaktivitaeten';
 
@@ -172,6 +173,73 @@ class JQMSchedulerLib
 		{
 			$qry .= " AND pss.status_kurzbz IN ?";
 			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK];
+		}
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
+
+		$qry .= " ORDER BY person_id";
+
+		$dbModel = new DB_Model();
+
+		$stToSyncResult = $dbModel->execReadOnlyQuery($qry, $params);
+
+		// If error occurred while retrieving students from database then return the error
+		if (isError($stToSyncResult)) return $stToSyncResult;
+
+		// If students are present
+		if (hasData($stToSyncResult))
+		{
+			$jobInput = json_encode(getData($stToSyncResult));
+		}
+
+		$result = success($jobInput);
+
+		return $result;
+	}
+
+	/**
+	 * Gets students for input of requestBpk job.
+	 * @param string $studiensemester_kurzbz semester for which Bpk should be requested
+	 * @return object students
+	 */
+	public function requestVbpk($studiensemester_kurzbz)
+	{
+		$jobInput = null;
+		$result = null;
+
+		$studiensemester_kurzbz_arr = $this->_getStudiensemester($studiensemester_kurzbz);
+
+		if (isEmptyArray($studiensemester_kurzbz_arr))
+			return error("Kein Studiensemester angegeben");
+
+		$params = array($studiensemester_kurzbz_arr);
+
+		// get students with no vBPK
+		$qry = "SELECT DISTINCT person_id
+				FROM public.tbl_person pers
+					JOIN public.tbl_prestudent USING (person_id)
+					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
+					JOIN public.tbl_studiengang stg USING (studiengang_kz)
+				WHERE
+					stg.melderelevant = TRUE
+					AND bismelden = TRUE
+					AND pss.studiensemester_kurzbz IN ?
+					AND NOT EXISTS (
+						SELECT 1
+						FROM
+							public.tbl_kennzeichen
+							WHERE person_id = pers.person_id
+							AND kennzeichentyp_kurzbz = 'vbpkAs'
+					)";
+
+		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_VBPK]))
+		{
+			$qry .= " AND pss.status_kurzbz IN ?";
+			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_VBPK];
 		}
 
 		if (!isEmptyArray($this->_oe_kurzbz))
