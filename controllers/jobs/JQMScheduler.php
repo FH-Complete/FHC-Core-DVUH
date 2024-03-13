@@ -187,39 +187,6 @@ class JQMScheduler extends JQW_Controller
 	}
 
 	/**
-	 * Creates jobs queue entries for requestBpk job.
-	 * @param string $studiensemester_kurzbz Bpk will be requested for students in this semester
-	 */
-	public function requestVbpk($studiensemester_kurzbz = null)
-	{
-		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->requestVbpk');
-
-		// If an error occured then log it
-		$jobInputResult = $this->jqmschedulerlib->requestVbpk($studiensemester_kurzbz);
-
-		if (isError($jobInputResult))
-		{
-			$this->logError(getError($jobInputResult));
-		}
-		else
-		{
-			// Add the new job to the jobs queue
-			$addNewJobResult = $this->addNewJobsToQueue(
-				JQMSchedulerLib::JOB_TYPE_REQUEST_VBPK, // job type
-				$this->generateJobs( // gnerate the structure of the new job
-					JobsQueueLib::STATUS_NEW,
-					getData($jobInputResult)
-				)
-			);
-
-			// If error occurred return it
-			if (isError($addNewJobResult)) $this->logError(getError($addNewJobResult));
-		}
-
-		$this->logInfo('End job queue scheduler FHC-Core-DVUH->requestVbpk');
-	}
-
-	/**
 	 * Creates jobs queue entries for requestEkz job.
 	 * @param string $studiensemester_kurzbz Ekz will be requested for students in this semester
 	 */

@@ -379,23 +379,23 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	 * @param $person_id
 	 * @return object success or error
 	 */
-	public function getVbpk($person_id)
-	{
-		$this->_ci->PersonModel->addSelect('matr_nr');
-		$matrikelnummerRes = $this->_ci->PersonModel->load($person_id);
+	//~ public function getVbpk($person_id)
+	//~ {
+		//~ $this->_ci->PersonModel->addSelect('matr_nr');
+		//~ $matrikelnummerRes = $this->_ci->PersonModel->load($person_id);
 
-		if (isError($matrikelnummerRes))
-			return $matrikelnummerRes;
+		//~ if (isError($matrikelnummerRes))
+			//~ return $matrikelnummerRes;
 
-		if (hasData($matrikelnummerRes))
-		{
-			$matrikelnummer = getData($matrikelnummerRes)[0]->matr_nr;
-		}
+		//~ if (hasData($matrikelnummerRes))
+		//~ {
+			//~ $matrikelnummer = getData($matrikelnummerRes)[0]->matr_nr;
+		//~ }
 
-		if (!isset($matrikelnummer)) return $this->getResponseArr($person_id, null, array(error("Vbpk Anfrage: Matrikelnummer fehlt")));
+		//~ if (!isset($matrikelnummer)) return $this->getResponseArr($person_id, null, array(error("Vbpk Anfrage: Matrikelnummer fehlt")));
 
-		$vpkRes = $this->_ci->bpkmanagementlib->getVbpk($matrikelnummer, $this->_be);
-	}
+		//~ $vpkRes = $this->_ci->bpkmanagementlib->getVbpk($matrikelnummer, $this->_be);
+	//~ }
 
 	/**
 	 * Sends Matrikelmeldung with ERnP to DVUH. Checks if data is missing.

@@ -375,22 +375,24 @@ class BPKManagementLib
 	 * @param $be
 	 * @return object success or error
 	 */
-	public function getVbpk($matrikelnummer, $be, $semester = null)
-	{
-		$fullstudentRes = $this->_ci->FullstudentModel->get($matrikelnummer, $be, $semester);
+	//~ public function getVbpk($matrikelnummer, $be, $semester = null)
+	//~ {
+		//~ $fullstudentRes = $this->_ci->FullstudentModel->get($matrikelnummer, $be, $semester);
 
-		if (isError($fullstudentRes)) return $fullstudentRes;
+		//~ if (isError($fullstudentRes)) return $fullstudentRes;
 
-		if (hasData($fullstudentRes))
-		{
-			$fullstudent = getData($fullstudentRes);
+		//~ if (hasData($fullstudentRes))
+		//~ {
+			//~ $fullstudent = getData($fullstudentRes);
 
-			// parse the fullstudent result, extract vbPK
-			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($fullstudent, array('vbpk'));
+			//~ // parse the fullstudent result, extract vbPK
+			//~ $parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($fullstudent, array('vbpk'));
 
-			var_dump($parsedObj);
-		}
-	}
+			//~ var_dump($parsedObj);
+
+			//~ die();
+		//~ }
+	//~ }
 
 	// --------------------------------------------------------------------------------------------
 	// Private methods
