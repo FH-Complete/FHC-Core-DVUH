@@ -111,7 +111,7 @@ var DVUHMenu = {
 				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
 					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X, optional', 1)
+					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X', 1)
 					+ DVUHMenu._getTextfieldHtml('strasse', 'Strasse', 'der Heimatadresse, ohne Hausnummer, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('plz', 'PLZ', 'optional', 15)
 					+ DVUHMenu._getTextfieldHtml('geburtsland', 'Geburtsland', 'optional', 15)
@@ -434,6 +434,7 @@ var DVUHMenu = {
 						$("#vorname").val(prefillData.vorname);
 						$("#nachname").val(prefillData.nachname);
 						$("#geburtsdatum").val(prefillData.gebdatum);
+						if ($("#geschlecht")) $("#geschlecht").val(prefillData.geschlecht);
 
 						if (buttonId == 'matrnrDatenVorausfuellen')
 						{
@@ -443,7 +444,6 @@ var DVUHMenu = {
 						}
 						else if (buttonId == 'bpkDatenVorausfuellen')
 						{
-							$("#geschlecht").val('');
 							$("#geburtsland").val('');
 							$("#strasse").val('');
 							$("#plz").val('');
@@ -452,7 +452,6 @@ var DVUHMenu = {
 						}
 						else if (buttonId == 'bpkDatenVorausfuellenVoll')
 						{
-							$("#geschlecht").val(prefillData.geschlecht);
 							$("#geburtsland").val(prefillData.geburtsland);
 							$("#strasse").val(prefillData.strasse);
 							$("#plz").val(prefillData.plz);
@@ -468,7 +467,6 @@ var DVUHMenu = {
 			}
 		);
 	},
-
 	/* additional "private" methods */
 	_hideNonPermittedMenuActions: function()
 	{
