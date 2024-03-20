@@ -117,10 +117,10 @@ class Ernpmeldung_model extends DVUHClientModel
 					array(
 						'adresse' => array(
 							//'hausnummer' => 1, // TODO own hausnummer field
-							'ort' => $addressToSend->ort,
+							'ort' => trim(substr($addressToSend->ort, 0, 60)),
 							'plz' => $addressToSend->plz,
 							'staat' => $addressToSend->nation,
-							'strasse' => $addressToSend->strasse
+							'strasse' => trim(substr($addressToSend->strasse, 0, 54))
 						),
 						'be' => $be,
 						'gebdat' => $stammdatenData->gebdatum,

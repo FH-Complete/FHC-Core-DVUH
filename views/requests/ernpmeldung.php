@@ -3,7 +3,9 @@
 <?php if (isset($ernpmeldung)): ?>
 	<?php if (isset($ernpmeldung['adresse'])): ?>
 	<adresse>
+<!--
 		<hausnummer>1</hausnummer>
+-->
 		<ort><?php echo $ernpmeldung['adresse']['ort']; ?></ort>
 		<plz><?php echo $ernpmeldung['adresse']['plz']; ?></plz>
 		<staat><?php echo $ernpmeldung['adresse']['staat']; ?></staat>
