@@ -23,10 +23,14 @@ class BPKManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
 
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHBpkCheck');
+		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+
+		$this->_vbpkTypes = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -54,14 +58,18 @@ class BPKManagementLib
 
 		// get documents
 		$qry = "
-			SELECT akte_id, dokument_kurzbz, titel, akte.bezeichnung as akte_bezeichnung, akte.erstelltam,
-			       dok.bezeichnung as dokument_bezeichnung, dok.bezeichnung_mehrsprachig as dokument_bezeichnung_mehrsprachig,
-			       akte.anmerkung as akte_anmerkung, nat.nation_code, nat.langtext as nation, nat.engltext as nation_englisch
-			FROM public.tbl_akte akte
-			JOIN public.tbl_dokument dok USING (dokument_kurzbz)
+			SELECT
+				akte_id, dokument_kurzbz, titel, akte.bezeichnung as akte_bezeichnung, akte.erstelltam,
+				dok.bezeichnung as dokument_bezeichnung, dok.bezeichnung_mehrsprachig as dokument_bezeichnung_mehrsprachig,
+				akte.anmerkung as akte_anmerkung, nat.nation_code, nat.langtext as nation, nat.engltext as nation_englisch
+			FROM
+				public.tbl_akte akte
+			JOIN
+				public.tbl_dokument dok USING (dokument_kurzbz)
 			LEFT JOIN bis.tbl_nation nat ON ausstellungsnation = nation_code
-			WHERE akte.person_id = ?
-			AND dokument_kurzbz IN ?;
+			WHERE
+				akte.person_id = ?
+				AND dokument_kurzbz IN ?;
 		";
 
 		$documentsRes = $this->_dbModel->execReadOnlyQuery($qry, array($person_id, $dokument_kurzbz));
@@ -71,10 +79,29 @@ class BPKManagementLib
 			return $documentsRes;
 		}
 
+		// get vBPKs
+		$qry = "
+			SELECT
+				inhalt AS vbpk, kennzeichentyp_kurzbz AS vbpk_typ
+			FROM
+				public.tbl_kennzeichen kz
+			WHERE
+				person_id = ?
+				AND kennzeichentyp_kurzbz IN ?
+				AND aktiv = true;";
+
+		$kennzeichenRes = $this->_dbModel->execReadOnlyQuery($qry, array($person_id, $this->_vbpkTypes));
+
+		if (isError($kennzeichenRes))
+		{
+			return $kennzeichenRes;
+		}
+
 		return success(
 			array(
 				'stammdaten' => getData($stammdatenRes),
-				'dokumente' => hasData($documentsRes) ? getData($documentsRes) : array()
+				'dokumente' => hasData($documentsRes) ? getData($documentsRes) : array(),
+				'vbpk' => hasData($kennzeichenRes) ? getData($kennzeichenRes) : array()
 			)
 		);
 	}
@@ -389,6 +416,29 @@ class BPKManagementLib
 		}
 
 		return success($bpkRes);
+	}
+
+	/**
+	 * Saves all necessary bpks.
+	 * @param $person_id
+	 * @param $bpk
+	 * @param $vbpks
+	 * @return object success or error
+	 */
+	public function saveBpks($person_id, $bpk, $vbpks)
+	{
+		$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
+
+		if (isError($bpkSaveResult)) return $bpkSaveResult;
+
+		foreach ($vbpks as $vbpk)
+		{
+			$vbpkSaveResult = $this->_ci->fhcmanagementlib->saveVbpkInFhc($person_id, $this->_vbpkTypes[$vbpk['attributes']['bereich']], $vbpk['value']);
+
+			if (isError($vbpkSaveResult)) return $vbpkSaveResult;
+		}
+
+		return success("Bpks saved");
 	}
 
 	// --------------------------------------------------------------------------------------------

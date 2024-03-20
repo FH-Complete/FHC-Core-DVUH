@@ -21,6 +21,7 @@ class BPKManagement extends Auth_Controller
 				'checkBpkCombinations' => 'admin:r',
 				'getAllNameCombinations' => 'admin:r',
 				'saveBpk' => 'admin:rw',
+				'saveBpks' => 'admin:rw',
 				'outputAkteContent' => 'admin:r'
 			)
 		);
@@ -32,6 +33,7 @@ class BPKManagement extends Auth_Controller
 
 		// Loads libraries
 		$this->load->library('WidgetLib');
+		$this->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
 
 		$this->loadPhrases(
@@ -140,18 +142,28 @@ class BPKManagement extends Auth_Controller
 
 		if (isEmptyString($person_id))
 			$bpkSaveResult = error('PersonID fehlt');
-		elseif (!$this->dvuhcheckinglib->checkBpk($bpk))
-			$bpkSaveResult = error('bPK ungültig');
 		else
 		{
-			$bpkSaveResult = $this->PersonModel->update(
-				$person_id,
-				array(
-					'bpk' => $bpk,
-					'updateamum' => date('Y-m-d H:i:s'),
-					'updatevon' => $this->_uid
-				)
-			);
+			$bpkSaveResult = $this->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
+		}
+
+		$this->outputJson($bpkSaveResult);
+	}
+
+	/**
+	 * Saves all necessary bPKs for a person
+	 */
+	public function saveBpks()
+	{
+		$person_id = $this->input->post('person_id');
+		$bpk = $this->input->post('bpk');
+		$vbpks = $this->input->post('vbpks');
+
+		if (isEmptyString($person_id))
+			$bpkSaveResult = error('PersonID fehlt');
+		else
+		{
+			$bpkSaveResult = $this->bpkmanagementlib->saveBpks($person_id, $bpk, $vbpks);
 		}
 
 		$this->outputJson($bpkSaveResult);
