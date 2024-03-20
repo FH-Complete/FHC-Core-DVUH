@@ -221,7 +221,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 					$saveBpkRes = $this->_saveBpkFromDvuhWarning($person_id, $parsedWarnings);
 
 					if (isError($saveBpkRes))
-						return error('Fehler beim Speichern der bpk in FHC');
+						return error('Fehler beim Speichern der Bpk in FHC');
 
 					if (hasData($saveBpkRes))
 					{
@@ -256,29 +256,56 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$infos = array();
 		$warnings = array();
 
-		// request BPK only for persons with no BPK
-		$personResult = $this->_dbModel->execReadOnlyQuery(
-			"SELECT DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, strasse, plz
+		$vbpkTypes = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
+
+		$params = array($person_id);
+
+		$qry = "SELECT
+					DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, strasse, plz
 				FROM
-				public.tbl_person
-				LEFT JOIN (SELECT DISTINCT ON (person_id) strasse, plz, person_id
-							FROM public.tbl_adresse
-							WHERE heimatadresse = TRUE
-							ORDER BY person_id, insertamum DESC NULLS LAST
-							) addr USING(person_id)
-				WHERE tbl_person.person_id = ?
-				AND (tbl_person.bpk IS NULL OR tbl_person.bpk = '')",
-			array(
-				$person_id
-			)
-		);
+					public.tbl_person pers
+					LEFT JOIN (
+						SELECT
+							DISTINCT ON (person_id) strasse, plz, person_id
+						FROM
+							public.tbl_adresse
+						WHERE
+							heimatadresse = TRUE
+						ORDER BY
+							person_id, insertamum DESC NULLS LAST
+					) addr USING(person_id)
+				WHERE
+					pers.person_id = ?
+					AND (
+						pers.bpk IS NULL
+						OR pers.bpk = ''";
+
+		if (!isEmptyArray($vbpkTypes))
+		{
+			$qry .= " OR (
+							SELECT
+								COUNT(DISTINCT kennzeichentyp_kurzbz)
+							FROM
+								public.tbl_kennzeichen
+							WHERE
+								person_id = pers.person_id
+								AND kennzeichentyp_kurzbz IN ?
+						) < ?";
+
+			$params[] = $vbpkTypes;
+			$params[] = count($vbpkTypes);
+		}
+
+		$qry .= ")";
+
+		// request BPK only for persons with no BPK
+		$personResult = $this->_dbModel->execReadOnlyQuery($qry, $params);
 
 		if (hasData($personResult))
 		{
 			$person = getData($personResult)[0];
 
-			if (!isEmptyString($person->geschlecht))
-				$geschlecht = $this->_ci->dvuhconversionlib->convertGeschlechtToDVUH($person->geschlecht);
+			$geschlecht = $this->_ci->dvuhconversionlib->convertGeschlechtToDVUH($person->geschlecht);
 
 			$pruefeBpkResult = $this->_ci->bpkmanagementlib->executeBpkRequest(
 				array(
@@ -340,6 +367,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 							{
 								$infos[] = "bPK nach Neuanfrage mit Adresse erfolgreich ermittelt!";
 								$bpk = $parsedObjAddr['bpk'];
+								$vbpk = $parsedObjAddr['vbpk'];
 							}
 						}
 						else
@@ -352,6 +380,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 				{
 					$infos[] = "Bpk erfolgreich ermittelt!";
 					$bpk = $pruefeBpkResultData['bpk'];
+					$vbpk = $pruefeBpkResultData['vbpk'];
 				}
 
 				// if bpk found, save it in FHC db
@@ -361,6 +390,22 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 
 					if (!hasData($bpkSaveResult))
 						return error("Fehler beim Speichern der Bpk in FHC");
+
+					foreach ($vbpk as $vbpkObj)
+					{
+						// skip if vbpk type not present
+						if (!isset($vbpkObj->attributes['bereich']) || !key_exists($vbpkObj->attributes['bereich'], $vbpkTypes)) continue;
+
+						// save the vbpk
+						$vbpkSaveResult = $this->_ci->fhcmanagementlib->saveVbpkInFhc(
+							$person_id,
+							$vbpkTypes[$vbpkObj->attributes['bereich']],
+							$vbpkObj->value
+						);
+
+						if (isError($vbpkSaveResult))
+							return error("Fehler beim Speichern der Vbpk in FHC");
+					}
 
 					$infos[] = "Bpk erfolgreich in FHC gespeichert!";
 				}
@@ -373,29 +418,6 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		else
 			return error("Keine Person ohne Bpk gefunden");
 	}
-
-	/**
-	 * Gets vbpk
-	 * @param $person_id
-	 * @return object success or error
-	 */
-	//~ public function getVbpk($person_id)
-	//~ {
-		//~ $this->_ci->PersonModel->addSelect('matr_nr');
-		//~ $matrikelnummerRes = $this->_ci->PersonModel->load($person_id);
-
-		//~ if (isError($matrikelnummerRes))
-			//~ return $matrikelnummerRes;
-
-		//~ if (hasData($matrikelnummerRes))
-		//~ {
-			//~ $matrikelnummer = getData($matrikelnummerRes)[0]->matr_nr;
-		//~ }
-
-		//~ if (!isset($matrikelnummer)) return $this->getResponseArr($person_id, null, array(error("Vbpk Anfrage: Matrikelnummer fehlt")));
-
-		//~ $vpkRes = $this->_ci->bpkmanagementlib->getVbpk($matrikelnummer, $this->_be);
-	//~ }
 
 	/**
 	 * Sends Matrikelmeldung with ERnP to DVUH. Checks if data is missing.

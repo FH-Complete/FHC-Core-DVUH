@@ -113,6 +113,7 @@ class BPKManagementLib
 				$bpkRequestData['vorname'] = $combination['vorname'];
 				$bpkRequestData['nachname'] = $combination['nachname'];
 				$bpkRequestData['geburtsdatum'] = $personData['gebdatum'];
+				$bpkRequestData['geschlecht'] = $personData['geschlecht'];
 
 				// execute bpk call
 				$bpkRes = $this->executeBpkRequest($bpkRequestData);
@@ -131,7 +132,6 @@ class BPKManagementLib
 					{
 						// if multiple person results, check with more parameters
 						$additionalParamms = array(
-							'geschlecht' => $personData['geschlecht'],
 							'plz' => $personData['plz'],
 							'strasse' => $personData['strasse']
 						);
@@ -311,16 +311,20 @@ class BPKManagementLib
 	 */
 	public function executeBpkRequest($personData)
 	{
-		$bpkRes =  array('bpk' => null, 'personData' => array(), 'numberPersonsFound' => 0);
+		$bpkRes =  array('bpk' => null, 'vbpk' => array(), 'personData' => array(), 'numberPersonsFound' => 0);
 
 		// execute bPK call
 		$pruefeBpkResult = $this->_ci->PruefebpkModel->get(
 			$personData['vorname'],
 			$personData['nachname'],
 			$personData['geburtsdatum'],
-			isset($personData['geschlecht']) ? $personData['geschlecht'] : null,
+			$personData['geschlecht'],
 			isset($personData['strasse']) ? $personData['strasse'] : null,
-			isset($personData['plz']) ? $personData['plz'] : null
+			isset($personData['hausnummer']) ? $personData['hausnummer'] : null,
+			isset($personData['plz']) ? $personData['plz'] : null,
+			isset($personData['staat']) ? $personData['staat'] : null,
+			isset($personData['frueherername']) ? $personData['frueherername'] : null,
+			isset($personData['sonstigername']) ? $personData['sonstigername'] : null
 		);
 
 		if (isError($pruefeBpkResult))
@@ -330,19 +334,25 @@ class BPKManagementLib
 
 		if (hasData($pruefeBpkResult))
 		{
+			$pruefeBpkData = getData($pruefeBpkResult);
 			// parse the bPK result, extract bPK and personInfo
-			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkResult), array('bpk', 'personInfo'));
+			$parsedBpkObj = $this->_ci->xmlreaderlib->parseXmlDvuh($pruefeBpkData, array('bpk', 'personInfo', 'bpkResponse'));
+			$parsedVbpkObj = $this->_ci->xmlreaderlib->parseXmlDvuhIncludeAttributes($pruefeBpkData, array('vbpk'));
 
-			if (isError($parsedObj))
-				return $parsedObj;
+			if (isError($parsedBpkObj))
+				return $parsedBpkObj;
 
-			if (hasData($parsedObj))
+			if (isError($parsedVbpkObj))
+				return $parsedVbpkObj;
+
+			if (hasData($parsedBpkObj) && hasData($parsedVbpkObj))
 			{
-				$parsedObj = getData($parsedObj);
+				$parsedBpkObj = getData($parsedBpkObj);
+				$parsedVbpkObj = getData($parsedVbpkObj);
 
 				$personData = array();
 
-				foreach ($parsedObj->personInfo as $personInfo)
+				foreach ($parsedBpkObj->personInfo as $personInfo)
 				{
 					// save the person Info in php object
 					$person = new stdClass();
@@ -354,45 +364,32 @@ class BPKManagementLib
 					$personData[] = $person;
 				}
 
+				//if (isset($parsedBpkObj->personInfo) && !isEmptyArray($parsedBpkObj->personInfo)) var_dump($parsedBpkObj);
+
 				// no bpk found
-				if (isEmptyArray($parsedObj->bpk))
+				if (isEmptyArray($parsedBpkObj->bpk))
 				{
-					$bpkRes = array('bpk' => null, 'personData' => $personData, 'numberPersonsFound' => count($parsedObj->personInfo));
+					$bpkRes = array(
+						'bpk' => null,
+						'vbpk' => null,
+						'personData' => $personData,
+						'numberPersonsFound' => count($parsedBpkObj->personInfo)
+					);
 				}
 				else // bpk found
 				{
-					$bpkRes = array('bpk' => $parsedObj->bpk[0], 'personData' => $personData, 'numberPersonsFound' => count($parsedObj->bpk));
+					$bpkRes = array(
+						'bpk' => $parsedBpkObj->bpk[0],
+						'vbpk' => $parsedVbpkObj->vbpk,
+						'personData' => $personData,
+						'numberPersonsFound' => count($parsedBpkObj->bpk)
+					);
 				}
 			}
 		}
 
 		return success($bpkRes);
 	}
-
-	/**
-	 * Gets vpk for a student.
-	 * @param $matrikelnummer
-	 * @param $be
-	 * @return object success or error
-	 */
-	//~ public function getVbpk($matrikelnummer, $be, $semester = null)
-	//~ {
-		//~ $fullstudentRes = $this->_ci->FullstudentModel->get($matrikelnummer, $be, $semester);
-
-		//~ if (isError($fullstudentRes)) return $fullstudentRes;
-
-		//~ if (hasData($fullstudentRes))
-		//~ {
-			//~ $fullstudent = getData($fullstudentRes);
-
-			//~ // parse the fullstudent result, extract vbPK
-			//~ $parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($fullstudent, array('vbpk'));
-
-			//~ var_dump($parsedObj);
-
-			//~ die();
-		//~ }
-	//~ }
 
 	// --------------------------------------------------------------------------------------------
 	// Private methods
@@ -406,9 +403,6 @@ class BPKManagementLib
 	 */
 	private function _addBpkResponseToResults($bpkRequestData, $bpkResponseData, &$allBpkResults)
 	{
-		if (isEmptyArray($bpkResponseData['personData']))
-			return;
-
 		$bpkResAlreadyExists = false;
 		for ($i = 0; $i < count($allBpkResults); $i++)
 		{
@@ -561,11 +555,19 @@ class BPKManagementLib
 	 */
 	private function _checkBpkResponsesForEquality($responseA, $responseB)
 	{
+		if (
+			!isset($responseA['bpk'])
+			&& !isset($responseB['bpk'])
+			&& isEmptyArray($responseA['personData'])
+			&& isEmptyArray($responseB['personData'])
+			)
+			return true;
+
 		// if bpks are equal, responses are equal
 		if (isset($responseA['bpk']) && isset($responseB['bpk']) && $responseA['bpk'] == $responseB['bpk'])
 			return true;
 
-		if (isset($responseA['personData']) && isset($responseB['personData']))
+		if (!isEmptyArray($responseA['personData']) && !isEmptyArray($responseB['personData']))
 		{
 			$responseSize = count($responseA['personData']);
 

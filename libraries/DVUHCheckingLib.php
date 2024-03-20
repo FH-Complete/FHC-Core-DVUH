@@ -164,4 +164,14 @@ class DVUHCheckingLib
 	{
 		return preg_match("/^[AFHLU][UPF][A-Z]([0-9]{3}){1,3}(0[1-6]|[UP][A-W]){0,1}$/", $studienkennunguni) === 1;
 	}
+
+	/**
+	 * Checks if a string is a valid base64 string.
+	 * @param string str
+	 * @return bool valid or not
+	 */
+	public function checkBase64($str)
+	{
+		return base64_encode(base64_decode($str, true)) === $str;
+	}
 }

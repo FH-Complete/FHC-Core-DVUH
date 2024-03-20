@@ -42,6 +42,7 @@ class JQMSchedulerLib
 		$oe_kurzbz = $this->_ci->config->item('fhc_dvuh_oe_kurzbz');
 		$this->_angerechnet_note = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
 		$studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_dvuh_studiensemester_meldezeitraum');
+		$this->_vbpk_types = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
 
 		// get default Studiensemester from config
 		$today = new DateTime(date('Y-m-d'));
@@ -159,14 +160,35 @@ class JQMSchedulerLib
 
 		// get students with no BPK
 		$qry = "SELECT DISTINCT person_id
-				FROM public.tbl_person
+				FROM public.tbl_person pers
 					JOIN public.tbl_prestudent USING (person_id)
 					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 					JOIN public.tbl_studiengang stg USING (studiengang_kz)
-				WHERE (tbl_person.bpk IS NULL OR tbl_person.bpk = '')
+				WHERE
+					pss.studiensemester_kurzbz IN ?
 					AND stg.melderelevant = TRUE
 					AND bismelden = TRUE
-					AND pss.studiensemester_kurzbz IN ?";
+					AND (
+						pers.bpk IS NULL
+						OR pers.bpk = ''";
+
+		if (!isEmptyArray($this->_vbpk_types))
+		{
+			$qry .= "OR (
+							SELECT
+								COUNT(DISTINCT kennzeichentyp_kurzbz)
+							FROM
+								public.tbl_kennzeichen
+							WHERE
+								person_id = pers.person_id
+								AND kennzeichentyp_kurzbz IN ?
+						) < ?";
+
+			$params[] = $this->_vbpk_types;
+			$params[] = count($this->_vbpk_types);
+		}
+
+		$qry .= ")";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK]))
 		{

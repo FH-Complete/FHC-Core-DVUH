@@ -24,29 +24,19 @@ class XMLReaderLib
 	 */
 	public function parseXmlDvuh($xmlstr, $searchparams)
 	{
-		$result = null;
-		$errors = $this->parseXmlDvuhBlockingErrors($xmlstr);
+		return $this->_parseXmlDvuh($xmlstr, $searchparams);
+	}
 
-		if (isError($errors))
-			$result = $errors;
-		elseif (hasData($errors))
-		{
-			$errortext = '';
-			$errorsArr = getData($errors);
-
-			foreach ($errorsArr as $error)
-			{
-				if (!isEmptyString($errortext))
-					$errortext .= ', ';
-				$errortext .= $error->issue_fehlertext;
-			}
-
-			$result = error($errorsArr);
-		}
-		else
-			$result = $this->parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE);
-
-		return $result;
+	/**
+	 * Parses DVUH XML, includes attributes of XML elements, checks if XML contains DVUH-specific errors.
+	 * If no errors found, finds given parameters in xml by provided names and returns the values.
+	 * @param string $xmlstr
+	 * @param array $searchparams one parameter as string or multiple parameters as array of strings
+	 * @return object success with results or error
+	 */
+	public function parseXmlDvuhIncludeAttributes($xmlstr, $searchparams)
+	{
+		return $this->_parseXmlDvuh($xmlstr, $searchparams, $includeAttributes = true);
 	}
 
 	/**
@@ -78,6 +68,56 @@ class XMLReaderLib
 	 */
 	public function parseXml($xmlstr, $searchparams, $namespace = null)
 	{
+		return $this->_parseXml($xmlstr, $searchparams, $namespace = null);
+	}
+
+	// --------------------------------------------------------------------------------------------
+	// Private methods
+
+	/**
+	 * Parses DVUH XML, checks if XML contains DVUH-specific errors.
+	 * If no errors found, finds given parameters in xml by provided names and returns the values.
+	 * @param string $xmlstr
+	 * @param array $searchparams one parameter as string or multiple parameters as array of strings
+	 * @return object success with results or error
+	 */
+	private function _parseXmlDvuh($xmlstr, $searchparams, $includeAttributes = false)
+	{
+		$result = null;
+		$errors = $this->parseXmlDvuhBlockingErrors($xmlstr);
+
+		if (isError($errors))
+			$result = $errors;
+		elseif (hasData($errors))
+		{
+			$errortext = '';
+			$errorsArr = getData($errors);
+
+			foreach ($errorsArr as $error)
+			{
+				if (!isEmptyString($errortext))
+					$errortext .= ', ';
+				$errortext .= $error->issue_fehlertext;
+			}
+
+			$result = error($errorsArr);
+		}
+		else
+			$result = $this->_parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE, $includeAttributes);
+
+		return $result;
+	}
+
+	/**
+	 * Parses xml, finds given parameters in xml by provided names and returns the values.
+	 * @param string $xmlstr
+	 * @param mixed $searchparams one parameter as string or multiple parameters as array of strings
+	 * @param string $namespace
+	 * @param bool $includeAttributes include attributes of XML elements
+	 * @return object success with results or error
+	 */
+	private function _parseXml($xmlstr, $searchparams, $namespace = null, $includeAttributes = false)
+	{
 		$result = null;
 
 		$doc = new DOMDocument();
@@ -108,7 +148,7 @@ class XMLReaderLib
 					if ($element->nodeType == XML_ELEMENT_NODE && ($element->childNodes) && count($element->childNodes) > 0)
 					{
 						$obj = new stdClass();
-						$this->_convertDomElementToPhpObj($element, $obj);
+						$this->_convertDomElementToPhpObj($element, $obj, $includeAttributes);
 						$reselements[] = $obj;
 					}
 					else // otherwise text node -> save value
@@ -127,9 +167,6 @@ class XMLReaderLib
 
 		return $result;
 	}
-
-	// --------------------------------------------------------------------------------------------
-	// Private methods
 
 	/**
 	 * Parses XML for errors (as defined by DVUH).
@@ -182,8 +219,9 @@ class XMLReaderLib
 	 * Converts dom element to php stdClass object.
 	 * @param object $domElement
 	 * @param object $phpObject
+	 * @param bool $includeAttributes
 	 */
-	private function _convertDomElementToPhpObj($domElement, &$phpObject)
+	private function _convertDomElementToPhpObj($domElement, &$phpObject, $includeAttributes = false)
 	{
 		// for all child nodes of element
 		foreach ($domElement->childNodes as $child)
@@ -204,12 +242,16 @@ class XMLReaderLib
 						$phpObject->{$child->nodeName}[] = new stdClass();
 
 						// recursive call for new array element to fill child data
-						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->nodeName}[count($phpObject->{$child->nodeName}) -1]);
+						$this->_convertDomElementToPhpObj(
+							$child,
+							$phpObject->{$child->nodeName}[count($phpObject->{$child->nodeName}) -1],
+							$includeAttributes
+						);
 					}
 					else // if element does not exist yet, create it and go down one level
 					{
 						$phpObject->{$child->nodeName} = new stdClass();
-						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->nodeName});
+						$this->_convertDomElementToPhpObj($child, $phpObject->{$child->nodeName}, $includeAttributes);
 					}
 				}
 				else // empty string if no children
@@ -217,7 +259,22 @@ class XMLReaderLib
 			}
 			else // no children anymore, set the value
 			{
-				$phpObject = $child->nodeValue;
+				if ($includeAttributes === true)
+				{
+					$phpObject = new stdClass();
+
+					$phpObject->value = $child->nodeValue;
+					if (isset($domElement->attributes))
+					{
+						$phpObject->attributes = array();
+						foreach ($domElement->attributes as $attribute)
+						{
+							$phpObject->attributes[$attribute->nodeName] = $attribute->nodeValue;
+						}
+					}
+				}
+				else
+					$phpObject = $child->nodeValue;
 			}
 		}
 	}

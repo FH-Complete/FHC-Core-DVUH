@@ -22,6 +22,7 @@ class FHCManagementLib
 		$this->_ci->load->model('crm/Prestudentstatus_model', 'PrestudentstatusModel');
 		$this->_ci->load->model('crm/Konto_model', 'KontoModel');
 		$this->_ci->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
+		$this->_ci->load->model('person/Kennzeichen_model', 'KennzeichenModel');
 
 		// load libraries
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHCheckingLib');
@@ -314,6 +315,43 @@ class FHCManagementLib
 	}
 
 	/**
+	 * Saves vbpk in FHC db.
+	 * @param int $person_id
+	 * @param string $kennzeichentyp_kurzbz
+	 * @param string $vbpk
+	 * @return object success with bpk if saved, or error
+	 */
+	public function saveVbpkInFhc($person_id, $kennzeichentyp_kurzbz, $vbpk)
+	{
+		// check if vbpk is valid base64 string
+		if (!$this->_ci->dvuhcheckinglib->checkBase64($vbpk))
+			return error("Invalid base64 string");
+
+		// check if vbpk already saved
+		$this->_ci->KennzeichenModel->addSelect('1');
+		$kennzeichenRes = $this->_ci->KennzeichenModel->loadWhere(
+			array('person_id' => $person_id, 'kennzeichentyp_kurzbz' => $kennzeichentyp_kurzbz, 'aktiv' => true)
+		);
+
+		// insert if not saved
+		if (!hasData($kennzeichenRes))
+		{
+			return $this->_ci->KennzeichenModel->insert(
+				array(
+					'person_id' => $person_id,
+					'kennzeichentyp_kurzbz' => $kennzeichentyp_kurzbz,
+					'inhalt' => $vbpk,
+					'aktiv' => true,
+					'insertamum' => date('Y-m-d H:i:s'),
+					'insertvon' => self::DVUH_USER
+				)
+			);
+		}
+
+		return success(null);
+	}
+
+	/**
 	 * Saves ekz in FHC db.
 	 * @param int $person_id
 	 * @param string $ersatzkennzeichen
@@ -543,6 +581,9 @@ class FHCManagementLib
 
 		return $this->_dbModel->execReadOnlyQuery($qry, array($prestudent_id, $studiensemester_kurzbz));
 	}
+
+	// --------------------------------------------------------------------------------------------
+	// Private methods
 
 	/**
 	 * Checks if last prestudenstatus of a prestudent of a certain semester has a certain type.

@@ -171,7 +171,7 @@ var BpkDetails = {
 		let requestData = bpkData.requestData;
 		let responsePersonData = responseData.personData;
 
-		let numberPersonsFound = responsePersonData.length;
+		let numberPersonsFound = responseData.numberPersonsFound;
 		let heading = 'keine Bpk gefunden';
 
 		if (numberPersonsFound > 1)

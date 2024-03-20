@@ -77,8 +77,13 @@ $config['fhc_dvuh_sync_student_meldestatus'] = array(
 	'storniert' => 'O'
 );
 
-//  Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
+// Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
 $config['fhc_dvuh_sync_note_angerechnet'] = array(6, 19);
+
+// Vbpk types to save
+$config['fhc_dvuh_sync_vbpk_types'] = array(
+	'AS' => 'vbpkAs'
+);
 
 // max number of "checkbpk" requests before a sleep (for preventing server errors)
 $config['fhc_dvuh_sync_pruefe_bpk_max_requests'] = 50;

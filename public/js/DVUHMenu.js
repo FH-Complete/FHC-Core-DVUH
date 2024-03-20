@@ -113,11 +113,11 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X', 1)
 					+ DVUHMenu._getTextfieldHtml('strasse', 'Strasse', 'der Heimatadresse, ohne Hausnummer, optional', 255)
+					+ DVUHMenu._getTextfieldHtml('hausnummer', 'Hausnummer', 'der Heimatadresse, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('plz', 'PLZ', 'optional', 15)
-					+ DVUHMenu._getTextfieldHtml('geburtsland', 'Geburtsland', 'optional', 15)
-					+ DVUHMenu._getTextfieldHtml('akadgrad', 'Akademischer Grad Pre', 'vor dem Namen, optional', 255)
-					+ DVUHMenu._getTextfieldHtml('akadnach', 'Akademischer Grad Post', 'nach dem Namen, optional', 255)
-					+ DVUHMenu._getTextfieldHtml('alternativname', 'Alternativname', 'optional, Nachname vor Namenswechsel', 255)
+					+ DVUHMenu._getTextfieldHtml('staat', 'Staat', 'der Heimatadresse, optional', 15)
+					+ DVUHMenu._getTextfieldHtml('frueherername', 'Früherer Name', 'optional, Bei Änderungen des Familiennamen ist hier der Name vor dem Wechsel anzugeben', 255)
+					+ DVUHMenu._getTextfieldHtml('sonstigername', 'Alternativer Name', 'optional', 255)
 				method = 'get';
 				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
 					DVUHMenu.getPersonPrefillData(params.person_id, 'bpkDatenVorausfuellen');
