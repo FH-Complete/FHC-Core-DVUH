@@ -79,22 +79,26 @@ class BPKManagementLib
 			return $documentsRes;
 		}
 
-		// get vBPKs
-		$qry = "
-			SELECT
-				inhalt AS vbpk, kennzeichentyp_kurzbz AS vbpk_typ
-			FROM
-				public.tbl_kennzeichen kz
-			WHERE
-				person_id = ?
-				AND kennzeichentyp_kurzbz IN ?
-				AND aktiv = true;";
-
-		$kennzeichenRes = $this->_dbModel->execReadOnlyQuery($qry, array($person_id, $this->_vbpkTypes));
-
-		if (isError($kennzeichenRes))
+		$kennzeichenRes = null;
+		if (!isEmptyArray($this->_vbpkTypes))
 		{
-			return $kennzeichenRes;
+			// get vBPKs
+			$qry = "
+				SELECT
+					inhalt AS vbpk, kennzeichentyp_kurzbz AS vbpk_typ
+				FROM
+					public.tbl_kennzeichen kz
+				WHERE
+					person_id = ?
+					AND kennzeichentyp_kurzbz IN ?
+					AND aktiv = true;";
+
+			$kennzeichenRes = $this->_dbModel->execReadOnlyQuery($qry, array($person_id, $this->_vbpkTypes));
+
+			if (isError($kennzeichenRes))
+			{
+				return $kennzeichenRes;
+			}
 		}
 
 		return success(
@@ -391,8 +395,6 @@ class BPKManagementLib
 					$personData[] = $person;
 				}
 
-				//if (isset($parsedBpkObj->personInfo) && !isEmptyArray($parsedBpkObj->personInfo)) var_dump($parsedBpkObj);
-
 				// no bpk found
 				if (isEmptyArray($parsedBpkObj->bpk))
 				{
@@ -433,6 +435,8 @@ class BPKManagementLib
 
 		foreach ($vbpks as $vbpk)
 		{
+			if (!isset($this->_vbpkTypes[$vbpk['attributes']['bereich']])) continue;
+
 			$vbpkSaveResult = $this->_ci->fhcmanagementlib->saveVbpkInFhc($person_id, $this->_vbpkTypes[$vbpk['attributes']['bereich']], $vbpk['value']);
 
 			if (isError($vbpkSaveResult)) return $vbpkSaveResult;

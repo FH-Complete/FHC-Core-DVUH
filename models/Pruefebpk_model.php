@@ -17,6 +17,9 @@ class Pruefebpk_model extends DVUHClientModel
 
 		// load models
 		$this->load->model('person/Person_model', 'PersonModel');
+
+		// load libraries
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 	}
 
 	/**
@@ -60,7 +63,7 @@ class Pruefebpk_model extends DVUHClientModel
 				'vorname' => $vorname,
 				'nachname' => $nachname,
 				'geburtsdatum' => $geburtsdatum,
-				'geschlecht' => $geschlecht
+				'geschlecht' => $this->dvuhconversionlib->convertGeschlechtToDVUH($geschlecht)
 			);
 
 			if (!is_null($strasse))

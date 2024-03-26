@@ -305,14 +305,12 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		{
 			$person = getData($personResult)[0];
 
-			$geschlecht = $this->_ci->dvuhconversionlib->convertGeschlechtToDVUH($person->geschlecht);
-
 			$pruefeBpkResult = $this->_ci->bpkmanagementlib->executeBpkRequest(
 				array(
 					'vorname' => $person->vorname,
 					'nachname' => $person->nachname,
 					'geburtsdatum' => $person->gebdatum,
-					'geschlecht' => $geschlecht
+					'geschlecht' => $person->geschlecht
 				)
 			);
 
@@ -341,7 +339,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 								'vorname' => $person->vorname,
 								'nachname' => $person->nachname,
 								'geburtsdatum' => $person->gebdatum,
-								'geschlecht' => $geschlecht,
+								'geschlecht' => $person->geschlecht,
 								'strasse' => $strasse,
 								'plz' => $person->plz
 							)
@@ -394,7 +392,9 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 					foreach ($vbpk as $vbpkObj)
 					{
 						// skip if vbpk type not present
-						if (!isset($vbpkObj->attributes['bereich']) || !key_exists($vbpkObj->attributes['bereich'], $vbpkTypes)) continue;
+						if (!isset($vbpkObj->attributes['bereich'])
+							|| !isset($vbpkTypes[$vbpkObj->attributes['bereich']])
+						) continue;
 
 						// save the vbpk
 						$vbpkSaveResult = $this->_ci->fhcmanagementlib->saveVbpkInFhc(

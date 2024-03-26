@@ -63,14 +63,17 @@ class DVUHConversionLib
 	 */
 	public function convertGeschlechtToDVUH($fhcgeschlecht)
 	{
-		$dvuh_geschlecht = 'X';
+		$geschlechtMappings = array(
+			'm' => 'M',
+			'w' => 'W',
+			'default' => 'X'
+		);
 
-		if ($fhcgeschlecht == 'm')
-			$dvuh_geschlecht = 'M';
-		elseif ($fhcgeschlecht == 'w')
-			$dvuh_geschlecht = 'W';
+		// return same value if already converted
+		if (in_array($fhcgeschlecht, $geschlechtMappings)) return $fhcgeschlecht;
 
-		return $dvuh_geschlecht;
+		// return mapped value if present, otherwise default value
+		return $geschlechtMappings[$fhcgeschlecht] ?? $geschlechtMappings['default'];
 	}
 
 	/**
