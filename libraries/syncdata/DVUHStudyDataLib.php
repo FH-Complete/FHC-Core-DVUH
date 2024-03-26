@@ -31,6 +31,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 		$this->_ci->load->model('codex/Orgform_model', 'OrgformModel');
 		$this->_ci->load->model('codex/Zweck_model', 'ZweckModel');
 		$this->_ci->load->model('codex/Aufenthaltfoerderung_model', 'AufenthaltfoerderungModel');
+		$this->_ci->load->model('codex/Bismeldestichtag_model', 'BismeldestichtagModel');
 
 		// load helpers
 		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
@@ -171,6 +172,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 					}
 
 					// studstatuscode
+					$studstatuscode = null;
 					$studstatuscodeResult = $this->_getStatuscode($status_kurzbz);
 
 					if (isError($studstatuscodeResult))
@@ -307,7 +309,12 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 
 					// gemeinsame Studien
 					$gemeinsam = null;
-					$gemeinsamResult = $this->_getGemeinsameStudien($prestudent_id, $studiensemester_kurzbz, $studtyp, $prestudentstatus->beendigungsdatum);
+					$gemeinsamResult = $this->_getGemeinsameStudien(
+						$prestudent_id,
+						$studiensemester_kurzbz,
+						$studtyp,
+						$prestudentstatus->beendigungsdatum
+					);
 
 					if (isset($gemeinsamResult) && isError($gemeinsamResult))
 						return $gemeinsamResult;
@@ -318,7 +325,13 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 					}
 
 					// meldestatus
-					$meldeStatusRes = $this->_getMeldeStatus($prestudent_id, $studiensemester_kurzbz, $status_kurzbz, isset($mobilitaet));
+					$meldeStatusRes = $this->_getMeldeStatus(
+						$prestudent_id,
+						$studiensemester_kurzbz,
+						$studstatuscode,
+						$prestudentstatus->status_datum,
+						isset($mobilitaet)
+					);
 
 					if (isError($meldeStatusRes))
 						return $meldeStatusRes;
@@ -985,34 +998,71 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 	 * Gets meldestatus for a prestudent in a semester.
 	 * @param int prestudent_id
 	 * @param string studiensemester_kurzbz
-	 * @param string status_kurzbz
-	 * @param bool status_kurzbz
+	 * @param int studstatuscode
+	 * @param string statusDatum
+	 * @param bool hasMobilitaet
 	 * @return object success or error with meldestatus
 	 */
-	private function _getMeldeStatus($prestudent_id, $studiensemester_kurzbz, $status_kurzbz, $hasMobilitaet)
+	private function _getMeldeStatus($prestudent_id, $studiensemester_kurzbz, $studstatuscode, $statusDatum, $hasMobilitaet)
 	{
 		$unfinished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_unfinished_student_status_kurzbz');
 		$all_meldestatus = $this->_ci->config->item('fhc_dvuh_sync_student_meldestatus');
 
 		$meldestatus = null;
-		if ($status_kurzbz == 'Abbrecher')
+
+		// status for currently studying, students with mobility have own status
+		$meldestatus_active = $hasMobilitaet === true ? $all_meldestatus['zugelassen_ausland'] : $all_meldestatus['zugelassen_inland'];
+
+		switch($studstatuscode)
 		{
-			// if terminated status, check if there is a "non-finishing" status in previous Semester...
-			$previousStatusRes = $this->_ci->fhcmanagementlib->checkPreviousPrestudentStatusType(
-				$prestudent_id,
-				$studiensemester_kurzbz,
-				$unfinished_status_kurzbz
-			);
+			case 1: // currently studying
+				$meldestatus = $meldestatus_active;
+				break;
+			case 2: // "Unterbrecher" - study interruption
+				$meldestatus = $all_meldestatus['unterbrochen'];
+				break;
+			case 3: // "Absolvent" - successfully finished studies
+				$meldestatus = $meldestatus_active;
+				break;
+			case 4: // "Abbrecher" - study termination
+				$terminationAfterStichtag = false;
 
-			if (isError($previousStatusRes))
-				return $previousStatusRes;
+				$bisMeldestichtagRes = $this->_ci->BismeldestichtagModel->getByStudiensemester($studiensemester_kurzbz);
 
-			// ... if yes, set status zugelassen (active)
-			if (hasData($previousStatusRes) && getData($previousStatusRes)[0] === true)
-			{
-				// students with mobilität have own status
-				$meldestatus = $hasMobilitaet === true ? $all_meldestatus['zugelassen_ausland'] : $all_meldestatus['zugelassen_inland'];
-			}
+				if (isError($bisMeldestichtagRes)) return $bisMeldestichtagRes;
+
+				if (hasData($bisMeldestichtagRes))
+				{
+					$bisMeldestichtag = getData($bisMeldestichtagRes)[0]->meldestichtag;
+
+					// termination after bismeldestichtag
+					if (new DateTime($statusDatum) >= new DateTime($bisMeldestichtag))
+					{
+						// active status if after Stichtag
+						$terminationAfterStichtag = true;
+						$meldestatus = $meldestatus_active;
+					}
+				}
+
+				if (!$terminationAfterStichtag)
+				{
+					// if terminated status, check if there is a "non-finishing" status in previous Semester...
+					$previousStatusRes = $this->_ci->fhcmanagementlib->checkPreviousPrestudentStatusType(
+						$prestudent_id,
+						$studiensemester_kurzbz,
+						$unfinished_status_kurzbz
+					);
+
+					if (isError($previousStatusRes))
+						return $previousStatusRes;
+
+					// ... if yes, set status zugelassen (active), otherwise storniert
+					$meldestatus =
+						hasData($previousStatusRes) && getData($previousStatusRes)[0] === true ? $meldestatus_active : $all_meldestatus['storniert'];
+				}
+				break;
+			default:
+				return error("Unbekannter Statuscode");
 		}
 
 		return success($meldestatus);
