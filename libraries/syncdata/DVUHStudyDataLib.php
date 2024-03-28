@@ -909,6 +909,8 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 				if (isset($ects_erworben) && !isEmptyString($ects_erworben))
 					$mobilitaet['ectserworben'] = round($ects_erworben);
 
+				$mobilitaet['id'] = $bisio_id;
+
 				$mobilitaeten[] = $mobilitaet;
 			}
 		}
