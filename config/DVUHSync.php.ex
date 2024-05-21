@@ -80,9 +80,10 @@ $config['fhc_dvuh_sync_student_meldestatus'] = array(
 // Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
 $config['fhc_dvuh_sync_note_angerechnet'] = array(6, 19);
 
-// Vbpk types to save
+// Vbpk types to save (mapping "DVUH acronym => fh database kennzeichentyp_kurzbz")
 $config['fhc_dvuh_sync_vbpk_types'] = array(
-	'AS' => 'vbpkAs'
+	'AS' => 'vbpkAs',
+	'BF' => 'vbpkBf'
 );
 
 // max number of "checkbpk" requests before a sleep (for preventing server errors)
