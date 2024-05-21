@@ -116,7 +116,7 @@ class Ernpmeldung_model extends DVUHClientModel
 					$params['ernpmeldung'],
 					array(
 						'adresse' => array(
-							//'hausnummer' => 1, // TODO own hausnummer field
+							'hausnummer' => 'N/A',
 							'ort' => trim(substr($addressToSend->ort, 0, 60)),
 							'plz' => $addressToSend->plz,
 							'staat' => $addressToSend->nation,
