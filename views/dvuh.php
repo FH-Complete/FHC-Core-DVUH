@@ -69,7 +69,6 @@ $this->load->view('templates/FHC-Header', array(
 								<ul class="list-unstyled dvuhMenu">
 									<li id="getPruefeBpkByPersonId"><a href="javascript:void(0)">bPK ermitteln</a></li>
 									<li id="getPruefeBpk"><a href="javascript:void(0)">bPK manuell ermitteln</a></li>
-									<li id="getBpk"><a href="javascript:void(0)">Alle bPKs abfragen</a></li>
 									<li id="postErnpmeldung"><a href="javascript:void(0)">ERnP Meldung durchführen</a></li>
 								</ul>
 							</div>

@@ -127,11 +127,6 @@ var DVUHMenu = {
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
 				method = 'get';
 				break;
-			case 'getBpk':
-				html = '<h4>Alle Bpks abfragen</h4>';
-				html += DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016', 6)
-				method = 'get';
-				break;
 			case 'getPruefungsaktivitaeten':
 				html = '<h4>Pr&uuml;fungsaktivit&auml;ten abfragen</h4>';
 				html += DVUHMenu._getSemesterRow()
