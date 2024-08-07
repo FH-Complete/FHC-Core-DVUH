@@ -97,6 +97,57 @@ class FHCManagementLib
 	}
 
 	/**
+	 * Get person without bpk (bpk or vbpk).
+	 * @param int $person_id
+	 * @param array $vbpkTypes vbpk types to check for
+	 */
+	public function getPersonDataMissingBpk($person_id, $vbpkTypes = array())
+	{
+		$params = array($person_id);
+
+		$qry = "SELECT
+					DISTINCT person_id, vorname, nachname, geschlecht, matr_nr, gebdatum, bpk, strasse, plz
+				FROM
+					public.tbl_person pers
+					LEFT JOIN (
+						SELECT
+							DISTINCT ON (person_id) strasse, plz, person_id
+						FROM
+							public.tbl_adresse
+						WHERE
+							heimatadresse = TRUE
+						ORDER BY
+							person_id, insertamum DESC NULLS LAST
+					) addr USING(person_id)
+				WHERE
+					pers.person_id = ?
+					AND (
+						pers.bpk IS NULL
+						OR pers.bpk = ''";
+
+		if (!isEmptyArray($vbpkTypes))
+		{
+			$qry .= " OR (
+							SELECT
+								COUNT(DISTINCT kennzeichentyp_kurzbz)
+							FROM
+								public.tbl_kennzeichen
+							WHERE
+								person_id = pers.person_id
+								AND kennzeichentyp_kurzbz IN ?
+						) < ?";
+
+			$params[] = $vbpkTypes;
+			$params[] = count($vbpkTypes);
+		}
+
+		$qry .= ")";
+
+		// request BPK only for persons with no BPK
+		return $this->_dbModel->execReadOnlyQuery($qry, $params);
+	}
+
+	/**
 	 * Gets uids for a person with prestudent in a certain semester.
 	 * @param int $person_id
 	 * @param string $studiensemester_kurzbz

@@ -18,6 +18,7 @@ class JQMSchedulerLib
 	const JOB_TYPE_SEND_CHARGE = 'DVUHSendCharge';
 	const JOB_TYPE_SEND_PAYMENT = 'DVUHSendPayment';
 	const JOB_TYPE_SEND_STUDY_DATA = 'DVUHSendStudyData';
+	const JOB_TYPE_GET_BPK = 'DVUHGetBpk';
 	const JOB_TYPE_REQUEST_BPK = 'DVUHRequestBpk';
 	const JOB_TYPE_REQUEST_EKZ = 'DVUHRequestEkz';
 	const JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN = 'DVUHSendPruefungsaktivitaeten';
@@ -142,11 +143,11 @@ class JQMSchedulerLib
 	}
 
 	/**
-	 * Gets students for input of requestBpk job.
+	 * Gets students for input of requestBpk or getBpk job.
 	 * @param string $studiensemester_kurzbz semester for which Bpk should be requested
 	 * @return object students
 	 */
-	public function requestBpk($studiensemester_kurzbz)
+	public function requestOrGetBpk($studiensemester_kurzbz)
 	{
 		$jobInput = null;
 		$result = null;

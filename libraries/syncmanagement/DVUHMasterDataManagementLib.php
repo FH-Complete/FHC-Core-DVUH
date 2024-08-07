@@ -30,11 +30,14 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->model('codex/Oehbeitrag_model', 'OehbeitragModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ernpmeldung_model', 'ErnpmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Ekzanfordern_model', 'EkzanfordernModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Kontostaende_model', 'KontostaendeModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHZahlungen_model', 'DVUHZahlungenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHStammdaten_model', 'DVUHStammdatenModel');
+
+		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
 
 		$this->_dbModel = new DB_Model(); // get db
 	}
@@ -242,6 +245,75 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		return $result;
 	}
 
+	/**
+	 * Gets and saves bpk data for a person from fullstudent data.
+	 * @param int $person_id
+	 * @return object success or error
+	 */
+	public function getAndSaveBpkFromFullstudent($person_id)
+	{
+		$vbpkTypes = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
+
+		$infos = array();
+
+		// request BPK only for persons with no BPK
+		$personResult = $this->_ci->fhcmanagementlib->getPersonDataMissingBpk($person_id, $vbpkTypes);
+
+		if (!hasData($personResult)) return error("Keine Person ohne Bpk gefunden");
+
+		$personData = getData($personResult)[0];
+
+		$matr_nr = $personData->matr_nr;
+
+		if (isEmptyString($matr_nr)) return $this->getResponseArr(null, $infos, array(error('Matrikelnummer fehlt')));
+
+		// get fullstudent xml
+		$fullstudentResult = $this->_ci->FullstudentModel->get($matr_nr, $this->_be);
+
+		if (isError($fullstudentResult)) return $fullstudentResult;
+		if (!hasData($fullstudentResult)) return error("Keine fullstudent Daten gefunden");
+
+		$xmlstr = getData($fullstudentResult);
+
+		// parse for bpk and vbpks
+		$parsedBpkObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('bpk'));
+		$parsedVbpkObj = $this->_ci->xmlreaderlib->parseXmlDvuhIncludeAttributes($xmlstr, array('vbpk'));
+
+		if (isError($parsedBpkObj)) return $parsedBpkObj;
+
+		if (isError($parsedVbpkObj)) return $parsedVbpkObj;
+
+		$bpk = null;
+
+		if (hasData($parsedBpkObj))
+		{
+			$parsedBpkObjData = getData($parsedBpkObj);
+			// bpk: get only once
+			if (!isEmptyArray($parsedBpkObjData->bpk)) $bpk = array_unique($parsedBpkObjData->bpk, SORT_REGULAR)[0];
+		}
+
+		if (isset($bpk))
+		{
+			// if bpk already exists, don't save it another time
+			if (!isEmptyString($personData->bpk)) $bpk = null;
+
+			// vbpk: get only once for each type
+			$vbpkArr = hasData($parsedVbpkObj) ? array_unique(getData($parsedVbpkObj)->vbpk, SORT_REGULAR) : [];
+
+			// save bpk and vbpk
+			$saveResult = $this->_saveAllBpk($person_id, $bpk, $vbpkArr, $vbpkTypes);
+
+			if (isError($saveResult)) return $saveResult;
+
+			$infos[] = getData($saveResult);
+		}
+		else
+		{
+			$infos[] = "No bpk found";
+		}
+
+		return $this->getResponseArr($bpk, $infos);
+	}
 
 	/**
 	 * Checks if student has a Bpk assigned in DVUH.
@@ -252,54 +324,15 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 	 */
 	public function requestBpk($person_id)
 	{
+		$vbpkTypes = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
+
 		$bpk = null;
+		$vbpkArr = [];
 		$infos = array();
 		$warnings = array();
 
-		$vbpkTypes = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
-
-		$params = array($person_id);
-
-		$qry = "SELECT
-					DISTINCT person_id, vorname, nachname, geschlecht, gebdatum, bpk, strasse, plz
-				FROM
-					public.tbl_person pers
-					LEFT JOIN (
-						SELECT
-							DISTINCT ON (person_id) strasse, plz, person_id
-						FROM
-							public.tbl_adresse
-						WHERE
-							heimatadresse = TRUE
-						ORDER BY
-							person_id, insertamum DESC NULLS LAST
-					) addr USING(person_id)
-				WHERE
-					pers.person_id = ?
-					AND (
-						pers.bpk IS NULL
-						OR pers.bpk = ''";
-
-		if (!isEmptyArray($vbpkTypes))
-		{
-			$qry .= " OR (
-							SELECT
-								COUNT(DISTINCT kennzeichentyp_kurzbz)
-							FROM
-								public.tbl_kennzeichen
-							WHERE
-								person_id = pers.person_id
-								AND kennzeichentyp_kurzbz IN ?
-						) < ?";
-
-			$params[] = $vbpkTypes;
-			$params[] = count($vbpkTypes);
-		}
-
-		$qry .= ")";
-
 		// request BPK only for persons with no BPK
-		$personResult = $this->_dbModel->execReadOnlyQuery($qry, $params);
+		$personResult = $this->_ci->fhcmanagementlib->getPersonDataMissingBpk($person_id, $vbpkTypes);
 
 		if (hasData($personResult))
 		{
@@ -365,7 +398,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 							{
 								$infos[] = "bPK nach Neuanfrage mit Adresse erfolgreich ermittelt!";
 								$bpk = $parsedObjAddr['bpk'];
-								$vbpk = $parsedObjAddr['vbpk'];
+								$vbpkArr = $parsedObjAddr['vbpk'];
 							}
 						}
 						else
@@ -378,36 +411,20 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 				{
 					$infos[] = "Bpk erfolgreich ermittelt!";
 					$bpk = $pruefeBpkResultData['bpk'];
-					$vbpk = $pruefeBpkResultData['vbpk'];
+					$vbpkArr = $pruefeBpkResultData['vbpk'];
 				}
 
 				// if bpk found, save it in FHC db
 				if (isset($bpk))
 				{
-					$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
+					// if bpk already exists, don't save it another time
+					if (!isEmptyString($person->bpk)) $bpk = null;
 
-					if (!hasData($bpkSaveResult))
-						return error("Fehler beim Speichern der Bpk in FHC");
+					$saveResult = $this->_saveAllBpk($person_id, $bpk, $vbpkArr, $vbpkTypes);
 
-					foreach ($vbpk as $vbpkObj)
-					{
-						// skip if vbpk type not present
-						if (!isset($vbpkObj->attributes['bereich'])
-							|| !isset($vbpkTypes[$vbpkObj->attributes['bereich']])
-						) continue;
+					if (isError($saveResult)) return $saveResult;
 
-						// save the vbpk
-						$vbpkSaveResult = $this->_ci->fhcmanagementlib->saveVbpkInFhc(
-							$person_id,
-							$vbpkTypes[$vbpkObj->attributes['bereich']],
-							$vbpkObj->value
-						);
-
-						if (isError($vbpkSaveResult))
-							return error("Fehler beim Speichern der Vbpk in FHC");
-					}
-
-					$infos[] = "Bpk erfolgreich in FHC gespeichert!";
+					$infos[] = getData($saveResult);
 				}
 
 				return $this->getResponseArr($bpk, $infos, $warnings);
@@ -635,6 +652,51 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 			$result = success(array(false));
 
 		return $result;
+	}
+
+	/**
+	 * Saves Bpk and vBpks.
+	 * @param int $person_id
+	 * @param string $bpk
+	 * @param array $vbpk
+	 * @param array $vbpkTypes
+	 * @return object success or error
+	 */
+	private function _saveAllBpk($person_id, $bpk, $vbpk, $vbpkTypes)
+	{
+		$bpksSaved = false;
+
+		if (!isEmptyString($bpk))
+		{
+			$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
+
+			if (!hasData($bpkSaveResult))
+				return error("Fehler beim Speichern der Bpk in FHC");
+
+			$bpksSaved = true;
+		}
+
+		foreach ($vbpk as $vbpkObj)
+		{
+			// skip if vbpk type not present
+			if (!isset($vbpkObj->attributes['bereich'])
+				|| !isset($vbpkTypes[$vbpkObj->attributes['bereich']])
+			) continue;
+
+			// save the vbpk
+			$vbpkSaveResult = $this->_ci->fhcmanagementlib->saveVbpkInFhc(
+				$person_id,
+				$vbpkTypes[$vbpkObj->attributes['bereich']],
+				$vbpkObj->value
+			);
+
+			if (isError($vbpkSaveResult))
+				return error("Fehler beim Speichern der Vbpk in FHC");
+
+			$bpksSaved = true;
+		}
+
+		return success($bpksSaved ? "Bpk erfolgreich in FHC gespeichert!" : "Keine Bpk gespeichert");
 	}
 
 	/**

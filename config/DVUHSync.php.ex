@@ -22,6 +22,7 @@ $config['fhc_dvuh_status_kurzbz'] = array(
 	'DVUHSendCharge' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
 	'DVUHSendPayment' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
 	'DVUHSendStudyData' => array('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
+	'DVUHGetBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHRequestBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHRequestEkz' => array('Bewerber', 'Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHSendPruefungsaktivitaeten' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
