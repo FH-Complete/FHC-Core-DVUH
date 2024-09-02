@@ -187,7 +187,7 @@ class JQMScheduler extends JQW_Controller
 	}
 
 	/**
-	 * Creates jobs queue entries for requestBpk job.
+	 * Creates jobs queue entries for getBpk job.
 	 * @param string $studiensemester_kurzbz Bpk will be requested for students in this semester
 	 */
 	public function getBpk($studiensemester_kurzbz = null)
