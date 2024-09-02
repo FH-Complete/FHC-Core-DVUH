@@ -324,6 +324,70 @@ class DVUHManagement extends JQW_Controller
 	}
 
 	/**
+	 * Initialises getBpk job, handles job queue, logs infos/errors
+	 */
+	public function getBpk()
+	{
+		$jobType = 'DVUHGetBpk';
+		$this->logInfo('DVUHGetBpk job start');
+
+		// Gets the latest jobs
+		$lastJobs = $this->getLastJobs($jobType);
+		if (isError($lastJobs))
+		{
+			$this->logError(getCode($lastJobs).': '.getError($lastJobs), $jobType);
+		}
+		else
+		{
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_START_TIME), // Job properties to be updated
+				array(date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			$person_arr = $this->_getInputObjArray(getData($lastJobs));
+
+			foreach ($person_arr as $persobj)
+			{
+				if (!isset($persobj->person_id))
+					$this->logError("Fehler bei Bpkabfrage, ungültige Parameter übergeben");
+				else
+				{
+					$person_id = $persobj->person_id;
+
+					$getBpkRes = $this->dvuhmasterdatamanagementlib->getAndSaveBpkFromFullstudent($person_id);
+
+					if (isError($getBpkRes))
+					{
+						$this->_logDVUHError(
+							"Fehler bei GetBpk Job, person Id $person_id",
+							$getBpkRes,
+							$person_id
+						);
+					}
+					elseif (hasData($getBpkRes))
+					{
+						$requestEkzArr = getData($getBpkRes);
+
+						$this->_logDVUHInfosAndWarnings($requestEkzArr, array('person_id' => $person_id));
+					}
+				}
+			}
+
+			// Update jobs properties values
+			$this->updateJobs(
+				getData($lastJobs), // Jobs to be updated
+				array(JobsQueueLib::PROPERTY_STATUS, JobsQueueLib::PROPERTY_END_TIME), // Job properties to be updated
+				array(JobsQueueLib::STATUS_DONE, date('Y-m-d H:i:s')) // Job properties new values
+			);
+
+			if (hasData($lastJobs)) $this->updateJobsQueue($jobType, getData($lastJobs));
+		}
+
+		$this->logInfo('DVUHGetBpk job stop');
+	}
+
+	/**
 	 * Initialises requestBpk job, handles job queue, logs infos/errors
 	 */
 	public function requestBpk()
@@ -367,7 +431,10 @@ class DVUHManagement extends JQW_Controller
 
 						// sleep if number of requests exceeds threshold
 						$totalRequestAmount++;
-						if ($totalRequestAmount > $this->config->item('fhc_dvuh_sync_pruefe_bpk_max_requests'))
+						if (
+							$this->config->item('fhc_dvuh_sync_pruefe_bpk_max_requests') !== null
+							&& $totalRequestAmount > $this->config->item('fhc_dvuh_sync_pruefe_bpk_max_requests')
+						)
 						{
 							sleep($sleepSecondsAmount);
 							// reset request amount

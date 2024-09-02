@@ -233,7 +233,9 @@ class DVUHClientLib
 					$fehlernummer = isset($err->fehlernummer) ? $err->fehlernummer.': ' : '';
 					$fehlertext = isset($err->fehlertext) ? ' '.$err->fehlertext : '';
 					$massnahme = isset($err->massnahme) ? '; '.$err->massnahme : '';
-					$datenfeld = isset($err->fehlerquelle->datenfeld) ? $err->fehlerquelle->datenfeld : '';
+					$datenfeld = isset($err->fehlerquelle->datenfeld)
+						? $err->fehlerquelle->datenfeld
+						: (isset($err->datenfeld) ? $err->datenfeld : '');
 
 					$errorInfo = $fehlernummer.$datenfeld.$fehlertext.$massnahme;
 				}

@@ -21,11 +21,16 @@ class BPKManagementLib
 		$this->_ci->load->model('person/Adresse_model', 'AdresseModel');
 		$this->_ci->load->model('crm/Akte_model', 'AkteModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
+		$this->_ci->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
 
+		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHBpkCheck');
+		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+
+		$this->_vbpkTypes = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -53,14 +58,18 @@ class BPKManagementLib
 
 		// get documents
 		$qry = "
-			SELECT akte_id, dokument_kurzbz, titel, akte.bezeichnung as akte_bezeichnung, akte.erstelltam,
-			       dok.bezeichnung as dokument_bezeichnung, dok.bezeichnung_mehrsprachig as dokument_bezeichnung_mehrsprachig,
-			       akte.anmerkung as akte_anmerkung, nat.nation_code, nat.langtext as nation, nat.engltext as nation_englisch
-			FROM public.tbl_akte akte
-			JOIN public.tbl_dokument dok USING (dokument_kurzbz)
+			SELECT
+				akte_id, dokument_kurzbz, titel, akte.bezeichnung as akte_bezeichnung, akte.erstelltam,
+				dok.bezeichnung as dokument_bezeichnung, dok.bezeichnung_mehrsprachig as dokument_bezeichnung_mehrsprachig,
+				akte.anmerkung as akte_anmerkung, nat.nation_code, nat.langtext as nation, nat.engltext as nation_englisch
+			FROM
+				public.tbl_akte akte
+			JOIN
+				public.tbl_dokument dok USING (dokument_kurzbz)
 			LEFT JOIN bis.tbl_nation nat ON ausstellungsnation = nation_code
-			WHERE akte.person_id = ?
-			AND dokument_kurzbz IN ?;
+			WHERE
+				akte.person_id = ?
+				AND dokument_kurzbz IN ?;
 		";
 
 		$documentsRes = $this->_dbModel->execReadOnlyQuery($qry, array($person_id, $dokument_kurzbz));
@@ -70,10 +79,33 @@ class BPKManagementLib
 			return $documentsRes;
 		}
 
+		$kennzeichenRes = null;
+		if (!isEmptyArray($this->_vbpkTypes))
+		{
+			// get vBPKs
+			$qry = "
+				SELECT
+					inhalt AS vbpk, kennzeichentyp_kurzbz AS vbpk_typ
+				FROM
+					public.tbl_kennzeichen kz
+				WHERE
+					person_id = ?
+					AND kennzeichentyp_kurzbz IN ?
+					AND aktiv = true;";
+
+			$kennzeichenRes = $this->_dbModel->execReadOnlyQuery($qry, array($person_id, $this->_vbpkTypes));
+
+			if (isError($kennzeichenRes))
+			{
+				return $kennzeichenRes;
+			}
+		}
+
 		return success(
 			array(
 				'stammdaten' => getData($stammdatenRes),
-				'dokumente' => hasData($documentsRes) ? getData($documentsRes) : array()
+				'dokumente' => hasData($documentsRes) ? getData($documentsRes) : array(),
+				'vbpk' => hasData($kennzeichenRes) ? getData($kennzeichenRes) : array()
 			)
 		);
 	}
@@ -112,6 +144,7 @@ class BPKManagementLib
 				$bpkRequestData['vorname'] = $combination['vorname'];
 				$bpkRequestData['nachname'] = $combination['nachname'];
 				$bpkRequestData['geburtsdatum'] = $personData['gebdatum'];
+				$bpkRequestData['geschlecht'] = $personData['geschlecht'];
 
 				// execute bpk call
 				$bpkRes = $this->executeBpkRequest($bpkRequestData);
@@ -130,7 +163,6 @@ class BPKManagementLib
 					{
 						// if multiple person results, check with more parameters
 						$additionalParamms = array(
-							'geschlecht' => $personData['geschlecht'],
 							'plz' => $personData['plz'],
 							'strasse' => $personData['strasse']
 						);
@@ -310,16 +342,20 @@ class BPKManagementLib
 	 */
 	public function executeBpkRequest($personData)
 	{
-		$bpkRes =  array('bpk' => null, 'personData' => array(), 'numberPersonsFound' => 0);
+		$bpkRes =  array('bpk' => null, 'vbpk' => array(), 'personData' => array(), 'numberPersonsFound' => 0);
 
 		// execute bPK call
 		$pruefeBpkResult = $this->_ci->PruefebpkModel->get(
 			$personData['vorname'],
 			$personData['nachname'],
 			$personData['geburtsdatum'],
-			isset($personData['geschlecht']) ? $personData['geschlecht'] : null,
+			$personData['geschlecht'],
 			isset($personData['strasse']) ? $personData['strasse'] : null,
-			isset($personData['plz']) ? $personData['plz'] : null
+			isset($personData['hausnummer']) ? $personData['hausnummer'] : null,
+			isset($personData['plz']) ? $personData['plz'] : null,
+			isset($personData['staat']) ? $personData['staat'] : null,
+			isset($personData['frueherername']) ? $personData['frueherername'] : null,
+			isset($personData['sonstigername']) ? $personData['sonstigername'] : null
 		);
 
 		if (isError($pruefeBpkResult))
@@ -329,19 +365,25 @@ class BPKManagementLib
 
 		if (hasData($pruefeBpkResult))
 		{
+			$pruefeBpkData = getData($pruefeBpkResult);
 			// parse the bPK result, extract bPK and personInfo
-			$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh(getData($pruefeBpkResult), array('bpk', 'personInfo'));
+			$parsedBpkObj = $this->_ci->xmlreaderlib->parseXmlDvuh($pruefeBpkData, array('bpk', 'personInfo', 'bpkResponse'));
+			$parsedVbpkObj = $this->_ci->xmlreaderlib->parseXmlDvuhIncludeAttributes($pruefeBpkData, array('vbpk'));
 
-			if (isError($parsedObj))
-				return $parsedObj;
+			if (isError($parsedBpkObj))
+				return $parsedBpkObj;
 
-			if (hasData($parsedObj))
+			if (isError($parsedVbpkObj))
+				return $parsedVbpkObj;
+
+			if (hasData($parsedBpkObj) && hasData($parsedVbpkObj))
 			{
-				$parsedObj = getData($parsedObj);
+				$parsedBpkObj = getData($parsedBpkObj);
+				$parsedVbpkObj = getData($parsedVbpkObj);
 
 				$personData = array();
 
-				foreach ($parsedObj->personInfo as $personInfo)
+				foreach ($parsedBpkObj->personInfo as $personInfo)
 				{
 					// save the person Info in php object
 					$person = new stdClass();
@@ -354,18 +396,53 @@ class BPKManagementLib
 				}
 
 				// no bpk found
-				if (isEmptyArray($parsedObj->bpk))
+				if (isEmptyArray($parsedBpkObj->bpk))
 				{
-					$bpkRes = array('bpk' => null, 'personData' => $personData, 'numberPersonsFound' => count($parsedObj->personInfo));
+					$bpkRes = array(
+						'bpk' => null,
+						'vbpk' => null,
+						'personData' => $personData,
+						'numberPersonsFound' => count($parsedBpkObj->personInfo)
+					);
 				}
 				else // bpk found
 				{
-					$bpkRes = array('bpk' => $parsedObj->bpk[0], 'personData' => $personData, 'numberPersonsFound' => count($parsedObj->bpk));
+					$bpkRes = array(
+						'bpk' => $parsedBpkObj->bpk[0],
+						'vbpk' => $parsedVbpkObj->vbpk,
+						'personData' => $personData,
+						'numberPersonsFound' => count($parsedBpkObj->bpk)
+					);
 				}
 			}
 		}
 
 		return success($bpkRes);
+	}
+
+	/**
+	 * Saves all necessary bpks.
+	 * @param $person_id
+	 * @param $bpk
+	 * @param $vbpks
+	 * @return object success or error
+	 */
+	public function saveBpks($person_id, $bpk, $vbpks)
+	{
+		$bpkSaveResult = $this->_ci->fhcmanagementlib->saveBpkInFhc($person_id, $bpk);
+
+		if (isError($bpkSaveResult)) return $bpkSaveResult;
+
+		foreach ($vbpks as $vbpk)
+		{
+			if (!isset($this->_vbpkTypes[$vbpk['attributes']['bereich']])) continue;
+
+			$vbpkSaveResult = $this->_ci->fhcmanagementlib->saveVbpkInFhc($person_id, $this->_vbpkTypes[$vbpk['attributes']['bereich']], $vbpk['value']);
+
+			if (isError($vbpkSaveResult)) return $vbpkSaveResult;
+		}
+
+		return success("Bpks saved");
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -380,9 +457,6 @@ class BPKManagementLib
 	 */
 	private function _addBpkResponseToResults($bpkRequestData, $bpkResponseData, &$allBpkResults)
 	{
-		if (isEmptyArray($bpkResponseData['personData']))
-			return;
-
 		$bpkResAlreadyExists = false;
 		for ($i = 0; $i < count($allBpkResults); $i++)
 		{
@@ -535,11 +609,19 @@ class BPKManagementLib
 	 */
 	private function _checkBpkResponsesForEquality($responseA, $responseB)
 	{
+		if (
+			!isset($responseA['bpk'])
+			&& !isset($responseB['bpk'])
+			&& isEmptyArray($responseA['personData'])
+			&& isEmptyArray($responseB['personData'])
+			)
+			return true;
+
 		// if bpks are equal, responses are equal
 		if (isset($responseA['bpk']) && isset($responseB['bpk']) && $responseA['bpk'] == $responseB['bpk'])
 			return true;
 
-		if (isset($responseA['personData']) && isset($responseB['personData']))
+		if (!isEmptyArray($responseA['personData']) && !isEmptyArray($responseB['personData']))
 		{
 			$responseSize = count($responseA['personData']);
 

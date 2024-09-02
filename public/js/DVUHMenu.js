@@ -105,24 +105,24 @@ var DVUHMenu = {
 					+ DVUHMenu._getTextfieldHtml('semester', 'Studiensemester', 'optional, z.B. SS2016 oder 2016S für Sommer-, WS2016 oder 2016W für Wintersemester 2016', 6)
 				method = 'get';
 				break;
-			case 'getBpk':
+			case 'getPruefeBpk':
 				html = '<h4>bPK ermitteln (manuell)</h4>';
 				html += DVUHMenu._getPreviewInputfieldHtml('bpkDatenVorausfuellen', 'bpkDatenVorausfuellenVoll');
 				html += DVUHMenu._getTextfieldHtml('vorname', 'Vorname', '', 64)
 					+ DVUHMenu._getTextfieldHtml('nachname', 'Nachname', '', 255)
 					+ DVUHMenu._getTextfieldHtml('geburtsdatum', 'Geburtsdatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
-					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X, optional', 1)
+					+ DVUHMenu._getTextfieldHtml('geschlecht', 'Geschlecht', 'M/W/X', 1)
 					+ DVUHMenu._getTextfieldHtml('strasse', 'Strasse', 'der Heimatadresse, ohne Hausnummer, optional', 255)
+					+ DVUHMenu._getTextfieldHtml('hausnummer', 'Hausnummer', 'der Heimatadresse, optional', 255)
 					+ DVUHMenu._getTextfieldHtml('plz', 'PLZ', 'optional', 15)
-					+ DVUHMenu._getTextfieldHtml('geburtsland', 'Geburtsland', 'optional', 15)
-					+ DVUHMenu._getTextfieldHtml('akadgrad', 'Akademischer Grad Pre', 'vor dem Namen, optional', 255)
-					+ DVUHMenu._getTextfieldHtml('akadnach', 'Akademischer Grad Post', 'nach dem Namen, optional', 255)
-					+ DVUHMenu._getTextfieldHtml('alternativname', 'Alternativname', 'optional, Nachname vor Namenswechsel', 255)
+					+ DVUHMenu._getTextfieldHtml('staat', 'Staat', 'der Heimatadresse, optional', 15)
+					+ DVUHMenu._getTextfieldHtml('frueherername', 'Früherer Name', 'optional, Bei Änderungen des Familiennamen ist hier der Name vor dem Wechsel anzugeben', 255)
+					+ DVUHMenu._getTextfieldHtml('sonstigername', 'Alternativer Name', 'optional', 255)
 				method = 'get';
 				if (typeof params !== 'undefined' && params.hasOwnProperty('person_id'))
 					DVUHMenu.getPersonPrefillData(params.person_id, 'bpkDatenVorausfuellen');
 				break;
-			case 'getBpkByPersonId':
+			case 'getPruefeBpkByPersonId':
 				html = '<h4>bPK ermitteln</h4>';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID');
 				method = 'get';
@@ -429,6 +429,7 @@ var DVUHMenu = {
 						$("#vorname").val(prefillData.vorname);
 						$("#nachname").val(prefillData.nachname);
 						$("#geburtsdatum").val(prefillData.gebdatum);
+						if ($("#geschlecht")) $("#geschlecht").val(prefillData.geschlecht);
 
 						if (buttonId == 'matrnrDatenVorausfuellen')
 						{
@@ -438,7 +439,6 @@ var DVUHMenu = {
 						}
 						else if (buttonId == 'bpkDatenVorausfuellen')
 						{
-							$("#geschlecht").val('');
 							$("#geburtsland").val('');
 							$("#strasse").val('');
 							$("#plz").val('');
@@ -447,7 +447,6 @@ var DVUHMenu = {
 						}
 						else if (buttonId == 'bpkDatenVorausfuellenVoll')
 						{
-							$("#geschlecht").val(prefillData.geschlecht);
 							$("#geburtsland").val(prefillData.geburtsland);
 							$("#strasse").val(prefillData.strasse);
 							$("#plz").val(prefillData.plz);
@@ -463,7 +462,6 @@ var DVUHMenu = {
 			}
 		);
 	},
-
 	/* additional "private" methods */
 	_hideNonPermittedMenuActions: function()
 	{
@@ -713,7 +711,7 @@ var DVUHMenu = {
 			$("#dvuhOutputContainer").append(
 				'<div class="col-lg-'+columns+'" id="dvuhOutputColumn">'+
 					'<div class="well well-sm wellminheight">'+
-						'<div class="panel-title text-center">Syncoutput</div>'+
+						'<div class="panel-title text-center">Output</div>'+
 						'<div id="dvuhOutput" class="panel panel-body">'+
 						'</div>'+
 					'</div>'+

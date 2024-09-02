@@ -132,6 +132,7 @@ $this->load->view(
 													</span>
 												</td>
 											</tr>
+
 										</table>
 									</div>
 									<div class="col-lg-7 table-responsive">
@@ -232,6 +233,17 @@ $this->load->view(
 									</div>
 								</div>
 								<div class="row">
+									<div class="col-lg-12">
+										<details>
+											<summary>vbBPKs</summary>
+											<?php foreach ($vbpk as $vbpkObj): ?>
+												<strong><?php echo $vbpkObj->vbpk_typ ?>:&nbsp;</strong><?php echo $vbpkObj->vbpk ?>
+											<?php endforeach; ?>
+										</details>
+									</div>
+								</div>
+								<br />
+								<div class="row">
 									<div class="col-lg-12 text-center">
 										<?php if (!isEmptyString($stammdaten->bpk)): ?>
 										<span class="text-success">
@@ -284,7 +296,7 @@ $this->load->view(
 									</div>
 									<div class="col-lg-5 text-right">
 										<a href="<?php
-											echo site_url('extensions/FHC-Core-DVUH/DVUH#page=getBpk&person_id='.$stammdaten->person_id);
+											echo site_url('extensions/FHC-Core-DVUH/DVUH#page=getPruefeBpk&person_id='.$stammdaten->person_id);
 											?>" target="_blank">
 											<i class="fa fa-external-link"></i>&nbsp;Zur manuellen bPK-Prüfung
 										</a>

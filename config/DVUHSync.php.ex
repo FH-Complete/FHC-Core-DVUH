@@ -22,6 +22,7 @@ $config['fhc_dvuh_status_kurzbz'] = array(
 	'DVUHSendCharge' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
 	'DVUHSendPayment' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
 	'DVUHSendStudyData' => array('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
+	'DVUHGetBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHRequestBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHRequestEkz' => array('Bewerber', 'Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHSendPruefungsaktivitaeten' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
@@ -80,8 +81,14 @@ $config['fhc_dvuh_sync_student_meldestatus'] = array(
 	'storniert' => 'O'
 );
 
-//  Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
+// Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
 $config['fhc_dvuh_sync_note_angerechnet'] = array(6, 19);
+
+// Vbpk types to save (mapping "DVUH acronym => fh database kennzeichentyp_kurzbz")
+$config['fhc_dvuh_sync_vbpk_types'] = array(
+	'AS' => 'vbpkAs',
+	'BF' => 'vbpkBf'
+);
 
 // max number of "checkbpk" requests before a sleep (for preventing server errors)
 $config['fhc_dvuh_sync_pruefe_bpk_max_requests'] = 50;

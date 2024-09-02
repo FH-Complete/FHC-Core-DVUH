@@ -17,6 +17,9 @@ class Pruefebpk_model extends DVUHClientModel
 
 		// load models
 		$this->load->model('person/Person_model', 'PersonModel');
+
+		// load libraries
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHConversionLib');
 	}
 
 	/**
@@ -37,13 +40,13 @@ class Pruefebpk_model extends DVUHClientModel
 		$vorname,
 		$nachname,
 		$geburtsdatum,
-		$geschlecht = null,
+		$geschlecht,
 		$strasse = null,
+		$hausnummer = null,
 		$plz = null,
-		$geburtsland = null,
-		$akadgrad = null,
-		$akadnach = null,
-		$alternativname = null
+		$staat = null,
+		$frueherername = null,
+		$sonstigername = null
 	) {
 		if (isEmptyString($vorname))
 			$result = error('Vorname nicht gesetzt');
@@ -51,29 +54,30 @@ class Pruefebpk_model extends DVUHClientModel
 			$result = error('Nachname nicht gesetzt');
 		elseif (isEmptyString($geburtsdatum))
 			$result = error('Geburtsdatum nicht gesetzt');
+		elseif (isEmptyString($geschlecht))
+			$result = error('Geschlecht nicht gesetzt');
 		else
 		{
 			$callParametersArray = array(
 				'uuid' => getUUID(),
 				'vorname' => $vorname,
 				'nachname' => $nachname,
-				'geburtsdatum' => $geburtsdatum
+				'geburtsdatum' => $geburtsdatum,
+				'geschlecht' => $this->dvuhconversionlib->convertGeschlechtToDVUH($geschlecht)
 			);
 
-			if (!is_null($geschlecht))
-				$callParametersArray['geschlecht'] = $geschlecht;
 			if (!is_null($strasse))
 				$callParametersArray['strasse'] = $strasse;
+			if (!is_null($hausnummer))
+				$callParametersArray['hausnummer'] = $hausnummer;
 			if (!is_null($plz))
 				$callParametersArray['plz'] = $plz;
-			if (!is_null($geburtsland))
-				$callParametersArray['geburtsland'] = $geburtsland;
-			if (!is_null($akadgrad))
-				$callParametersArray['akadgrad'] = $akadgrad;
-			if (!is_null($akadnach))
-				$callParametersArray['akadnach'] = $akadnach;
-			if (!is_null($alternativname))
-				$callParametersArray['alternativname'] = $alternativname;
+			if (!is_null($staat))
+				$callParametersArray['staat'] = $staat;
+			if (!is_null($frueherername))
+				$callParametersArray['frueherername'] = $frueherername;
+			if (!is_null($sonstigername))
+				$callParametersArray['sonstigername'] = $sonstigername;
 
 			$result = $this->_call('GET', $callParametersArray);
 		}
@@ -103,12 +107,7 @@ class Pruefebpk_model extends DVUHClientModel
 				$stammdatenData->vorname,
 				$stammdatenData->nachname,
 				$stammdatenData->gebdatum,
-				$stammdatenData->geschlecht,
-				null,
-				null,
-				null,
-				$stammdatenData->titelpre,
-				$stammdatenData->titelpost
+				$stammdatenData->geschlecht
 			);
 		}
 		else

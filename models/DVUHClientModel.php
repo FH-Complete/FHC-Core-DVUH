@@ -34,6 +34,8 @@ abstract class DVUHClientModel extends CI_Model
 			return error('URL ungültig');
 		}
 
+
+
 		// Call the webservice with the given parameters
 		$wsResult = success(
 			$this->dvuhclientlib->call(

@@ -19,6 +19,7 @@ class JQMSchedulerLib
 	const JOB_TYPE_SEND_CHARGE = 'DVUHSendCharge';
 	const JOB_TYPE_SEND_PAYMENT = 'DVUHSendPayment';
 	const JOB_TYPE_SEND_STUDY_DATA = 'DVUHSendStudyData';
+	const JOB_TYPE_GET_BPK = 'DVUHGetBpk';
 	const JOB_TYPE_REQUEST_BPK = 'DVUHRequestBpk';
 	const JOB_TYPE_REQUEST_EKZ = 'DVUHRequestEkz';
 	const JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN = 'DVUHSendPruefungsaktivitaeten';
@@ -44,6 +45,7 @@ class JQMSchedulerLib
 		$this->_angerechnet_note = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
 		$this->_terminated_student_status_kurzbz = $this->_ci->config->item('fhc_dvuh_terminated_student_status_kurzbz');
 		$studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_dvuh_studiensemester_meldezeitraum');
+		$this->_vbpk_types = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
 
 		// get default Studiensemester from config
 		$today = new DateTime(date('Y-m-d'));
@@ -143,11 +145,11 @@ class JQMSchedulerLib
 	}
 
 	/**
-	 * Gets students for input of requestBpk job.
+	 * Gets students for input of requestBpk or getBpk job.
 	 * @param string $studiensemester_kurzbz semester for which Bpk should be requested
 	 * @return object students
 	 */
-	public function requestBpk($studiensemester_kurzbz)
+	public function requestOrGetBpk($studiensemester_kurzbz)
 	{
 		$jobInput = null;
 		$result = null;
@@ -161,14 +163,35 @@ class JQMSchedulerLib
 
 		// get students with no BPK
 		$qry = "SELECT DISTINCT person_id
-				FROM public.tbl_person
+				FROM public.tbl_person pers
 					JOIN public.tbl_prestudent USING (person_id)
 					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 					JOIN public.tbl_studiengang stg USING (studiengang_kz)
-				WHERE (tbl_person.bpk IS NULL OR tbl_person.bpk = '')
+				WHERE
+					pss.studiensemester_kurzbz IN ?
 					AND stg.melderelevant = TRUE
 					AND bismelden = TRUE
-					AND pss.studiensemester_kurzbz IN ?";
+					AND (
+						pers.bpk IS NULL
+						OR pers.bpk = ''";
+
+		if (!isEmptyArray($this->_vbpk_types))
+		{
+			$qry .= "OR (
+							SELECT
+								COUNT(DISTINCT kennzeichentyp_kurzbz)
+							FROM
+								public.tbl_kennzeichen
+							WHERE
+								person_id = pers.person_id
+								AND kennzeichentyp_kurzbz IN ?
+						) < ?";
+
+			$params[] = $this->_vbpk_types;
+			$params[] = count($this->_vbpk_types);
+		}
+
+		$qry .= ")";
 
 		if (isset($this->_status_kurzbz[self::JOB_TYPE_REQUEST_BPK]))
 		{

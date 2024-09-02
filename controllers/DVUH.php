@@ -19,7 +19,8 @@ class DVUH extends Auth_Controller
 		'getStudium'=>'admin:r',
 		'getFullstudent'=>'admin:r',
 		'getBpk' =>'admin:r',
-		'getBpkByPersonId' =>'admin:r',
+		'getPruefeBpk' =>'admin:r',
+		'getPruefeBpkByPersonId' =>'admin:r',
 		'getPruefungsaktivitaeten' =>'admin:r',
 		'getDvuhMenuData' => array('admin:r', 'extension/dvuh_gui_ekz_anfordern:r'),
 		'getPermittedActions' => array('admin:r', 'extension/dvuh_gui_ekz_anfordern:r'),
@@ -197,7 +198,28 @@ class DVUH extends Auth_Controller
 		$this->outputJson($json);
 	}
 
+	/**
+	 * Gets all bpk for a semester.
+	 */
 	public function getBpk()
+	{
+		$json = null;
+
+		$data = $this->input->get('data');
+
+		$be = $this->config->item('fhc_dvuh_be_code');
+		$semester = isset($data['semester']) ? $this->dvuhconversionlib->convertSemestertoDVUH($data['semester']) : null;
+
+		$this->load->model('extensions/FHC-Core-DVUH/Bpk_model', 'BpkModel');
+
+		$json = $this->BpkModel->get(
+			$be, $semester
+		);
+
+		$this->outputJson($json);
+	}
+
+	public function getPruefeBpk()
 	{
 		$json = null;
 
@@ -208,24 +230,24 @@ class DVUH extends Auth_Controller
 		$geburtsdatum = isset($data['geburtsdatum']) ? convertDateToIso($data['geburtsdatum']) : null;
 		$geschlecht = isset($data['geschlecht']) ? $data['geschlecht'] : null;
 		$strasse = isset($data['strasse']) ? $data['strasse'] : null;
+		$hausnummer = isset($data['hausnummer']) ? $data['hausnummer'] : null;;
 		$plz = isset($data['plz']) ? $data['plz'] : null;
-		$geburtsland = isset($data['geburtsland']) ? $data['geburtsland'] : null;
-		$akadgrad = isset($data['akadgrad']) ? $data['akadgrad'] : null;
-		$akadnach = isset($data['akadnach']) ? $data['akadnach'] : null;
-		$alternativname = isset($data['alternativname']) ? $data['alternativname'] : null;
+		$staat = isset($data['staat']) ? $data['staat'] : null;
+		$frueherername = isset($data['frueherername']) ? $data['frueherername'] : null;
+		$sonstigername = isset($data['sonstigername']) ? $data['sonstigername'] : null;
 
 		$this->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 
 		$json = $this->PruefebpkModel->get(
 			$vorname, $nachname, $geburtsdatum, $geschlecht,
-			$strasse, $plz, $geburtsland, $akadgrad, $akadnach,
-			$alternativname
+			$strasse, $hausnummer, $plz, $staat,
+			$frueherername, $sonstigername
 		);
 
 		$this->outputJson($json);
 	}
 
-	public function getBpkByPersonId()
+	public function getPruefeBpkByPersonId()
 	{
 		$json = null;
 
@@ -376,14 +398,13 @@ class DVUH extends Auth_Controller
 		$preview = $this->input->post('preview');
 
 		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
-		$writeonerror = isset($data['writeonerror']) ? $data['writeonerror'] : null;
 		$ausgabedatum = isset($data['ausgabedatum']) ? convertDateToIso($data['ausgabedatum']) : null;
 		$ausstellBehoerde = isset($data['ausstellBehoerde']) ? $data['ausstellBehoerde'] : null;
 		$ausstellland = isset($data['ausstellland']) ? $data['ausstellland'] : null;
 		$dokumentnr = isset($data['dokumentnr']) ? $data['dokumentnr'] : null;
 		$dokumenttyp = isset($data['dokumenttyp']) ? $data['dokumenttyp'] : null;
 
-		$json = $this->dvuhmasterdatamanagementlib->sendMatrikelErnpMeldung($person_id, $writeonerror, $ausgabedatum,
+		$json = $this->dvuhmasterdatamanagementlib->sendErnpMeldung($person_id, $ausgabedatum,
 			$ausstellBehoerde, $ausstellland, $dokumentnr, $dokumenttyp, $preview);
 
 		$this->outputJson($json);

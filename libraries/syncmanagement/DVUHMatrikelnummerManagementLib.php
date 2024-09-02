@@ -31,7 +31,6 @@ class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelpruefung_model', 'MatrikelpruefungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelreservierung_model', 'MatrikelreservierungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
-		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHMatrikelnummerreservierung_model', 'DVUHMatrikelnummerreservierungModel');
 
 		// load helpers

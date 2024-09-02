@@ -165,18 +165,48 @@ var BpkDetails = {
 			}
 		);
 	},
+	saveBpks: function(person_id, bpk, vbpks)
+	{
+		FHC_AjaxClient.ajaxCallPost(
+			FHC_JS_DATA_STORAGE_OBJECT.called_path + '/saveBpks',
+			{
+				"person_id": person_id,
+				"bpk": bpk,
+				"vbpks": vbpks
+			},
+			{
+				successCallback: function(data)
+				{
+					if (FHC_AjaxClient.isError(data))
+					{
+						FHC_DialogLib.alertError("Fehler beim bPK Speichern: " + FHC_AjaxClient.getError(data));
+					}
+
+					if (FHC_AjaxClient.hasData(data))
+					{
+						window.location.reload();
+					}
+				},
+				errorCallback: function(jqXHR, textStatus, errorThrown)
+				{
+					FHC_DialogLib.alertError("Fehler beim Speichern des bPK!");
+				}
+			}
+		);
+	},
 	_printBpkBox: function(bpk, bpkData, person_id, idx)
 	{
 		let responseData = bpkData.responseData;
 		let requestData = bpkData.requestData;
 		let responsePersonData = responseData.personData;
 
-		let numberPersonsFound = responsePersonData.length;
+		let numberPersonsFound = responseData.numberPersonsFound;
 		let heading = 'keine Bpk gefunden';
+		let bpkFound = numberPersonsFound === 1 && bpk != null;
 
 		if (numberPersonsFound > 1)
 			heading = 'Mehrere Personentreffer';
-		else if(numberPersonsFound === 1 && bpk != null)
+		else if(bpkFound)
 			heading = bpk;
 
 		let boxhtml = '<div class="panel panel-default">' +
@@ -248,16 +278,32 @@ var BpkDetails = {
 		}
 
 		boxhtml +=			'</tbody>' +
-						'</table>' +
-					'</div>' + // second column end
+						'</table>';
+
+		if (bpkFound)
+		{
+			boxhtml +=		'<details>' +
+								'<summary class="text-center">vbPKs</summary>';
+
+
+			for (let vbpkIdx in responseData.vbpk)
+			{
+				let vbpk = responseData.vbpk[vbpkIdx];
+				boxhtml += '<strong>' + vbpk.attributes.bereich + '</strong>' + ': ' + vbpk.value + '<br />';
+			}
+
+			boxhtml +=		'</details><br />';
+		}
+
+		boxhtml +=	'</div>' + // second column end
 				'</div>'; // row end
 
 
-		if (bpk != null)
+		if (bpkFound)
 		{
 			boxhtml += '<div class="row">' +
 							'<div class="col-lg-12 text-center">' +
-								'<button class="btn btn-default" id="saveBpk_'+idx+'">bPK übernehmen</button>' +
+								'<button class="btn btn-default" id="saveBpk_'+idx+'">bPKs übernehmen</button>' +
 							'</div>';
 						'</div>';
 		}
@@ -267,12 +313,12 @@ var BpkDetails = {
 
 		$("#bpkBoxes").append(boxhtml);
 
-		if (bpk != null)
+		if (bpkFound)
 		{
 			$("#saveBpk_" + idx).click(
 				function()
 				{
-					BpkDetails.saveBpk(person_id, bpk);
+					BpkDetails.saveBpks(person_id, bpk, responseData.vbpk);
 				}
 			)
 		}

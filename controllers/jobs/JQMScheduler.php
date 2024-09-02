@@ -162,7 +162,7 @@ class JQMScheduler extends JQW_Controller
 		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->requestBpk');
 
 		// If an error occured then log it
-		$jobInputResult = $this->jqmschedulerlib->requestBpk($studiensemester_kurzbz);
+		$jobInputResult = $this->jqmschedulerlib->requestOrGetBpk($studiensemester_kurzbz);
 
 		if (isError($jobInputResult))
 		{
@@ -184,6 +184,39 @@ class JQMScheduler extends JQW_Controller
 		}
 
 		$this->logInfo('End job queue scheduler FHC-Core-DVUH->requestBpk');
+	}
+
+	/**
+	 * Creates jobs queue entries for getBpk job.
+	 * @param string $studiensemester_kurzbz Bpk will be requested for students in this semester
+	 */
+	public function getBpk($studiensemester_kurzbz = null)
+	{
+		$this->logInfo('Start job queue scheduler FHC-Core-DVUH->getBpk');
+
+		// If an error occured then log it
+		$jobInputResult = $this->jqmschedulerlib->requestOrGetBpk($studiensemester_kurzbz);
+
+		if (isError($jobInputResult))
+		{
+			$this->logError(getError($jobInputResult));
+		}
+		else
+		{
+			// Add the new job to the jobs queue
+			$addNewJobResult = $this->addNewJobsToQueue(
+				JQMSchedulerLib::JOB_TYPE_GET_BPK, // job type
+				$this->generateJobs( // gnerate the structure of the new job
+					JobsQueueLib::STATUS_NEW,
+					getData($jobInputResult)
+				)
+			);
+
+			// If error occurred return it
+			if (isError($addNewJobResult)) $this->logError(getError($addNewJobResult));
+		}
+
+		$this->logInfo('End job queue scheduler FHC-Core-DVUH->getBpk');
 	}
 
 	/**
