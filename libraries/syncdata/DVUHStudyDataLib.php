@@ -1102,7 +1102,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 		}
 		else
 		{
-			if ($prestudentstatus->zgvdatum > date("Y-m-d"))
+			if (!$this->_ci->dvuhcheckinglib->checkZgvDatumInTime($prestudentstatus->zgvdatum))
 			{
 				$this->addError(
 					"ZGV Datum in Zukunft",
@@ -1172,7 +1172,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 			}
 			else
 			{
-				if ($prestudentstatus->zgvmadatum > date("Y-m-d"))
+				if (!$this->_ci->dvuhcheckinglib->checkZgvDatumInTime($prestudentstatus->zgvmadatum))
 				{
 					$this->addError(
 						"ZGV Masterdatum in Zukunft",
