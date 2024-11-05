@@ -188,7 +188,7 @@ var DVUHMenu = {
 				html = '<h4>ERnP-Meldung durchführen</h4>';
 				html += '<b>HINWEIS: Die Eintragung ins ERnP (Ergänzungsregister für natürliche Personen) sollte nur dann durchgeführt werden, ' +
 					'wenn für die Person keine bPK ermittelt werden kann.<br />Beim Punkt "bPK ermitteln" sollte dementsprechend keine bPK zurückgegeben werden. ' +
-					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist sicher ein bPK vorhanden.</b><br /><br />';
+					'Ist ein aktueller oder früherer Wohnsitz in Österreich vorhanden, ist ein bPK schon vorhanden und die ERnP-Meldung darf nicht durchgeführt werden!</b><br /><br />';
 				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID', null, null, person_id)
 					+ DVUHMenu._getTextfieldHtml('ausgabedatum', 'Ausgabedatum', 'Format: DD.MM.YYYY oder YYYY-MM-DD', 10)
 					+ DVUHMenu._getTextfieldHtml('ausstellBehoerde', 'Ausstellbehörde', '', 40)
