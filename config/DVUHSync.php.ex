@@ -31,6 +31,9 @@ $config['fhc_dvuh_status_kurzbz'] = array(
 // All status_kurzbz which an active student can have
 $config['fhc_dvuh_active_student_status_kurzbz'] = array('Student', 'Incoming', 'Diplomand');
 
+// All status_kurzbz which a student who terminated studies can have
+$config['fhc_dvuh_terminated_student_status_kurzbz'] = array('Abgewiesener', 'Abbrecher');
+
 // All status_kurzbz which a student who finished studies can have
 $config['fhc_dvuh_finished_student_status_kurzbz'] = array('Absolvent', 'Abbrecher');
 

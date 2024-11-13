@@ -12,6 +12,7 @@ class JQMSchedulerLib
 	private $_buchungstypen = array(); // contains Buchungstypen for which Charge should be sent
 	private $_oe_kurzbz = array(); // oe_kurzbz - only students assigned to one of descendants of this oe are retrieved
 	private $_angerechnet_note = array(); // Noten-codes for sending angerechnete ECTS for Prüfungsaktivitäten
+	private $_terminated_student_status_kurzbz = array(); // status of students which have terminated studies
 	private $_studiensemester = array(); // default Studiensemster for which data is sent
 
 	const JOB_TYPE_REQUEST_MATRIKELNUMMER = 'DVUHRequestMatrikelnummer';
@@ -42,6 +43,7 @@ class JQMSchedulerLib
 		$this->_buchungstypen = array_merge($buchungstypen['oehbeitrag'], $buchungstypen['studiengebuehr']);
 		$oe_kurzbz = $this->_ci->config->item('fhc_dvuh_oe_kurzbz');
 		$this->_angerechnet_note = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
+		$this->_terminated_student_status_kurzbz = $this->_ci->config->item('fhc_dvuh_terminated_student_status_kurzbz');
 		$studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_dvuh_studiensemester_meldezeitraum');
 		$this->_vbpk_types = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
 
@@ -243,7 +245,7 @@ class JQMSchedulerLib
 		// get students with no SVNR and EKZ
 		$qry = "SELECT DISTINCT person_id
 				FROM public.tbl_person pers
-					JOIN public.tbl_prestudent USING (person_id)
+					JOIN public.tbl_prestudent ps USING (person_id)
 					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 					JOIN public.tbl_studiengang stg USING (studiengang_kz)
 				WHERE (pers.ersatzkennzeichen IS NULL OR pers.ersatzkennzeichen = '')
@@ -266,6 +268,20 @@ class JQMSchedulerLib
 		{
 			$qry .= " AND pss.status_kurzbz IN ?";
 			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_EKZ];
+		}
+
+		if (isset($this->_terminated_student_status_kurzbz))
+		{
+			$qry .= "
+				AND NOT EXISTS (
+					SELECT 1
+					FROM
+						public.tbl_prestudentstatus
+					WHERE
+						prestudent_id = ps.prestudent_id
+						AND status_kurzbz IN ?
+				)";
+			$params[] = $this->_terminated_student_status_kurzbz;
 		}
 
 		if (!isEmptyArray($this->_oe_kurzbz))
@@ -653,7 +669,8 @@ class JQMSchedulerLib
 						JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
 						JOIN public.tbl_studiengang stg USING (studiengang_kz)
 						LEFT JOIN public.tbl_student USING (prestudent_id)
-						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote ON tbl_student.student_uid = zgnisnote.student_uid AND pss.studiensemester_kurzbz = zgnisnote.studiensemester_kurzbz
+						LEFT JOIN lehre.tbl_zeugnisnote zgnisnote
+							ON tbl_student.student_uid = zgnisnote.student_uid AND pss.studiensemester_kurzbz = zgnisnote.studiensemester_kurzbz
 						LEFT JOIN lehre.tbl_note note ON zgnisnote.note = note.note
 						LEFT JOIN lehre.tbl_lehrveranstaltung lv USING (lehrveranstaltung_id)
 						WHERE ps.bismelden = TRUE

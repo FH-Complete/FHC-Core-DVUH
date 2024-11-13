@@ -22,6 +22,9 @@ class DVUHCheckingLib
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+
+		// load models
+		$this->_ci->load->model('codex/Bismeldestichtag_model', 'BismeldestichtagModel');
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -104,6 +107,29 @@ class DVUHCheckingLib
 	public function checkTitel($titel)
 	{
 		return preg_match("/^[A-Za-z.\-\/\,'´`\(\) À-ž&]{0,255}$/", $titel);
+	}
+
+	/**
+	 * Checks if time context of zgv date is valid.
+	 * @param string $zgvDatum
+	 * @return bool valid or not
+	 */
+	public function checkZgvDatumInTime($zgvDatum)
+	{
+		$zgvDatum = new DateTime($zgvDatum);
+		$now = new DateTime();
+
+		$inFuture = $zgvDatum > $now;
+
+		$stichtagRes = $this->_ci->BismeldestichtagModel->getNextMeldestichtag();
+
+		if (isError($stichtagRes)) return false;
+
+		if (!hasData($stichtagRes)) return !$inFuture;
+
+		$meldestichtag = getData($stichtagRes)[0]->meldestichtag;
+
+		return !$inFuture || $zgvDatum <= new DateTime($meldestichtag);
 	}
 
 	/**

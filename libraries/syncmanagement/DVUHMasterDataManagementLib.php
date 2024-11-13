@@ -8,9 +8,10 @@ require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncmanagement/DVUHMan
  */
 class DVUHMasterDataManagementLib extends DVUHManagementLib
 {
-	const STATUS_PAID_OTHER_UNIV = '8'; // payment status if paid on another university, for check
 	const BUCHUNGSTYP_OEH = 'OEH'; // for nullifying Buchungen after paid on other univ. check
 	const ERRORCODE_BPK_MISSING = 'AD10065'; // for auto-update of bpk in fhcomplete
+
+	private $_status_paid_other_univ = array('7', '8'); // payment status if paid on another university, for check
 
 	/**
 	 * Library initialization
@@ -78,6 +79,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 		$valutadatum = isset($vorschreibung['valutadatum']) ? $vorschreibung['valutadatum'] : null;
 		$valutadatumnachfrist = isset($vorschreibung['valutadatumnachfrist']) ? $vorschreibung['valutadatumnachfrist'] : null;
 		$studiengebuehrnachfrist = isset($vorschreibung['studiengebuehrnachfrist']) ? $vorschreibung['studiengebuehrnachfrist'] : null;
+		$oehBuchungen = isset($vorschreibung['origoehbuchung']) ? $vorschreibung['origoehbuchung'] : null;
 
 		// get stammdaten (master data)
 		$studentinfoRes = $this->_ci->dvuhstammdatenlib->getStammdatenData($person_id, $studiensemester_kurzbz);
@@ -194,13 +196,13 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 
 				// check if already paid on another university and nullify open buchung -
 				// because payment status gets refreshed after Stammdatenmeldung
-				if (isset($buchungen))
+				if (isset($oehBuchungen))
 				{
 					$paidOtherUnivRes = $this->_checkIfPaidOtherUnivAndNullify(
 						$person_id,
 						$dvuh_studiensemester,
 						$matrikelnummer,
-						$buchungen,
+						$oehBuchungen,
 						$warnings
 					);
 
@@ -637,7 +639,7 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 
 				if (!isEmptyArray($status->bezahlstatus))
 				{
-					if ($status->bezahlstatus[0] == self::STATUS_PAID_OTHER_UNIV)
+					if (in_array($status->bezahlstatus[0], $this->_status_paid_other_univ))
 						$result = success(array(true));
 					else
 						$result = success(array(false));

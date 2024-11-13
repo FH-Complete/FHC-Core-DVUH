@@ -166,6 +166,9 @@
 					if (isset($mobilitaet['herkunftslandcode']))
 						echo "\t\t\t\t<herkunftslandcode>" . $mobilitaet['herkunftslandcode'] . "</herkunftslandcode>\n";
 
+					if (isset($mobilitaet['id']))
+						echo "\t\t\t\t<id>" . $mobilitaet['id'] . "</id>\n";
+
 					// if only one zweck without array, put it in array
 					if (!is_array($mobilitaet['zweck']) && is_numeric($mobilitaet['zweck']))
 						$mobilitaet['zweck'] = array($mobilitaet['zweck']);
