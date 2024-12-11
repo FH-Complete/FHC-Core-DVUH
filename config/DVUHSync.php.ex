@@ -87,7 +87,8 @@ $config['fhc_dvuh_sync_note_angerechnet'] = array(6, 19);
 // Vbpk types to save (mapping "DVUH acronym => fh database kennzeichentyp_kurzbz")
 $config['fhc_dvuh_sync_vbpk_types'] = array(
 	'AS' => 'vbpkAs',
-	'BF' => 'vbpkBf'
+	'BF' => 'vbpkBf',
+	'ZP-TD' => 'vbpkTd'
 );
 
 // max number of "checkbpk" requests before a sleep (for preventing server errors)
