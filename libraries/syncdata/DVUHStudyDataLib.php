@@ -557,7 +557,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 		// ausbildungssemester for Diplomanden
 		$diplomandResult = $this->_dbModel->execReadOnlyQuery(
 			"SELECT
-				count(*) AS dipl
+				numberOfElements(*) AS dipl
 				FROM public.tbl_prestudentstatus
 				WHERE prestudent_id=?
 				AND status_kurzbz='Diplomand'
@@ -768,18 +768,18 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 					if ($prestudentstatus->status_kurzbz == 'Incoming')
 					{
 						// ...max 1 Aufenthaltszweck
-						if (count($bisio_zweck) > 1)
+						if (numberOfElements($bisio_zweck) > 1)
 						{
 							$this->addError(
-								"Es sind" . count($bisio_zweck) . " Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)",
+								"Es sind" . numberOfElements($bisio_zweck) . " Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)",
 								'zuVieleZweckeIncomingPlausi',
-								array(count($bisio_zweck)),
+								array(numberOfElements($bisio_zweck)),
 								array('bisio_id' => $bisio_id)
 							);
 						}
 
 						//...nur Zweck 1, 2 oder 3 erlaubt
-						if (count($bisio_zweck) == 1 && !in_array($bisio_zweck[0]->zweck_code, array(1, 2, 3)))
+						if (numberOfElements($bisio_zweck) == 1 && !in_array($bisio_zweck[0]->zweck_code, array(1, 2, 3)))
 						{
 							$this->addError(
 								"Aufenthaltszweckcode ist " . $bisio_zweck[0]->zweck_code . " (f&uuml;r Incomings ist nur Zweck 1, 2, 3 erlaubt)",
@@ -900,7 +900,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 				if ($aufenthalt_finished)
 					$mobilitaet['bis'] = $abis;
 
-				if (isset($aufenthaltfoerderung_code_arr) && count($aufenthaltfoerderung_code_arr) > 0)
+				if (isset($aufenthaltfoerderung_code_arr) && numberOfElements($aufenthaltfoerderung_code_arr) > 0)
 					$mobilitaet['aufenthaltfoerderungcode'] = $aufenthaltfoerderung_code_arr;
 
 				if (isset($ects_angerechnet) && !isEmptyString($ects_angerechnet))

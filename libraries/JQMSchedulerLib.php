@@ -188,7 +188,7 @@ class JQMSchedulerLib
 						) < ?";
 
 			$params[] = $this->_vbpk_types;
-			$params[] = count($this->_vbpk_types);
+			$params[] = numberOfElements($this->_vbpk_types);
 		}
 
 		$qry .= ")";

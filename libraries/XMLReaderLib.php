@@ -145,7 +145,7 @@ class XMLReaderLib
 				foreach ($elements as $element)
 				{
 					// if element node with children, save as php object
-					if ($element->nodeType == XML_ELEMENT_NODE && ($element->childNodes) && count($element->childNodes) > 0)
+					if ($element->nodeType == XML_ELEMENT_NODE && ($element->childNodes) && numberOfElements($element->childNodes) > 0)
 					{
 						$obj = new stdClass();
 						$this->_convertDomElementToPhpObj($element, $obj, $includeAttributes);
@@ -244,7 +244,7 @@ class XMLReaderLib
 						// recursive call for new array element to fill child data
 						$this->_convertDomElementToPhpObj(
 							$child,
-							$phpObject->{$child->nodeName}[count($phpObject->{$child->nodeName}) -1],
+							$phpObject->{$child->nodeName}[numberOfElements($phpObject->{$child->nodeName}) -1],
 							$includeAttributes
 						);
 					}

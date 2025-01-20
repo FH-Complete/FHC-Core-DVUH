@@ -112,9 +112,9 @@ class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 				if (hasData($parsedObj))
 				{
 					$parsedObj = getData($parsedObj);
-					$statuscode = count($parsedObj->statuscode) > 0 ? $parsedObj->statuscode[0] : '';
-					$statusmeldung = count($parsedObj->statusmeldung) > 0 ? $parsedObj->statusmeldung[0] : '';
-					$matrikelnummer = count($parsedObj->matrikelnummer) > 0 ? $parsedObj->matrikelnummer[0] : '';
+					$statuscode = numberOfElements($parsedObj->statuscode) > 0 ? $parsedObj->statuscode[0] : '';
+					$statusmeldung = numberOfElements($parsedObj->statusmeldung) > 0 ? $parsedObj->statusmeldung[0] : '';
+					$matrikelnummer = numberOfElements($parsedObj->matrikelnummer) > 0 ? $parsedObj->matrikelnummer[0] : '';
 
 					/**
 					 *

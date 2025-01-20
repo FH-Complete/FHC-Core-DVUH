@@ -4,7 +4,7 @@ $filterWidgetArray = array(
 		SELECT
 			person_id, vorname, nachname, geschlecht, svnr, ersatzkennzeichen, matr_nr,
 			staatsbuergerschaft, gebdatum, false AS mitarbeiter,
-			(SELECT count(*) FROM public.tbl_akte WHERE person_id=tbl_person.person_id) AS anzahl_dokumente
+			(SELECT numberOfElements(*) FROM public.tbl_akte WHERE person_id=tbl_person.person_id) AS anzahl_dokumente
 		FROM
 			public.tbl_person
 		WHERE
@@ -16,7 +16,7 @@ $filterWidgetArray = array(
 		SELECT
 			person_id, vorname, nachname, geschlecht, svnr, ersatzkennzeichen, matr_nr,
 			staatsbuergerschaft, gebdatum, true AS mitarbeiter,
-			(SELECT count(*) FROM public.tbl_akte WHERE person_id=tbl_person.person_id) AS anzahl_dokumente
+			(SELECT numberOfElements(*) FROM public.tbl_akte WHERE person_id=tbl_person.person_id) AS anzahl_dokumente
 		FROM
 			public.tbl_person
             JOIN public.tbl_benutzer USING(person_id)

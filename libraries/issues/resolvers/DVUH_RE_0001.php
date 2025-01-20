@@ -49,6 +49,6 @@ class DVUH_RE_0001 implements IIssueResolvedChecker
 
 		// if two persons - not resolved
 		// resolved if only one person found - likely, they have been merged, or another ekz has been assigned.
-		return success(!hasData($personRes) || count(getData($personRes)) <= 1);
+		return success(!hasData($personRes) || numberOfElements(getData($personRes)) <= 1);
 	}
 }

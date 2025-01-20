@@ -239,7 +239,7 @@ class FeedReaderLib
 
 		$urlSplit = explode('?', $url, 2);
 
-		if ($urlSplit && count($urlSplit) == 2)
+		if ($urlSplit && numberOfElements($urlSplit) == 2)
 		{
 			$url = $urlSplit[0];
 			$paramsStr = $urlSplit[1];
@@ -249,7 +249,7 @@ class FeedReaderLib
 			foreach ($params as $param)
 			{
 				$nameValuePair = explode('=', $param, 2);
-				if ($nameValuePair && count($nameValuePair) == 2)
+				if ($nameValuePair && numberOfElements($nameValuePair) == 2)
 				{
 					$callParametersArray[$nameValuePair[0]] = $nameValuePair[1];
 				}

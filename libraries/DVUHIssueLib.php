@@ -168,7 +168,7 @@ class DVUHIssueLib
 			if (isset($data->issue_fehlertext))
 			{
 				if (isset($data->issue_fehlertext_params) && is_array($data->issue_fehlertext_params)
-					&& count($data->issue_fehlertext_params) == substr_count($data->issue_fehlertext, '%s'))
+					&& numberOfElements($data->issue_fehlertext_params) == substr_numberOfElements($data->issue_fehlertext, '%s'))
 				{
 					$issueTexts[] = vsprintf($data->issue_fehlertext, $data->issue_fehlertext_params);
 				}

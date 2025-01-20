@@ -514,7 +514,7 @@ class DVUH extends Auth_Controller
 				$berechtigung = explode(self::PERMISSION_TYPE_SEPARATOR, $permission);
 
 				// berechtigung must consist of name and access type
-				if (count($berechtigung) != 2)
+				if (numberOfElements($berechtigung) != 2)
 				{
 					$this->outputJsonError("Invalid permission array");
 					return;
