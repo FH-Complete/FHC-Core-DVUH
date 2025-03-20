@@ -43,7 +43,7 @@ class Matrikelkorrektur_model extends DVUHClientModel
 			);
 
 			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/matrikelkorrektur', $params, true);
-			$result = $this->_call('POST', null, $postData);
+			$result = $this->_call(ClientLib::HTTP_POST_METHOD, null, $postData);
 		}
 
 		return $result;

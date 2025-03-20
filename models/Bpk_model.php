@@ -36,7 +36,7 @@ class Bpk_model extends DVUHClientModel
 				'semester' => $semester
 			);
 
-			$result = $this->_call('GET', $callParametersArray);
+			$result = $this->_call(ClientLib::HTTP_GET_METHOD, $callParametersArray);
 		}
 
 		return $result;

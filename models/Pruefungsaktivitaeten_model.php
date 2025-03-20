@@ -38,7 +38,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 			if (!is_null($matrikelnummer))
 				$callParametersArray['matrikelnummer'] = $matrikelnummer;
 
-			$result = $this->_call('GET', $callParametersArray);
+			$result = $this->_call(ClientLib::HTTP_GET_METHOD, $callParametersArray);
 		}
 
 		return $result;
@@ -59,7 +59,7 @@ class Pruefungsaktivitaeten_model extends DVUHClientModel
 			return $postData;
 
 		if (hasData($postData))
-			$result = $this->_call('POST', null, getData($postData));
+			$result = $this->_call(ClientLib::HTTP_POST_METHOD, null, getData($postData));
 		else
 			$result = $postData; // return empty array
 

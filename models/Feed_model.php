@@ -40,7 +40,7 @@ class Feed_model extends DVUHClientModel
 		if (!is_null($markread))
 			$callParametersArray['markread'] = $markread;
 
-		$result = $this->_call('GET', $callParametersArray);
+		$result = $this->_call(ClientLib::HTTP_GET_METHOD, $callParametersArray);
 
 		return $result;
 	}
@@ -55,6 +55,6 @@ class Feed_model extends DVUHClientModel
 	{
 		$this->_url = $url;
 
-		return $this->_call('GET', $callParametersArray);
+		return $this->_call(ClientLib::HTTP_GET_METHOD, $callParametersArray);
 	}
 }

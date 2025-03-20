@@ -2,44 +2,23 @@
 
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
+require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/ClientLib.php';
+
 /**
  * Library to Connect to DVUH Services
  */
-class DVUHClientLib
+class DVUHClientLib extends ClientLib
 {
 	// Configs parameters names
-	const ACTIVE_CONNECTION = 'fhc_dvuh_active_connection';
-	const URL_PATH = 'fhc_dvuh_path';
 	const API_VERSION = 'fhc_dvuh_api_version';
-	const CONNECTIONS = 'fhc_dvuh_connections';
-
-	const MISSING_REQUIRED_PARAMETERS = 'ERR001';
-	const WRONG_WS_PARAMETERS = 'ERR002';
-	const WS_REQUEST_FAILED = 'ERR003';
-	const REQUEST_FAILED = 'ERR004';
-
-	const METHOD_HEAD = 'HEAD';
-	const METHOD_GET = 'GET';
-	const METHOD_PUT = 'PUT';
-	const METHOD_POST = 'POST';
-
-	private $_connectionsArray;		// connections array
-	private $_urlPath;				// url path
-
-	private $_error;				// true if an error occurred
-	private $_errorMessage;			// contains the error message
-
-	private $_ci; // Code igniter instance
 
 	/**
 	 * Object initialization
 	 */
 	public function __construct()
 	{
-		$this->_ci =& get_instance(); // get code igniter instance
+		parent::__construct();
 
-		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHAuthLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 
 		$this->_setPropertiesDefault(); // properties initialization
@@ -52,14 +31,14 @@ class DVUHClientLib
 	/**
 	 * Performs a call to a remote web service
 	 */
-	public function call($url, $method, $getParametersArray = null, $postData = null)
+	public function call($url, $httpMethod, $getParametersArray = null, $postParametersArray = null)
 	{
-		// Checks if the api set name is valid
+		// Checks if the url is valid
 		if ($url == null || trim($url) == '')
 			$this->_error(self::MISSING_REQUIRED_PARAMETERS, 'URL missing');
 
 		// Checks if the method name is valid
-		if ($method == null || trim($method) == '')
+		if ($httpMethod == null || trim($httpMethod) == '')
 			$this->_error(self::MISSING_REQUIRED_PARAMETERS, 'Method is invalid');
 
 		// Checks that the webservice parameters are present in an array
@@ -69,23 +48,7 @@ class DVUHClientLib
 		if ($this->isError())
 			return null; // If an error was raised then return a null value
 
-		return $this->_callRemoteService($url, $method, $getParametersArray, $postData);
-	}
-
-	/**
-	 * Returns the error message stored in property _errorMessage
-	 */
-	public function getError()
-	{
-		return $this->_errorMessage;
-	}
-
-	/**
-	 * Returns true if an error occurred, otherwise false
-	 */
-	public function isError()
-	{
-		return $this->_error;
+		return $this->_callRemoteService($url, $httpMethod, $getParametersArray, $postParametersArray);
 	}
 
 	/**
@@ -98,12 +61,12 @@ class DVUHClientLib
 	}
 
 	// --------------------------------------------------------------------------------------------
-	// Private methods
+	// Protected methods
 
 	/**
 	 * Initialization of the properties of this object
 	 */
-	private function _setPropertiesDefault()
+	protected function _setPropertiesDefault()
 	{
 		$this->_connectionsArray = null;
 		$this->_error = false;
@@ -113,7 +76,7 @@ class DVUHClientLib
 	/**
 	 * Sets the connection
 	 */
-	private function _setConnection()
+	protected function _setConnection()
 	{
 		$activeConnectionName = $this->_ci->config->item(self::ACTIVE_CONNECTION);
 		$connectionsArray = $this->_ci->config->item(self::CONNECTIONS);
@@ -122,10 +85,13 @@ class DVUHClientLib
 		$this->_connectionsArray = $connectionsArray[$activeConnectionName];
 	}
 
+	// --------------------------------------------------------------------------------------------
+	// Private methods
+
 	/**
 	 * Performs a remote web service call with the given name and parameters
 	 */
-	private function _callRemoteService($url, $method, $getParametersArray, $postData = null)
+	private function _callRemoteService($url, $httpMethod, $getParametersArray, $postData = null)
 	{
 		$response = null;
 
@@ -140,7 +106,7 @@ class DVUHClientLib
 			foreach($getParametersArray as $key => $val)
 			{
 				// replace single quotes by spaces, as server cannot handle single quotes for GET requests
-				if ($method == self::METHOD_GET) $val = str_replace("'", " ", $val);
+				if ($httpMethod == self::HTTP_GET_METHOD) $val = str_replace("'", " ", $val);
 				$params[] = $key.'='.curl_escape($curl, $val);
 			}
 			$url .= '?'.implode('&', $params);
@@ -160,25 +126,25 @@ class DVUHClientLib
 			'Expect:'
 		);
 
-		switch ($method)
+		switch ($httpMethod)
 		{
-			case self::METHOD_POST:
+			case self::HTTP_POST_METHOD:
 				curl_setopt($curl, CURLOPT_POST, true);
 				if (!is_null($postData))
 					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 				break;
 
-			case self::METHOD_PUT:
-				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, self::METHOD_PUT);
+			case self::HTTP_PUT_METHOD:
+				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, self::HTTP_PUT_METHOD);
 				if (!is_null($postData))
 					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
 				break;
 
-			case self::METHOD_HEAD:
+			case self::HTTP_HEAD_METHOD:
 				curl_setopt($curl, CURLOPT_NOBODY, true);
 				break;
 
-			case self::METHOD_GET:
+			case self::HTTP_GET_METHOD:
 			default:
 				$headers[] = 'Content-Length: 0';
 				break;
@@ -202,15 +168,6 @@ class DVUHClientLib
 			);
 			return null;
 		}
-	}
-
-	/**
-	 * Sets property _error to true and stores an error message in property _errorMessage
-	 */
-	private function _error($code, $message = 'Generic error')
-	{
-		$this->_error = true;
-		$this->_errorMessage = $code.': '.$message;
 	}
 
 	/**

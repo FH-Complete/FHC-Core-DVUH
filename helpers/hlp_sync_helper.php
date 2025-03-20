@@ -117,3 +117,15 @@ function createExternalIssueError($fehlertext, $fehlernummer)
 {
 	return error(createExternalIssueObj($fehlertext, $fehlernummer));
 }
+
+/**
+ * Base 64 url encode, replacing special chars as defined in RFC standard.
+ * @param string value string to encode
+ * @return string
+ */
+function base64_urlencode($value)
+{
+	return strtr($value, "/+", "_-");
+	//return rtrim(strtr($value, "/+", "_-"), '=');
+}
+

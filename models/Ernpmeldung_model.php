@@ -39,7 +39,7 @@ class Ernpmeldung_model extends DVUHClientModel
 		if (isError($postData))
 			$result = $postData;
 		else
-			$result = $this->_call('POST', null, getData($postData));
+			$result = $this->_call(ClientLib::HTTP_POST_METHOD, null, getData($postData));
 
 		return $result;
 	}

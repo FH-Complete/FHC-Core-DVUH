@@ -44,7 +44,7 @@ class Studium_model extends DVUHClientModel
 			if (!is_null($studienkennung))
 				$callParametersArray['studienkennung'] = $studienkennung;
 
-			$result = $this->_call('GET', $callParametersArray);
+			$result = $this->_call(ClientLib::HTTP_GET_METHOD, $callParametersArray);
 		}
 
 		return $result;
@@ -81,7 +81,7 @@ class Studium_model extends DVUHClientModel
 	{
 		$postData = $this->retrievePostDataString($params);
 
-		return $this->_call('POST', null, $postData);
+		return $this->_call(ClientLib::HTTP_POST_METHOD, null, $postData);
 	}
 
 	/**

@@ -79,7 +79,7 @@ class Pruefebpk_model extends DVUHClientModel
 			if (!is_null($sonstigername))
 				$callParametersArray['sonstigername'] = $sonstigername;
 
-			$result = $this->_call('GET', $callParametersArray);
+			$result = $this->_call(ClientLib::HTTP_GET_METHOD, $callParametersArray);
 		}
 
 		return $result;

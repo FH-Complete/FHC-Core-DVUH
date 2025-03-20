@@ -64,8 +64,8 @@ class DVUHAuthLib
 	 */
 	private function _getConnection()
 	{
-		$activeConnectionName = $this->_ci->config->item(DVUHClientLib::ACTIVE_CONNECTION);
-		$connectionsArray = $this->_ci->config->item(DVUHClientLib::CONNECTIONS);
+		$activeConnectionName = $this->_ci->config->item(ClientLib::ACTIVE_CONNECTION);
+		$connectionsArray = $this->_ci->config->item(ClientLib::CONNECTIONS);
 		return $connectionsArray[$activeConnectionName];
 	}
 

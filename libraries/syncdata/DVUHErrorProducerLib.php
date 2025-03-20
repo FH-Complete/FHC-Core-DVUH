@@ -6,6 +6,7 @@
  */
 class DVUHErrorProducerLib
 {
+	private $_ci;
 	private $_errors = array();
 	private $_warnings = array();
 
@@ -60,6 +61,15 @@ class DVUHErrorProducerLib
 	 * @return bool
 	 */
 	public function hasError()
+	{
+		return !isEmptyArray($this->_errors);
+	}
+
+	/**
+	 * Checks if at least one error was produced.
+	 * @return bool
+	 */
+	public function hasWarning()
 	{
 		return !isEmptyArray($this->_errors);
 	}
