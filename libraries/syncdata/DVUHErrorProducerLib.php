@@ -9,6 +9,7 @@ class DVUHErrorProducerLib
 	private $_ci;
 	private $_errors = array();
 	private $_warnings = array();
+	private $_infos = array();
 
 	public function __construct()
 	{
@@ -57,6 +58,15 @@ class DVUHErrorProducerLib
 	}
 
 	/**
+	 * Adds info to info list.
+	 * @param string $info
+	 */
+	protected function addInfo($info)
+	{
+		$this->_infos[] = $info;
+	}
+
+	/**
 	 * Checks if at least one error was produced.
 	 * @return bool
 	 */
@@ -71,7 +81,16 @@ class DVUHErrorProducerLib
 	 */
 	public function hasWarning()
 	{
-		return !isEmptyArray($this->_errors);
+		return !isEmptyArray($this->_warnings);
+	}
+
+	/**
+	 * Checks if at least one info message was produced.
+	 * @return bool
+	 */
+	public function hasInfo()
+	{
+		return !isEmptyArray($this->_infos);
 	}
 
 	/**
@@ -94,5 +113,16 @@ class DVUHErrorProducerLib
 		$warnings = $this->_warnings;
 		$this->_warnings = array();
 		return $warnings;
+	}
+
+	/**
+	 * Gets infos and resets them.
+	 * @return array
+	 */
+	public function readInfos()
+	{
+		$infos = $this->_infos;
+		$this->_infos = array();
+		return $infos;
 	}
 }

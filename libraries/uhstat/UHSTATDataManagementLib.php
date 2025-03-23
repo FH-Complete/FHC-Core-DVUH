@@ -17,9 +17,9 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 		'vbpkAs' => 6
 	);
 
-	const PERS_ID_NAME = 'persId';
-	const PERS_ID_TYPE_NAME = 'persIdType';
-	const PERS_ID_FREMDSCHLÜSSEL_NAME = 'PersIdFremdVerschl'; // PersidFremdVerschl
+	const PERS_ID_NAME = 'persid';
+	const PERS_ID_TYPE_NAME = 'persidTyp';
+	const PERS_ID_FREMDSCHLÜSSEL_NAME = 'persidFremdVerschl';
 
 	/**
 	 * Library initialization
@@ -70,25 +70,18 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 
 		foreach ($personData as $person)
 		{
-			// get data for identifiying a person in UHSTAT1
-			$idData = $this->_getUHSTATIdentificationData($person);
-
-			if (!isset($idData)) continue;
-
 			// get UHSTAT1 specific data from person data
 			$uhstat1Data = $this->_getUHSTAT1Data($person);
 
 			// skip if error occured when getting UHSTAT1 code data
 			if (!isset($uhstat1Data)) continue;
 
-			// add pers Id foreign key vBpk (to match with main key vBpk)
-			if (isset($idData[self::PERS_ID_FREMDSCHLÜSSEL_NAME]))
-				$uhstat1Data[self::PERS_ID_FREMDSCHLÜSSEL_NAME] = $idData[self::PERS_ID_FREMDSCHLÜSSEL_NAME];
-
 			// if everything ok, send UHSTAT1 data
 			$uhstat1Result = $this->_ci->UHSTAT1Model->saveEntry(
-				$idData[self::PERS_ID_TYPE_NAME],
-				$idData[self::PERS_ID_NAME],
+				$uhstat1Data[self::PERS_ID_TYPE_NAME],
+				isset($uhstat1Data[self::PERS_ID_TYPE_NAME]) && $uhstat1Data[self::PERS_ID_TYPE_NAME] == $this->_pers_id_types['vbpkAs']
+					? base64_urlencode($uhstat1Data[self::PERS_ID_NAME]) // url encode if bpk in url
+					: $uhstat1Data[self::PERS_ID_NAME],
 				$uhstat1Data
 			);
 
@@ -100,7 +93,7 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 			}
 
 			// if it went through, log info
-			//$this->addInfo("UHSTAT1 Daten für Person mit Id ".$person->person_id." erfolgreich gesendet");
+			$this->addInfo("UHSTAT1 Daten für Person mit Id ".$person->person_id." erfolgreich gesendet");
 
 			// write UHSTAT1 Meldung in FHC db
 			$uhstatSyncSaveRes = $this->_ci->DVUHUHSTAT1Model->insert(
@@ -183,28 +176,58 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 		/*
 		expected data format:
 		{
-			"Geburtsstaat": "string",
-			"Mutter": {
-				"Geburtsstaat": "string",
-				"Geburtsjahr": 0,
-				"Bildungsstaat": "string",
-				"Bildungmax": 0
+			"persid": "XXXXXXXXXX",
+			"persidTyp": 2,
+			"gebstaat": "A",
+			"mutter": {
+				"gebstaat": "A",
+				"gebjahr": 1970,
+				"bildstaat": "A",
+				"bildmax": 240
 			},
-			"Vater": {
-				"Geburtsstaat": "string",
-				"Geburtsjahr": 0,
-				"Bildungsstaat": "string",
-				"Bildungmax": 0
-			}
+			"vater": {
+				"gebstaat": "A",
+				"gebjahr": 1970,
+				"bildstaat": "A",
+				"bildmax": 240
+			  }
 		}*/
 
 		$errorOccured = false;
 		$uhstat1Data = array();
 
+		if (isset($personData->vbpkAs) && !isEmptyString($personData->vbpkAs)
+			&& isset($personData->vbpkBf) && !isEmptyString($personData->vbpkBf))
+		{
+			// TODO: is it needed to explicitely replace special chars here?
+			$uhstat1Data[self::PERS_ID_NAME] = $personData->vbpkAs;
+			$uhstat1Data[self::PERS_ID_TYPE_NAME] = $this->_pers_id_types['vbpkAs'];
+			$uhstat1Data[self::PERS_ID_FREMDSCHLÜSSEL_NAME] = $personData->vbpkBf;
+		}
+		elseif (isset($personData->ersatzkennzeichen) && !isEmptyString($personData->ersatzkennzeichen))
+		{
+			$uhstat1Data[self::PERS_ID_NAME] = $personData->ersatzkennzeichen;
+			$uhstat1Data[self::PERS_ID_TYPE_NAME] = $this->_pers_id_types['ersatzkennzeichen'];
+		}
+		else
+		{
+			// TODO add issues?
+			// add issue if data missing
+			$this->addWarning(
+				"Personkennung fehlt (vBpk AS, vBpk BF oder Ersatzkennzeichen fehlt); Person ID ".$personData->person_id
+				//~ createIssueObj(
+					//~ 'uhstatPersonkennungFehlt',
+					//~ $personData->person_id
+				//~ )
+			);
+			// error occured, do not report student
+			$errorOccured = true;
+		}
+
 		// get Geburtsnation
 		if (isset($personData->geburtsnation) && !isEmptyString($personData->geburtsnation))
 		{
-			$uhstat1Data['Geburtsstaat'] = $personData->geburtsnation;
+			$uhstat1Data['gebstaat'] = $personData->geburtsnation;
 		}
 		else
 		{
@@ -221,18 +244,18 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 		}
 
 		// get UHSTAT1 fields
-		$uhstat1Data['Mutter'] = array(
-			'Geburtsstaat' => $personData->mutter_geburtsstaat,
-			'Geburtsjahr' => $personData->mutter_geburtsjahr,
-			'Bildungsstaat' => $personData->mutter_bildungsstaat,
-			'Bildungmax' => $personData->mutter_bildungmax
+		$uhstat1Data['mutter'] = array(
+			'gebstaat' => $personData->mutter_geburtsstaat,
+			'gebjahr' => $personData->mutter_geburtsjahr,
+			'bildstaat' => $personData->mutter_bildungsstaat,
+			'bildmax' => $personData->mutter_bildungmax
 		);
 
-		$uhstat1Data['Vater'] = array(
-			'Geburtsstaat' => $personData->vater_geburtsstaat,
-			'Geburtsjahr' => $personData->vater_geburtsjahr,
-			'Bildungsstaat' => $personData->vater_bildungsstaat,
-			'Bildungmax' => $personData->vater_bildungmax
+		$uhstat1Data['vater'] = array(
+			'gebstaat' => $personData->vater_geburtsstaat,
+			'gebjahr' => $personData->vater_geburtsjahr,
+			'bildstaat' => $personData->vater_bildungsstaat,
+			'bildmax' => $personData->vater_bildungmax
 		);
 
 		// return null if error occured

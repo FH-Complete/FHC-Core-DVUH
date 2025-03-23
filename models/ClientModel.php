@@ -24,7 +24,7 @@ abstract class ClientModel extends CI_Model
 	 * @param array $postData
 	 * @return object success or error
 	 */
-	protected function _call($method, $getParametersArray, $postData = null)
+	protected function _call($method, $getParametersArray, $postParametersArray = null)
 	{
 		// Checks if the url is valid
 		if ($this->_url == null || trim($this->_url) == '')
@@ -39,7 +39,7 @@ abstract class ClientModel extends CI_Model
 				$this->_url,
 				$method,
 				$getParametersArray,
-				$postData
+				$postParametersArray
 			)
 		);
 

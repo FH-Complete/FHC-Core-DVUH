@@ -21,7 +21,7 @@ class UHSTATManagement extends JQW_Controller
 
 		// load configs and save "log infos" parameter
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHSync');
-		$this->_logInfos = $this->config->item('fhc_bis_log_infos');
+		$this->_logInfos = $this->config->item('fhc_dvuh_log_infos');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -84,15 +84,15 @@ class UHSTATManagement extends JQW_Controller
 			}
 
 			// write info log
-			//~ if ($this->uhstatdatamanagementlib->hasInfo())
-			//~ {
-				//~ $infos = $this->uhstatdatamanagementlib->readInfos();
+			if ($this->uhstatdatamanagementlib->hasInfo())
+			{
+				$infos = $this->uhstatdatamanagementlib->readInfos();
 
-				//~ foreach ($infos as $info)
-				//~ {
-					//~ if (!isEmptyString($info)) $this->_logInfoIfEnabled($info);
-				//~ }
-			//~ }
+				foreach ($infos as $info)
+				{
+					if (!isEmptyString($info)) $this->_logInfoIfEnabled($info);
+				}
+			}
 
 			// Update jobs properties values
 			$this->updateJobs(

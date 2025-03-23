@@ -91,6 +91,7 @@ class UHSTATClientLib extends ClientLib
 
 		// perform OAUTH2 Authentication
 		$authToken = $this->_ci->dvuhauthlib->getToken();
+		var_dump($authToken);
 
 		if (isset($authToken))
 		{
