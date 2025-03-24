@@ -91,7 +91,6 @@ class UHSTATClientLib extends ClientLib
 
 		// perform OAUTH2 Authentication
 		$authToken = $this->_ci->dvuhauthlib->getToken();
-		var_dump($authToken);
 
 		if (isset($authToken))
 		{
@@ -317,8 +316,6 @@ class UHSTATClientLib extends ClientLib
 	 */
 	private function _callPUT($uri)
 	{
-		var_dump("URI CALLED");
-		var_dump($uri);
 		return \Httpful\Request::put($uri)
 			//->expectsJson() // dangerous expectations
 			->addHeader(self::AUTHORIZATION_HEADER_NAME, self::AUTHORIZATION_HEADER_PREFIX.' '.$this->_authToken)
