@@ -18,8 +18,6 @@ class UHSTATClientLib extends ClientLib
 	const AUTHORIZATION_HEADER_PREFIX = 'Bearer'; // accept header name
 	const ACCEPT_HEADER_VALUE = 'application/json'; // accept header value
 
-	private $_wsFunction;		// path to the webservice
-
 	private $_httpMethod;		// http method used to call this server
 	private $_authToken;			// token for authentication
 	private $_uriParametersArray;	// contains the parameters to give to the remote web service which are part of the url
@@ -144,7 +142,6 @@ class UHSTATClientLib extends ClientLib
 	 */
 	public function resetToDefault()
 	{
-		$this->_wsFunction = null;
 		$this->_httpMethod = null;
 		$this->_authToken = '';
 		$this->_uriParametersArray = array();
@@ -166,7 +163,6 @@ class UHSTATClientLib extends ClientLib
 	protected function _setPropertiesDefault()
 	{
 		$this->_connectionsArray = null;
-		$this->_wsFunction = null;
 		$this->_httpMethod = null;
 		$this->_authToken = '';
 		$this->_uriParametersArray = array();

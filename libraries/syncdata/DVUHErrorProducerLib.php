@@ -1,22 +1,16 @@
 <?php
 
+require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncdata/ErrorProducerLib.php';
+
 /**
  * Functionality for writing errors and warnings.
  * Any library extending this library is capable of producing errors and warnings.
  */
-class DVUHErrorProducerLib
+class DVUHErrorProducerLib extends ErrorProducerLib
 {
-	private $_ci;
-	private $_errors = array();
-	private $_warnings = array();
-	private $_infos = array();
-
 	public function __construct()
 	{
-		$this->_ci =& get_instance(); // get code igniter instance
-
-		// load helpers
-		$this->_ci->load->helper('extensions/FHC-Core-DVUH/hlp_sync_helper');
+		parent::__construct();
 	}
 
 	/**
@@ -55,74 +49,5 @@ class DVUHErrorProducerLib
 		{
 			$this->_warnings[] = createIssueObj($warningtext, $issue_fehler_kurzbz, $issue_fehlertext_params, $issue_resolution_prams);
 		}
-	}
-
-	/**
-	 * Adds info to info list.
-	 * @param string $info
-	 */
-	protected function addInfo($info)
-	{
-		$this->_infos[] = $info;
-	}
-
-	/**
-	 * Checks if at least one error was produced.
-	 * @return bool
-	 */
-	public function hasError()
-	{
-		return !isEmptyArray($this->_errors);
-	}
-
-	/**
-	 * Checks if at least one error was produced.
-	 * @return bool
-	 */
-	public function hasWarning()
-	{
-		return !isEmptyArray($this->_warnings);
-	}
-
-	/**
-	 * Checks if at least one info message was produced.
-	 * @return bool
-	 */
-	public function hasInfo()
-	{
-		return !isEmptyArray($this->_infos);
-	}
-
-	/**
-	 * Gets occured errors and resets them.
-	 * @return array
-	 */
-	public function readErrors()
-	{
-		$errors = $this->_errors;
-		$this->_errors = array();
-		return $errors;
-	}
-
-	/**
-	 * Gets occured warnings and resets them.
-	 * @return array
-	 */
-	public function readWarnings()
-	{
-		$warnings = $this->_warnings;
-		$this->_warnings = array();
-		return $warnings;
-	}
-
-	/**
-	 * Gets infos and resets them.
-	 * @return array
-	 */
-	public function readInfos()
-	{
-		$infos = $this->_infos;
-		$this->_infos = array();
-		return $infos;
 	}
 }

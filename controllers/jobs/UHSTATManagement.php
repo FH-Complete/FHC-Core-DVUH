@@ -17,6 +17,7 @@ class UHSTATManagement extends JQW_Controller
 		parent::__construct();
 
 		// load libraries
+		$this->load->library('extensions/FHC-Core-DVUH/DVUHIssueLib');
 		$this->load->library('extensions/FHC-Core-DVUH/uhstat/UHSTATDataManagementLib');
 
 		// load configs and save "log infos" parameter
@@ -64,7 +65,7 @@ class UHSTATManagement extends JQW_Controller
 				{
 					// write error log
 					$this->logError(
-						"Fehler beim Senden der UHSTAT 1 Daten: ".getError($error)
+						"Fehler beim Senden der UHSTAT 1 Daten: ".getError($error->error)
 					);
 				}
 			}
@@ -78,7 +79,7 @@ class UHSTATManagement extends JQW_Controller
 				{
 					// write warning log
 					$this->logWarning(
-						"Fehler beim Senden der UHSTAT 1 Daten: ".getError($warning)
+						"Fehler beim Senden der UHSTAT 1 Daten: ".getError($warning->error)
 					);
 				}
 			}

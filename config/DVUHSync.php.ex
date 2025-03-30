@@ -25,7 +25,8 @@ $config['fhc_dvuh_status_kurzbz'] = array(
 	'DVUHGetBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHRequestBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHRequestEkz' => array('Bewerber', 'Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
-	'DVUHSendPruefungsaktivitaeten' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
+	'DVUHSendPruefungsaktivitaeten' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
+	'DVUHUHSTAT1' => array('Bewerber')
 );
 
 // All status_kurzbz which an active student can have

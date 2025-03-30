@@ -1,14 +1,14 @@
 <?php
 
-require_once APPPATH.'libraries/extensions/FHC-Core-DVUH/syncdata/DVUHErrorProducerLib.php';
+require_once APPPATH.'libraries/extensions/FHC-Core-DVUH/uhstat/UHSTATErrorProducerLib.php';
 
 /**
  * Contains logic for interaction of FHC with UHSTAT interface.
  * This includes initializing webservice calls for modifiying UHSTAT data.
  */
-class UHSTATDataManagementLib extends DVUHErrorProducerLib
+class UHSTATDataManagementLib extends UHSTATErrorProducerLib
 {
-	private $_ci;
+	protected $_ci;
 
 	// UHSTAT codes for person id type
 	private $_pers_id_types = array(
@@ -56,13 +56,13 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 
 		if (isError($personRes))
 		{
-			$this->addError(getError($personRes));
+			$this->addError($personRes);
 			return;
 		}
 
 		if (!hasData($personRes))
 		{
-			$this->addError("Keine FHC Daten gefunden");
+			$this->addError(error("Keine FHC Daten gefunden"));
 			return;
 		}
 
@@ -88,7 +88,7 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 			// add error if error when sending UHSTAT1 data
 			if (isError($uhstat1Result))
 			{
-				$this->addError(getError($uhstat1Result)."; Person Id ".$person->person_id);
+				$this->addError(error(getError($uhstat1Result)."; Person Id ".$person->person_id));
 				continue;
 			}
 
@@ -107,7 +107,7 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 			if (isError($uhstatSyncSaveRes))
 			{
 				$this->addError(
-					"UHSTAT1 Daten für Person Id ".$person->person_id." erfolgreich gesendet, Fehler beim Speichern der Meldung in FHC"
+					error("UHSTAT1 Daten für Person Id ".$person->person_id." erfolgreich gesendet, Fehler beim Speichern der Meldung in FHC")
 				);
 			}
 		}
@@ -120,52 +120,52 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 	 * Gets UHSTAT person identification data.
 	 * @param object $personData data of student from FHC database
 	 */
-	private function _getUHSTATIdentificationData($personData)
-	{
-		$errorOccured = false;
-		$idData = array();
+	//~ private function _getUHSTATIdentificationData($personData)
+	//~ {
+		//~ $errorOccured = false;
+		//~ $idData = array();
 
-		// get persIdType and persId (bpkAs, svnr, or ersatzkennzeichen)
+		//~ // get persIdType and persId (bpkAs, svnr, or ersatzkennzeichen)
 		//~ if (isset($personData->svnr) && !isEmptyString($personData->svnr))
 		//~ {
 			//~ $idData['persId'] = $personData->svnr;
 			//~ $idData['persIdType'] = $this->_pers_id_types['svnr'];
 			//~ $idData[self::PERS_ID_FREMDSCHLÜSSEL_NAME] = $personData->vbpkBf;
 		//~ }
-		if (isset($personData->vbpkAs) && !isEmptyString($personData->vbpkAs)
-			&& isset($personData->vbpkBf) && !isEmptyString($personData->vbpkBf))
-		{
-			// TODO: is it needed to explicitely replace special chars here?
-			$idData[self::PERS_ID_NAME] = base64_urlencode($personData->vbpkAs);
-			$idData[self::PERS_ID_TYPE_NAME] = $this->_pers_id_types['vbpkAs'];
-			$idData[self::PERS_ID_FREMDSCHLÜSSEL_NAME] = $personData->vbpkBf;
-		}
-		elseif (isset($personData->ersatzkennzeichen) && !isEmptyString($personData->ersatzkennzeichen))
-		{
-			$idData[self::PERS_ID_NAME] = $personData->ersatzkennzeichen;
-			$idData[self::PERS_ID_TYPE_NAME] = $this->_pers_id_types['ersatzkennzeichen'];
-		}
-		else
-		{
-			// TODO add issues?
-			// add issue if data missing
-			$this->addWarning(
-				"Personkennung fehlt (vBpk AS, vBpk BF oder Ersatzkennzeichen fehlt); Person ID ".$personData->person_id
+		//~ if (isset($personData->vbpkAs) && !isEmptyString($personData->vbpkAs)
+			//~ && isset($personData->vbpkBf) && !isEmptyString($personData->vbpkBf))
+		//~ {
+			//~ // TODO: is it needed to explicitely replace special chars here?
+			//~ $idData[self::PERS_ID_NAME] = base64_urlencode($personData->vbpkAs);
+			//~ $idData[self::PERS_ID_TYPE_NAME] = $this->_pers_id_types['vbpkAs'];
+			//~ $idData[self::PERS_ID_FREMDSCHLÜSSEL_NAME] = $personData->vbpkBf;
+		//~ }
+		//~ elseif (isset($personData->ersatzkennzeichen) && !isEmptyString($personData->ersatzkennzeichen))
+		//~ {
+			//~ $idData[self::PERS_ID_NAME] = $personData->ersatzkennzeichen;
+			//~ $idData[self::PERS_ID_TYPE_NAME] = $this->_pers_id_types['ersatzkennzeichen'];
+		//~ }
+		//~ else
+		//~ {
+			//~ // TODO add issues?
+			//~ // add issue if data missing
+			//~ $this->addWarning(
+				//~ "Personkennung fehlt (vBpk AS, vBpk BF oder Ersatzkennzeichen fehlt); Person ID ".$personData->person_id
 				//~ createIssueObj(
 					//~ 'uhstatPersonkennungFehlt',
 					//~ $personData->person_id
 				//~ )
-			);
-			// error occured, do not report student
-			$errorOccured = true;
-		}
+			//~ );
+			//~ // error occured, do not report student
+			//~ $errorOccured = true;
+		//~ }
 
-		// return null if error occured
-		if ($errorOccured) return null;
+		//~ // return null if error occured
+		//~ if ($errorOccured) return null;
 
-		// data successfully retrieved
-		return $idData;
-	}
+		//~ // data successfully retrieved
+		//~ return $idData;
+	//~ }
 
 	/**
 	 * Gets UHSTAT1 data to be sent, in format as expected by API.
@@ -199,7 +199,6 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 		if (isset($personData->vbpkAs) && !isEmptyString($personData->vbpkAs)
 			&& isset($personData->vbpkBf) && !isEmptyString($personData->vbpkBf))
 		{
-			// TODO: is it needed to explicitely replace special chars here?
 			$uhstat1Data[self::PERS_ID_NAME] = $personData->vbpkAs;
 			$uhstat1Data[self::PERS_ID_TYPE_NAME] = $this->_pers_id_types['vbpkAs'];
 			$uhstat1Data[self::PERS_ID_FREMDSCHLÜSSEL_NAME] = $personData->vbpkBf;
@@ -214,11 +213,11 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 			// TODO add issues?
 			// add issue if data missing
 			$this->addWarning(
-				"Personkennung fehlt (vBpk AS, vBpk BF oder Ersatzkennzeichen fehlt); Person ID ".$personData->person_id
-				//~ createIssueObj(
-					//~ 'uhstatPersonkennungFehlt',
-					//~ $personData->person_id
-				//~ )
+				error("Personkennung fehlt (vBpk AS, vBpk BF oder Ersatzkennzeichen fehlt); Person ID ".$personData->person_id),
+				createExtendedIssueObj(
+					'uhstatPersonkennungFehlt',
+					$personData->person_id
+				)
 			);
 			// error occured, do not report student
 			$errorOccured = true;
@@ -233,11 +232,11 @@ class UHSTATDataManagementLib extends DVUHErrorProducerLib
 		{
 			// add issue if data missing
 			$this->addWarning(
-				"Geburtsnation fehlt; Person ID ".$personData->person_id
-				//~ createIssueObj(
-					//~ 'uhstatGeburtsnationFehlt',
-					//~ $personData->person_id
-				//~ )
+				error("Geburtsnation fehlt; Person ID ".$personData->person_id),
+				createExtendedIssueObj(
+					'geburtsnationFehlt',
+					$personData->person_id
+				)
 			);
 			// error occured, do not report student
 			$errorOccured = true;
