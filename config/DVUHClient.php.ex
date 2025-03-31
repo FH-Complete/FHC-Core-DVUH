@@ -10,7 +10,7 @@ $config['fhc_dvuh_be_code'] = DVB_BILDUNGSEINRICHTUNG_CODE;
 $config['fhc_dvuh_path'] = 'rws';
 
 // Api version, is part of url
-$config['fhc_dvuh_api_version'] = '0.7';
+$config['fhc_dvuh_api_version'] = '0.8';
 
 // path for UHSTAT requests
 $config['fhc_dvuh_uhstat_path'] = 'uhstat';
