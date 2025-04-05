@@ -14,14 +14,12 @@ class UHSTATClientLib extends ClientLib
 	const UHSTAT_PATH = 'fhc_dvuh_uhstat_path';
 
 	const URI_TEMPLATE = '%s/%s/%s/%s/%s'; // URI format
-	const AUTHORIZATION_HEADER_NAME = 'Authorization'; // accept header name
-	const AUTHORIZATION_HEADER_PREFIX = 'Bearer'; // accept header name
-	const ACCEPT_HEADER_VALUE = 'application/json'; // accept header value
+	//const AUTHORIZATION_HEADER_NAME = 'Authorization'; // authorization header name
+	//const AUTHORIZATION_HEADER_PREFIX = 'Bearer'; // authorization header prefix
+	//const ACCEPT_HEADER_VALUE = 'application/json'; // accept header value
 
-	private $_httpMethod;		// http method used to call this server
+	//private $_httpMethod;		// http method used to call this server
 	private $_authToken;			// token for authentication
-	private $_uriParametersArray;	// contains the parameters to give to the remote web service which are part of the url
-	private $_callParametersArray;	// contains the parameters to give to the remote web service
 
 	private $_hasData;		// indicates if there are data in the response or not
 	private $_emptyResponse;	// indicates if the response is empty or not
@@ -49,7 +47,7 @@ class UHSTATClientLib extends ClientLib
 	/**
 	 * Performs a call to a remote web service
 	 */
-	public function call($url, $httpMethod = self::HTTP_GET_METHOD, $getParametersArray = array(), $postParametersArray = array())
+	public function call($url, $httpMethod = self::HTTP_GET_METHOD, $getParametersArray = array(), $postData = array())
 	{
 		// Checks if the webservice name is provided and it is valid
 		// Checks if the url is valid
@@ -78,9 +76,9 @@ class UHSTATClientLib extends ClientLib
 		}
 
 		// Checks that the webservice parameters are present in an array
-		if (is_array($postParametersArray))
+		if (is_array($postData))
 		{
-			$this->_callParametersArray = $postParametersArray;
+			$this->_callParametersArray = $postData;
 		}
 		else
 		{
@@ -102,7 +100,7 @@ class UHSTATClientLib extends ClientLib
 		if ($this->isError()) return null; // If an error was raised then return a null value
 
 
-		return $this->_callRemoteWS($this->_generateURI($url)); // perform a remote ws call with the given uri
+		return $this->_callRemoteWebservice($this->_generateURI($url)); // perform a remote ws call with the given uri
 	}
 
 	/**
@@ -142,12 +140,7 @@ class UHSTATClientLib extends ClientLib
 	 */
 	public function resetToDefault()
 	{
-		$this->_httpMethod = null;
-		$this->_authToken = '';
-		$this->_uriParametersArray = array();
-		$this->_callParametersArray = array();
-		$this->_error = false;
-		$this->_errorMessage = '';
+		parent::resetToDefault();
 		$this->_hasData = false;
 		$this->_emptyResponse = false;
 		$this->_hasBadRequestError = false;
@@ -162,61 +155,28 @@ class UHSTATClientLib extends ClientLib
 	 */
 	protected function _setPropertiesDefault()
 	{
-		$this->_connectionsArray = null;
-		$this->_httpMethod = null;
-		$this->_authToken = '';
-		$this->_uriParametersArray = array();
-		$this->_callParametersArray = array();
-		$this->_error = false;
-		$this->_errorMessage = '';
+		parent::_setPropertiesDefault();
 		$this->_hasData = false;
 		$this->_emptyResponse = false;
 		$this->_hasBadRequestError = false;
 		$this->_hasNotFoundError = false;
 	}
 
-	/**
-	 * Sets the connection
-	 */
-	protected function _setConnection()
-	{
-		$activeConnectionName = $this->_ci->config->item(self::ACTIVE_CONNECTION);
-		$connectionsArray = $this->_ci->config->item(self::CONNECTIONS);
+	//~ /**
+	 //~ * Sets the connection
+	 //~ */
+	//~ protected function _setConnection()
+	//~ {
+		//~ $activeConnectionName = $this->_ci->config->item(self::ACTIVE_CONNECTION);
+		//~ $connectionsArray = $this->_ci->config->item(self::CONNECTIONS);
 
-		$this->_connectionsArray = $connectionsArray[$activeConnectionName];
-	}
-
-	// --------------------------------------------------------------------------------------------
-	// Private methods
-
-	/**
-	 * Returns true if the HTTP method used to call this server is GET
-	 */
-	private function _isGET()
-	{
-		return $this->_httpMethod == self::HTTP_GET_METHOD;
-	}
-
-	/**
-	 * Returns true if the HTTP method used to call this server is POST
-	 */
-	private function _isHEAD()
-	{
-		return $this->_httpMethod == self::HTTP_HEAD_METHOD;
-	}
-
-	/**
-	 * Returns true if the HTTP method used to call this server is MERGE
-	 */
-	private function _isPUT()
-	{
-		return $this->_httpMethod == self::HTTP_PUT_METHOD;
-	}
+		//~ $this->_connectionsArray = $connectionsArray[$activeConnectionName];
+	//~ }
 
 	/**
 	 * Generate the URI to call the remote web service
 	 */
-	private function _generateURI($url)
+	protected function _generateURI($url)
 	{
 		$uri = sprintf(
 			self::URI_TEMPLATE,
@@ -241,10 +201,13 @@ class UHSTATClientLib extends ClientLib
 		return $uri;
 	}
 
+	// --------------------------------------------------------------------------------------------
+	// Private methods
+
 	/**
 	 * Performs a remote web service call with the given uri and returns the result after having checked it
 	 */
-	private function _callRemoteWS($uri)
+	protected function _callRemoteWebservice($uri)
 	{
 		$response = null;
 

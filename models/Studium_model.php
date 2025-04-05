@@ -113,7 +113,7 @@ class Studium_model extends DVUHClientModel
 	{
 		$postData = $this->retrievePostDataString($params);
 
-		return $this->_call('PUT', null, $postData);
+		return $this->_call(ClientLib::HTTP_PUT_METHOD, null, $postData);
 	}
 
 	/**

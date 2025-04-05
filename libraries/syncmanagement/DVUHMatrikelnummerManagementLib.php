@@ -91,7 +91,7 @@ class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 				$person->gebdatum,
 				null, // matrikelnummer
 				$person->nachname,
-				!isEmptyString($person->svnr) ? $person->svnr : null,
+				!isEmptyString($person->svnr) ? trim($person->svnr) : null,
 				$person->vorname
 			);
 

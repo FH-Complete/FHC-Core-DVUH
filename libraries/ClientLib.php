@@ -21,6 +21,13 @@ abstract class ClientLib
 	const REQUEST_FAILED = 'ERR007';
 	const INVALID_AUTHENTICATION_TOKEN =	'ERR008';
 
+	const AUTHORIZATION_HEADER_NAME = 'Authorization'; // authorization header name
+	const AUTHORIZATION_HEADER_PREFIX = 'Bearer'; // authorization header prefix
+	const USER_AGENT_HEADER_NAME = 'User-Agent'; // user agent header name
+	const USER_AGENT_HEADER_VALUE = 'FHComplete'; // usrer agent header value
+	const CONNECTION_HEADER_NAME = 'Connection'; // user agent header name
+	const CONNECTION_HEADER_VALUE = 'Keep-Alive'; // usrer agent header value
+
 	const HTTP_HEAD_METHOD = 'HEAD';
 	const HTTP_GET_METHOD = 'GET';
 	const HTTP_PUT_METHOD = 'PUT';
@@ -36,7 +43,11 @@ abstract class ClientLib
 	const HTTP_BAD_REQUEST = 400;
 
 	protected $_connectionsArray;		// connections array
-	protected $_urlPath;				// url path
+	protected $_httpMethod;		// http method used to call this server
+	protected $_authToken;		// authentification token
+
+	protected $_uriParametersArray;	// contains the parameters to give to the remote web service which are part of the url
+	protected $_callParametersArray;	// contains the parameters to give to the remote web service
 
 	protected $_error;				// true if an error occurred
 	protected $_errorMessage;			// contains the error message
@@ -88,7 +99,15 @@ abstract class ClientLib
 	/**
 	 * Reset the library properties to default values
 	 */
-	public abstract function resetToDefault();
+	public function resetToDefault()
+	{
+		$this->_httpMethod = null;
+		$this->_authToken = '';
+		$this->_uriParametersArray = array();
+		$this->_callParametersArray = array();
+		$this->_error = false;
+		$this->_errorMessage = '';
+	}
 
 	// --------------------------------------------------------------------------------------------
 	// Protected methods
@@ -96,17 +115,71 @@ abstract class ClientLib
 	/**
 	 * Initialization of the properties of this object
 	 */
-	abstract protected function _setPropertiesDefault();
+	protected function _setPropertiesDefault()
+	{
+		$this->_connectionsArray = null;
+		$this->_httpMethod = null;
+		$this->_authToken = '';
+		$this->_uriParametersArray = array();
+		$this->_callParametersArray = array();
+		$this->_error = false;
+		$this->_errorCode = '';
+		$this->_errorMessage = '';
+	}
 
 	/**
 	 * Sets the connection
 	 */
-	abstract protected function _setConnection();
+	protected function _setConnection()
+	{
+		$activeConnectionName = $this->_ci->config->item(self::ACTIVE_CONNECTION);
+		$connectionsArray = $this->_ci->config->item(self::CONNECTIONS);
+
+		$this->_connectionsArray = $connectionsArray[$activeConnectionName];
+	}
+
+	/**
+	 * Sets the connection
+	 */
+	abstract protected function _generateURI($url);
+
+	/**
+	 * Returns true if the HTTP method used to call this server is HEAD
+	 */
+	protected function _isHEAD()
+	{
+		return $this->_httpMethod == self::HTTP_HEAD_METHOD;
+	}
+
+	/**
+	 * Returns true if the HTTP method used to call this server is GET
+	 */
+	protected function _isGET()
+	{
+		return $this->_httpMethod == self::HTTP_GET_METHOD;
+	}
+
+
+	/**
+	 * Returns true if the HTTP method used to call this server is PUT
+	 */
+	protected function _isPUT()
+	{
+		return $this->_httpMethod == self::HTTP_PUT_METHOD;
+	}
+
+	/**
+	 * Returns true if the HTTP method used to call this server is POST
+	 */
+	protected function _isPOST()
+	{
+		return $this->_httpMethod == self::HTTP_POST_METHOD;
+	}
 
 	 /**
 	 * Performs a remote web service call with the given name and parameters
 	 */
-	//abstract protected function _callRemoteService($url, $method, $getParametersArray, $postData = null);
+	abstract protected function _callRemoteWebservice($url);
 
 	/**
 	 * Sets property _error to true and stores an error message in property _errorMessage
