@@ -5,6 +5,7 @@
  */
 class XMLReaderLib
 {
+	const DVUH_NAMESPACE_PREFIX = 'dvuh';
 	const DVUH_NAMESPACE = 'http://www.brz.gv.at/datenverbund-unis';
 	const ERRORLIST_TAG = 'fehlerliste';
 
@@ -63,12 +64,11 @@ class XMLReaderLib
 	 * Parses xml, finds given parameters in xml by provided names and returns the values.
 	 * @param string $xmlstr
 	 * @param mixed $searchparams one parameter as string or multiple parameters as array of strings
-	 * @param string $namespace
 	 * @return object success with results or error
 	 */
-	public function parseXml($xmlstr, $searchparams, $namespace = null)
+	public function parseXml($xmlstr, $searchparams)
 	{
-		return $this->_parseXml($xmlstr, $searchparams, $namespace = null);
+		return $this->_parseXml($xmlstr, $searchparams);
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -103,7 +103,7 @@ class XMLReaderLib
 			$result = error($errorsArr);
 		}
 		else
-			$result = $this->_parseXml($xmlstr, $searchparams, self::DVUH_NAMESPACE, $includeAttributes);
+			$result = $this->_parseXml($xmlstr, $searchparams, $includeAttributes);
 
 		return $result;
 	}
@@ -116,54 +116,71 @@ class XMLReaderLib
 	 * @param bool $includeAttributes include attributes of XML elements
 	 * @return object success with results or error
 	 */
-	private function _parseXml($xmlstr, $searchparams, $namespace = null, $includeAttributes = false)
+	private function _parseXml($xmlstr, $searchparams, $includeAttributes = false)
 	{
 		$result = null;
 
-		$doc = new DOMDocument();
-		$loadres = $doc->loadXML($xmlstr);
+		// load xml
+		$xmlElement = simplexml_load_string($xmlstr);
 
-		if ($loadres)
+		// xml data should be loaded successfully
+		if (!$xmlElement) return error('error when parsing xml string');
+
+		// register DVUH namespace
+		$xmlElement->registerXPathNamespace(self::DVUH_NAMESPACE_PREFIX, self::DVUH_NAMESPACE);
+
+		$resultObj = new stdClass();
+
+		// check search params
+		if (!is_array($searchparams))
 		{
-			$resultObj = new stdClass();
-			if (!is_array($searchparams))
-			{
-				if (is_string($searchparams))
-					$searchparams = array($searchparams);
-				else
-					return error('invalid searchparameters!');
-			}
+			if (is_string($searchparams))
+				$searchparams = array($searchparams);
+			else
+				return error('invalid searchparameters!');
+		}
 
-			foreach ($searchparams as $searchparam)
-			{
-				$reselements = array();
-				if (!isEmptyString($namespace))
-					$elements = $doc->getElementsByTagNameNS($namespace, $searchparam);
-				else
-					$elements = $doc->getElementsByTagName($searchparam);
+		foreach ($searchparams as $searchparam)
+		{
+			$reselements = array();
 
-				foreach ($elements as $element)
+			// find all elements with searched tag name using xpath
+			$elements = $xmlElement->xpath('//'.self::DVUH_NAMESPACE_PREFIX.':'.$searchparam);
+
+			foreach ($elements as $element)
+			{
+				// if xml element has children
+				if ($element->count() > 0)
 				{
-					// if element node with children, save as php object
-					if ($element->nodeType == XML_ELEMENT_NODE && ($element->childNodes) && count($element->childNodes) > 0)
-					{
-						$obj = new stdClass();
-						$this->_convertDomElementToPhpObj($element, $obj, $includeAttributes);
-						$reselements[] = $obj;
-					}
-					else // otherwise text node -> save value
-						$reselements[] = $element->nodeValue;
+					// convert xmlobject with children to std class object, return whole object
+					$reselements[] = json_decode(json_encode($element));
 				}
+				else // otherwise the value without chldren should be returned
+				{
+					// if attributes should be returned together with element
+					if ($includeAttributes)
+					{
+						// create object and assign text value and attributes
+						$phpObject = new stdClass();
+						$phpObject->value = $element->__toString();
+						$phpObject->attributes = array();
+						foreach ($element->attributes() as $key => $value)
+						{
+							$phpObject->attributes[$key] = $value->__toString();
+						}
 
-				$resultObj->{$searchparam} = $reselements;
+						$reselements[] = $phpObject;
+					}
+					else
+						$reselements[] = $element->__toString();
+				}
 			}
 
-			$result = success($resultObj);
+			// assign found elements to return object
+			$resultObj->{$searchparam} = $reselements;
 		}
-		else
-		{
-			$result = error('error when parsing xml string');
-		}
+
+		$result = success($resultObj);
 
 		return $result;
 	}
@@ -179,30 +196,37 @@ class XMLReaderLib
 		$result = null;
 		$resultarr = array();
 
-		$doc = new DOMDocument();
-		$loadres = $doc->loadXML($xmlstr);
+		// load xml
+		$xmlElement = simplexml_load_string($xmlstr);
 
-		if (!$loadres)
-			return error('error when parsing xml string');
+		if (!$xmlElement) return error('error when parsing xml string');
 
-		$elements = $doc->getElementsByTagNameNs(self::DVUH_NAMESPACE, self::ERRORLIST_TAG);
+		$xmlElement->registerXPathNamespace(self::DVUH_NAMESPACE_PREFIX, self::DVUH_NAMESPACE);
 
-		if (isset($elements[0]->childNodes))
+		$elements = $xmlElement->xpath('//'.self::DVUH_NAMESPACE_PREFIX.':'.self::ERRORLIST_TAG);
+
+		if (isset($elements[0]) && $elements[0]->count() > 0)
 		{
-			$errObjects = $elements[0]->childNodes;
+			$errObjects = $elements[0]->children();
 
 			foreach ($errObjects as $errObject)
 			{
 				$errResultobj = new stdClass();
+				$errArr = json_decode(json_encode($errObject), true);
 
-				foreach ($errObject->childNodes as $errAttr)
+				foreach ($errArr as $errorName => $errorValue)
 				{
-					$errResultobj->{$errAttr->nodeName} = $errAttr->nodeValue;
+					$errResultobj->{$errorName} = $errorValue;
 				}
+
+				// feldinhalt can be array or string
+				$feldinhalt = is_array($errResultobj->feldinhalt) && !isEmptyArray($errResultobj->feldinhalt)
+					? implode('; ', $errResultobj->feldinhalt)
+					: $errResultobj->feldinhalt;
 
 				$errResultobj->issue_fehlertext =
 					$errResultobj->fehlernummer . ': ' .
-					(isset($errResultobj->feldinhalt) && !isEmptyString($errResultobj->feldinhalt) ? $errResultobj->feldinhalt . ' ' : '') .
+					(isset($feldinhalt) && !isEmptyString($feldinhalt) ? $feldinhalt . ' ' : '') .
 					$errResultobj->fehlertext .
 					(isset($errResultobj->datenfeld) ? ', '.$errResultobj->datenfeld : '') .
 					(isset($errResultobj->massnahme) && !isEmptyString($errResultobj->massnahme) ? ', ' . $errResultobj->massnahme : '');
@@ -219,9 +243,8 @@ class XMLReaderLib
 	 * Converts dom element to php stdClass object.
 	 * @param object $domElement
 	 * @param object $phpObject
-	 * @param bool $includeAttributes
 	 */
-	private function _convertDomElementToPhpObj($domElement, &$phpObject, $includeAttributes = false)
+	private function _convertDomElementToPhpObj($domElement, &$phpObject)
 	{
 		// for all child nodes of element
 		foreach ($domElement->childNodes as $child)
