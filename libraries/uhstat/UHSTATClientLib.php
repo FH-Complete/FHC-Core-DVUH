@@ -14,12 +14,6 @@ class UHSTATClientLib extends ClientLib
 	const UHSTAT_PATH = 'fhc_dvuh_uhstat_path';
 
 	const URI_TEMPLATE = '%s/%s/%s/%s/%s'; // URI format
-	//const AUTHORIZATION_HEADER_NAME = 'Authorization'; // authorization header name
-	//const AUTHORIZATION_HEADER_PREFIX = 'Bearer'; // authorization header prefix
-	//const ACCEPT_HEADER_VALUE = 'application/json'; // accept header value
-
-	//private $_httpMethod;		// http method used to call this server
-	private $_authToken;			// token for authentication
 
 	private $_hasData;		// indicates if there are data in the response or not
 	private $_emptyResponse;	// indicates if the response is empty or not
