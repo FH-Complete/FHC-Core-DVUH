@@ -174,7 +174,6 @@ class UHSTATManagement extends JQW_Controller
 					if (!isEmptyString($info)) $this->_logInfoIfEnabled($info);
 				}
 			}
-			die();
 
 			// Update jobs properties values
 			$this->updateJobs(
