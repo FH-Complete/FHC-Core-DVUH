@@ -65,8 +65,10 @@ class UHSTATDataLib
 					JOIN bis.tbl_nation nat ON bisio.nation_code = nat.nation_code
 					LEFT JOIN bis.tbl_bisio_zweck zweck USING (bisio_id)
 					LEFT JOIN bis.tbl_bisio_aufenthaltfoerderung foerd USING (bisio_id)
-					LEFT JOIN public.tbl_kennzeichen kzVbpkAs ON kzVbpkAs.kennzeichentyp_kurzbz = 'vbpkAs'AND kzVbpkAs.person_id = pers.person_id AND kzVbpkAs.aktiv
-					LEFT JOIN public.tbl_kennzeichen kzVbpkBf ON kzVbpkBf.kennzeichentyp_kurzbz = 'vbpkBf'AND kzVbpkBf.person_id = pers.person_id AND kzVbpkBf.aktiv
+					LEFT JOIN public.tbl_kennzeichen kzVbpkAs
+						ON kzVbpkAs.kennzeichentyp_kurzbz = 'vbpkAs'AND kzVbpkAs.person_id = pers.person_id AND kzVbpkAs.aktiv
+					LEFT JOIN public.tbl_kennzeichen kzVbpkBf
+						ON kzVbpkBf.kennzeichentyp_kurzbz = 'vbpkBf'AND kzVbpkBf.person_id = pers.person_id AND kzVbpkBf.aktiv
 				WHERE
 					prestudent_id IN ?
 					AND ps.bismelden

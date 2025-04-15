@@ -133,7 +133,8 @@ class UHSTATManagementLib extends UHSTATErrorProducerLib
 	{
 		// get student data for UHSTAT2
 		$mobilitaetRes = $this->_ci->uhstatdatalib->getMobilitaetData(
-			$prestudent_id_arr, $this->_ci->config->item('fhc_uhstat_status_kurzbz')[UHSTATSchedulerLib::JOB_TYPE_UHSTAT2]
+			$prestudent_id_arr,
+			$this->_ci->config->item('fhc_uhstat_status_kurzbz')[UHSTATSchedulerLib::JOB_TYPE_UHSTAT2]
 		);
 
 		if (isError($mobilitaetRes))
@@ -285,9 +286,8 @@ class UHSTATManagementLib extends UHSTATErrorProducerLib
 	}
 
 	/**
-	 *
-	 * @param
-	 * @return object success or error
+	 * Gets UHSTAT2 data to be sent, in format as expected by API.
+	 * @param object $mobilitaeten data of student mobility from FHC database
 	 */
 	private function _getUHSTAT2Data($mobilitaeten)
 	{

@@ -7,7 +7,7 @@ class UHSTATConversionLib
 {
 	private $_ci;
 
-	CONST NATIONENGRUPPE_EU = 'eu';
+	const NATIONENGRUPPE_EU = 'eu';
 
 	// mappings for UHSTAT Aufenthaltsart codes
 	private $_aufenthaltsartMobilitaetsprogrammMapping = array(
@@ -159,7 +159,6 @@ class UHSTATConversionLib
 
 			// no zweck code for this position
 			if (!isset($aufenhaltszweckArr[$position])) $aufenhaltszweckArr[$position] = '0';
-
 		}
 
 		return implode('', $aufenhaltszweckArr);
@@ -181,7 +180,6 @@ class UHSTATConversionLib
 
 			// no zweck code for this position
 			if (!isset($foerderungen[$position])) $foerderungen[$position] = '0';
-
 		}
 
 		return implode('', $foerderungen);

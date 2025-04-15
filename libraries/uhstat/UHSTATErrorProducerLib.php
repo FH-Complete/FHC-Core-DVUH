@@ -61,7 +61,9 @@ class UHSTATErrorProducerLib extends ErrorProducerLib
 			);
 
 			if (isError($addIssueRes))
-				$this->addError(error("Fehler beim Hinzufügen des BIS issue".(isset($issue->person_id) ? " für Person mit ID ".$issue->person_id : "")));
+				$this->addError(
+					error("Fehler beim Hinzufügen des BIS issue".(isset($issue->person_id) ? " für Person mit ID ".$issue->person_id : ""))
+				);
 		}
 
 		// do nothing if not issue
