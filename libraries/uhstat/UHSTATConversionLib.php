@@ -85,6 +85,7 @@ class UHSTATConversionLib
 			$dauerMonate = $this->_monthsBetweenDates($mobilitaet->von, $mobilitaet->bis);
 
 			$counter++;
+			// loop through Mobilitäten, increase appropriate counters
 			if ($mobilitaet->aufenthaltsdauer_tage < 14)
 			{
 				$counterUnter2Wochen++;
@@ -98,19 +99,20 @@ class UHSTATConversionLib
 			elseif ($dauerMonate >= 1)
 			{
 				$counterAb1Monat++;
+
+				// add Aufenthalt for mobility > 1 month
+				$aufenthalt = array();
+				$aufenthalt['staat'] = $mobilitaet->nation_code;
+				$aufenthalt['dauer'] = str_pad($dauerMonate, 2, '0', STR_PAD_LEFT);
+				// TODO: round up or down? only whole ects are accepted
+				$aufenthalt['ectsErw'] = str_pad(floor($mobilitaet->ects_erworben), 3, '0', STR_PAD_LEFT);
+				$aufenthalt['ectsAnger'] = str_pad(floor($mobilitaet->ects_angerechnet), 3, '0', STR_PAD_LEFT);
+				$aufenthalt['art'] = $this->_getAufenthaltsartFromMobilitaetsprogramm($mobilitaet->mobilitaetsprogramm_code);
+				$aufenthalt['zweck'] = $this->_getAufenthaltszweckFromZweckCodes(explode(',', $mobilitaet->zwecke));
+				$aufenthalt['foerd'] = $this->_getAuslandsaufenthaltFoerderungFromAufenthaltfoerderung(explode(',', $mobilitaet->foerderungen));
+
+				$uhstat2Data['auslandsaufenthalte']['aufenthalt'.$counter] = $aufenthalt;
 			}
-
-			$aufenthalt = array();
-			$aufenthalt['staat'] = $mobilitaet->nation_code;
-			$aufenthalt['dauer'] = str_pad($dauerMonate, 2, '0', STR_PAD_LEFT);
-			// TODO: round up or down? only whole ects are accepted
-			$aufenthalt['ectsErw'] = str_pad(floor($mobilitaet->ects_erworben), 3, '0', STR_PAD_LEFT);
-			$aufenthalt['ectsAnger'] = str_pad(floor($mobilitaet->ects_angerechnet), 3, '0', STR_PAD_LEFT);
-			$aufenthalt['art'] = $this->_getAufenthaltsartFromMobilitaetsprogramm($mobilitaet->mobilitaetsprogramm_code);
-			$aufenthalt['zweck'] = $this->_getAufenthaltszweckFromZweckCodes(explode(',', $mobilitaet->zwecke));
-			$aufenthalt['foerd'] = $this->_getAuslandsaufenthaltFoerderungFromAufenthaltfoerderung(explode(',', $mobilitaet->foerderungen));
-
-			$uhstat2Data['auslandsaufenthalte']['aufenthalt'.$counter] = $aufenthalt;
 		}
 
 		// set counter variables
