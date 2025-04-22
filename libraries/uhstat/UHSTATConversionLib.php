@@ -104,9 +104,8 @@ class UHSTATConversionLib
 				$aufenthalt = array();
 				$aufenthalt['staat'] = $mobilitaet->nation_code;
 				$aufenthalt['dauer'] = str_pad($dauerMonate, 2, '0', STR_PAD_LEFT);
-				// TODO: round up or down? only whole ects are accepted
-				$aufenthalt['ectsErw'] = str_pad(floor($mobilitaet->ects_erworben), 3, '0', STR_PAD_LEFT);
-				$aufenthalt['ectsAnger'] = str_pad(floor($mobilitaet->ects_angerechnet), 3, '0', STR_PAD_LEFT);
+				$aufenthalt['ectsErw'] = str_pad(ceil($mobilitaet->ects_erworben), 3, '0', STR_PAD_LEFT);
+				$aufenthalt['ectsAnger'] = str_pad(ceil($mobilitaet->ects_angerechnet), 3, '0', STR_PAD_LEFT);
 				$aufenthalt['art'] = $this->_getAufenthaltsartFromMobilitaetsprogramm($mobilitaet->mobilitaetsprogramm_code);
 				$aufenthalt['zweck'] = $this->_getAufenthaltszweckFromZweckCodes(explode(',', $mobilitaet->zwecke));
 				$aufenthalt['foerd'] = $this->_getAuslandsaufenthaltFoerderungFromAufenthaltfoerderung(explode(',', $mobilitaet->foerderungen));
