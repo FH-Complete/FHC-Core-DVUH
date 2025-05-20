@@ -28,6 +28,7 @@ class UHSTATSchedulerLib
 		$this->_status_kurzbz = $this->_ci->config->item('fhc_uhstat_status_kurzbz');
 		$this->_terminated_student_status_kurzbz = $this->_ci->config->item('fhc_uhstat_terminated_student_status_kurzbz');
 				$studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_uhstat_studiensemester_meldezeitraum');
+		$oe_kurzbz = $this->_ci->config->item('fhc_uhstat_oe_kurzbz');
 
 		// get default Studiensemester from config
 		$today = new DateTime(date('Y-m-d'));
@@ -38,6 +39,23 @@ class UHSTATSchedulerLib
 				&& $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
 			{
 				$this->_studiensemester[] = $studiensemester_kurzbz;
+			}
+		}
+
+		// get children if oe_kurzbz is set in config
+		if (!isEmptyString($oe_kurzbz))
+		{
+			$this->_ci->load->model('organisation/Organisationseinheit_model', 'OrganisationseinheitModel');
+
+			$childrenRes = $this->_ci->OrganisationseinheitModel->getChilds($oe_kurzbz);
+
+			if (hasData($childrenRes))
+			{
+				$children = getData($childrenRes);
+				foreach ($children as $child)
+				{
+					$this->_oe_kurzbz[] = $child->oe_kurzbz;
+				}
 			}
 		}
 	}
@@ -96,6 +114,12 @@ class UHSTATSchedulerLib
 			$params[] = $this->_terminated_student_status_kurzbz;
 		}
 
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
+
 		$dbModel = new DB_Model();
 
 		$studToSyncResult = $dbModel->execReadOnlyQuery(
@@ -135,7 +159,7 @@ class UHSTATSchedulerLib
 
 		// get students not sent to BIS yet
 		$qry = "SELECT
-					DISTINCT ps.prestudent_Id
+					DISTINCT ps.prestudent_id
 				FROM
 					public.tbl_prestudent ps
 					JOIN public.tbl_prestudentstatus pss USING (prestudent_id)
@@ -156,6 +180,12 @@ class UHSTATSchedulerLib
 							prestudent_id = ps.prestudent_id
 							AND gemeldetamum > bisio.updateamum OR bisio.updateamum IS NULL
 					)";
+
+		if (!isEmptyArray($this->_oe_kurzbz))
+		{
+			$qry .= " AND stg.oe_kurzbz IN ?";
+			$params[] = $this->_oe_kurzbz;
+		}
 
 		$dbModel = new DB_Model();
 

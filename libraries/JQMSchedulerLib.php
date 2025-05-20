@@ -46,19 +46,6 @@ class JQMSchedulerLib
 		$this->_terminated_student_status_kurzbz = $this->_ci->config->item('fhc_dvuh_terminated_student_status_kurzbz');
 		$this->_vbpk_types = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
 
-		// get default Studiensemester from config
-		//~ $studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_dvuh_studiensemester_meldezeitraum');
-		//~ $today = new DateTime(date('Y-m-d'));
-
-		//~ foreach ($studiensemesterMeldezeitraum as $studiensemester_kurzbz => $meldezeitraum)
-		//~ {
-			//~ if (validateDate($meldezeitraum['von']) && validateDate($meldezeitraum['bis'])
-				//~ && $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
-			//~ {
-				//~ $this->_studiensemester[] = $studiensemester_kurzbz;
-			//~ }
-		//~ }
-
 		// get children if oe_kurzbz is set in config
 		if (!isEmptyString($oe_kurzbz))
 		{
@@ -744,7 +731,7 @@ class JQMSchedulerLib
 	/**
 	 * Gets Studiensemester in an array, uses given parameter if valid or from config array field.
 	 * @param string $studiensemester_kurzbz
-	 * @param string $jobType job for which semester is needed
+	 * @param string $jobType job for which semester is needed, optional, if different semesters are needed for a job
 	 * @return array
 	 */
 	private function _getStudiensemester($studiensemester_kurzbz, $jobType = null)

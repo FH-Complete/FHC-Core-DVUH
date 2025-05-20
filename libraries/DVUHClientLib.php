@@ -111,16 +111,6 @@ class DVUHClientLib extends ClientLib
 		$response = null;
 
 		// Call Service
-
-		//~ $headers = array(
-			//~ 'Accept: application/xml',
-			//~ 'Content-Type: application/xml',
-			//~ 'Authorization: Bearer '.$access_token,
-			//~ 'User-Agent: FHComplete',
-			//~ 'Connection: Keep-Alive',
-			//~ 'Expect:'
-		//~ );
-
 		try
 		{
 			if ($this->_isHEAD()) // else if the call was performed using a HTTP HEAD...

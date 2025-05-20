@@ -22,6 +22,9 @@ $config['fhc_uhstat_status_kurzbz'] = array(
 	'DVUHUHSTAT2' => array('Absolvent', 'Abbrecher')
 );
 
+// if set, only students assigned to this oe or a child oe (determined by Studiengang) are sent to DVUH
+$config['fhc_uhstat_oe_kurzbz'] = null;
+
 // type of institution, for which data is sent
 // 0 - Lehrverbund, 1 - öffentl. Uni, 2 - Privatuni, 3 - Pädagogische Hochschule, 4 - Fachhochschule
 $config['fhc_uhstat_institutionen_typ'] = '0';
