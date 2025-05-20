@@ -2,44 +2,25 @@
 
 if (!defined('BASEPATH')) exit('No direct script access allowed');
 
+require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/ClientLib.php';
+
 /**
  * Library to Connect to DVUH Services
  */
-class DVUHClientLib
+class DVUHClientLib extends ClientLib
 {
 	// Configs parameters names
-	const ACTIVE_CONNECTION = 'fhc_dvuh_active_connection';
-	const URL_PATH = 'fhc_dvuh_path';
 	const API_VERSION = 'fhc_dvuh_api_version';
-	const CONNECTIONS = 'fhc_dvuh_connections';
 
-	const MISSING_REQUIRED_PARAMETERS = 'ERR001';
-	const WRONG_WS_PARAMETERS = 'ERR002';
-	const WS_REQUEST_FAILED = 'ERR003';
-	const REQUEST_FAILED = 'ERR004';
-
-	const METHOD_HEAD = 'HEAD';
-	const METHOD_GET = 'GET';
-	const METHOD_PUT = 'PUT';
-	const METHOD_POST = 'POST';
-
-	private $_connectionsArray;		// connections array
-	private $_urlPath;				// url path
-
-	private $_error;				// true if an error occurred
-	private $_errorMessage;			// contains the error message
-
-	private $_ci; // Code igniter instance
+	const URI_TEMPLATE = '%s/%s/%s/%s'; // URI format
 
 	/**
 	 * Object initialization
 	 */
 	public function __construct()
 	{
-		$this->_ci =& get_instance(); // get code igniter instance
+		parent::__construct();
 
-		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHClient');
-		$this->_ci->load->library('extensions/FHC-Core-DVUH/DVUHAuthLib');
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/XMLReaderLib');
 
 		$this->_setPropertiesDefault(); // properties initialization
@@ -52,106 +33,163 @@ class DVUHClientLib
 	/**
 	 * Performs a call to a remote web service
 	 */
-	public function call($url, $method, $getParametersArray = null, $postData = null)
+	public function call($url, $httpMethod, $getParametersArray = null, $postData = null)
 	{
-		// Checks if the api set name is valid
+		// Checks if the url is valid
 		if ($url == null || trim($url) == '')
 			$this->_error(self::MISSING_REQUIRED_PARAMETERS, 'URL missing');
 
 		// Checks if the method name is valid
-		if ($method == null || trim($method) == '')
+		if ($httpMethod == null || trim($httpMethod) == '')
 			$this->_error(self::MISSING_REQUIRED_PARAMETERS, 'Method is invalid');
 
 		// Checks that the webservice parameters are present in an array
 		if (!is_null($getParametersArray) && !is_array($getParametersArray))
-			$this->_error(self::WRONG_WS_PARAMETERS, 'Parameters are missing or wrong');
+			$this->_error(self::WRONG_WS_PARAMETERS, 'GET Parameters are missing or wrong');
+
+		// Checks that the webservice parameters are present in an array
+		if (!is_null($postData) && !is_string($postData))
+			$this->_error(self::WRONG_WS_PARAMETERS, 'POST Parameters are missing or wrong');
+
+		// perform OAUTH2 Authentication
+		$authToken = $this->_ci->dvuhauthlib->getToken();
+
+		// Checks that the webservice parameters are present in an array
+		if (!isset($authToken) || isEmptyString($authToken))
+			$this->_error(self::INVALID_AUTHENTICATION_TOKEN, 'Invalid authentication token');
 
 		if ($this->isError())
 			return null; // If an error was raised then return a null value
 
-		return $this->_callRemoteService($url, $method, $getParametersArray, $postData);
-	}
+		// set properties
+		$this->_httpMethod = $httpMethod;
+		$this->_authToken = $authToken;
+		$this->_uriParametersArray = $getParametersArray;
+		$this->_callParametersArray = $postData;
 
-	/**
-	 * Returns the error message stored in property _errorMessage
-	 */
-	public function getError()
-	{
-		return $this->_errorMessage;
-	}
-
-	/**
-	 * Returns true if an error occurred, otherwise false
-	 */
-	public function isError()
-	{
-		return $this->_error;
-	}
-
-	/**
-	 * Reset the library properties to default values
-	 */
-	public function resetToDefault()
-	{
-		$this->_error = false;
-		$this->_errorMessage = '';
+		return $this->_callRemoteWebservice($this->_generateURI($url));
 	}
 
 	// --------------------------------------------------------------------------------------------
-	// Private methods
+	// Protected methods
 
 	/**
-	 * Initialization of the properties of this object
+	 * Generate the URI to call the remote web service
 	 */
-	private function _setPropertiesDefault()
+	protected function _generateURI($url)
 	{
-		$this->_connectionsArray = null;
-		$this->_error = false;
-		$this->_errorMessage = '';
-	}
+		$uri = sprintf(
+			self::URI_TEMPLATE,
+			$this->_connectionsArray['portal'],
+			$this->_ci->config->item(self::URL_PATH),
+			$this->_ci->config->item(self::API_VERSION),
+			$url
+		);
 
-	/**
-	 * Sets the connection
-	 */
-	private function _setConnection()
-	{
-		$activeConnectionName = $this->_ci->config->item(self::ACTIVE_CONNECTION);
-		$connectionsArray = $this->_ci->config->item(self::CONNECTIONS);
+		// append the query string to the URI, if any get parameters are passed
 
-		$this->_urlPath = $this->_ci->config->item(self::URL_PATH).'/'.$this->_ci->config->item(self::API_VERSION);
-		$this->_connectionsArray = $connectionsArray[$activeConnectionName];
+		if (isset($this->_uriParametersArray) && !isEmptyArray($this->_uriParametersArray))
+		{
+			$params = array();
+			foreach($this->_uriParametersArray as $key => $val)
+			{
+				// replace single quotes by spaces, as server cannot handle single quotes for GET requests
+				if ($this->_httpMethod == self::HTTP_GET_METHOD) $val = str_replace("'", " ", $val);
+				$params[] = $key.'='.urlencode($val);
+			}
+			$uri .= '?'.implode('&', $params);
+		}
+
+		return $uri;
 	}
 
 	/**
 	 * Performs a remote web service call with the given name and parameters
 	 */
-	private function _callRemoteService($url, $method, $getParametersArray, $postData = null)
+	protected function _callRemoteWebservice($uri)
 	{
 		$response = null;
 
-		// perform OAUTH2 Authentication
-		$access_token = $this->_ci->dvuhauthlib->getToken();
-
 		// Call Service
-		$curl = curl_init();
-		if (isset($getParametersArray) && !isEmptyArray($getParametersArray))
+		try
 		{
-			$params = array();
-			foreach($getParametersArray as $key => $val)
+			if ($this->_isHEAD()) // else if the call was performed using a HTTP HEAD...
 			{
-				// replace single quotes by spaces, as server cannot handle single quotes for GET requests
-				if ($method == self::METHOD_GET) $val = str_replace("'", " ", $val);
-				$params[] = $key.'='.curl_escape($curl, $val);
+				$response = $this->_callHEAD($uri); // ...calls the remote web service with the HTTP HEAD method
 			}
-			$url .= '?'.implode('&', $params);
+			elseif ($this->_isGET()) // if the call was performed using a HTTP GET...
+			{
+				$response = $this->_callGET($uri); // ...calls the remote web service with the HTTP GET method
+			}
+			elseif ($this->_isPUT()) // else if the call was performed using a HTTP PUT...
+			{
+				$response = $this->_callPUT($uri); // ...calls the remote web service with the HTTP PUT method
+			}
+			elseif ($this->_isPOST()) // else if the call was performed using a HTTP POST...
+			{
+				$response = $this->_callPOST($uri); // ...calls the remote web service with the HTTP POST method
+			}
+
+			// Checks the response of the remote web service and handles possible errors
+			//$response = $this->_checkResponse($response);
+		}
+		catch (\Httpful\Exception\ConnectionErrorException $cee) // connection error
+		{
+			$this->_error(self::CONNECTION_ERROR, 'A connection error occurred while calling the remote server');
+		}
+		// Otherwise another error has occurred, most likely the result of the
+		// remote web service is not valid so a parse error is raised
+		catch (Exception $e)
+		{
+			$this->_error(self::REQUEST_FAILED, 'Request failed');
 		}
 
-		curl_setopt($curl, CURLOPT_URL, $this->_connectionsArray['portal'].'/'.$this->_urlPath.'/'.$url);
-		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+		if (!is_object($response) || !isset($response->raw_body) || !is_string($response->raw_body))
+		{
+			$this->_error(
+				self::REQUEST_FAILED,
+				'Body missing'
+			);
+			return null;
+		}
 
-		$headers = array(
+		if (!isset($response->code) || substr($response->code, 0, 1) != '2')
+		{
+			$this->_error(
+				self::REQUEST_FAILED,
+				'HTTP Code not starting with 2 - Value:'.($response->code ?? '').' '.$this->_getErrorInfoFromResponse($response->raw_body)
+			);
+			return null;
+		}
+
+		return $response->raw_body;
+	}
+	// --------------------------------------------------------------------------------------------
+	// Private methods
+
+
+	/**
+	 * Performs a remote call using the HEAD HTTP method
+	 */
+	private function _callHEAD($uri)
+	{
+		return \Httpful\Request::head($uri)
+			->expectsXml() // dangerous expectations
+			->addHeader(self::AUTHORIZATION_HEADER_NAME, self::AUTHORIZATION_HEADER_PREFIX.' '.$this->_authToken)
+			->addHeader(self::USER_AGENT_HEADER_NAME, self::USER_AGENT_HEADER_VALUE)
+			->addHeader(self::CONNECTION_HEADER_NAME, self::CONNECTION_HEADER_VALUE)
+			->sendsXml() // content type xml
+			->send();
+	}
+
+	/**
+	 * Performs a remote call using the GET HTTP method
+	 * NOTE: parameters in a HTTP GET call are appended to the URI by _generateURI
+	 */
+	private function _callGET($uri)
+	{
+		/**
+		 * 		$headers = array(
 			'Accept: application/xml',
 			'Content-Type: application/xml',
 			'Authorization: Bearer '.$access_token,
@@ -159,58 +197,45 @@ class DVUHClientLib
 			'Connection: Keep-Alive',
 			'Expect:'
 		);
-
-		switch ($method)
-		{
-			case self::METHOD_POST:
-				curl_setopt($curl, CURLOPT_POST, true);
-				if (!is_null($postData))
-					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
-				break;
-
-			case self::METHOD_PUT:
-				curl_setopt($curl, CURLOPT_CUSTOMREQUEST, self::METHOD_PUT);
-				if (!is_null($postData))
-					curl_setopt($curl, CURLOPT_POSTFIELDS, $postData);
-				break;
-
-			case self::METHOD_HEAD:
-				curl_setopt($curl, CURLOPT_NOBODY, true);
-				break;
-
-			case self::METHOD_GET:
-			default:
-				$headers[] = 'Content-Length: 0';
-				break;
-		}
-
-		curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-
-		$response = curl_exec($curl);
-		$curl_info = curl_getinfo($curl);
-		curl_close($curl);
-
-		if (substr($curl_info['http_code'], 0, 1) == '2')
-		{
-			return $response;
-		}
-		else
-		{
-			$this->_error(
-				self::REQUEST_FAILED,
-				'HTTP Code not starting with 2 - Value:'.$curl_info['http_code'].' '.$url.' '.$this->_getErrorInfoFromResponse($response)
-			);
-			return null;
-		}
+		 */
+		return \Httpful\Request::get($uri)
+			->expectsXml() // dangerous expectations
+			->addHeader(self::AUTHORIZATION_HEADER_NAME, self::AUTHORIZATION_HEADER_PREFIX.' '.$this->_authToken)
+			->addHeader(self::USER_AGENT_HEADER_NAME, self::USER_AGENT_HEADER_VALUE)
+			->addHeader(self::CONNECTION_HEADER_NAME, self::CONNECTION_HEADER_VALUE)
+			->sendsXml() // content type xml
+			->send();
 	}
 
 	/**
-	 * Sets property _error to true and stores an error message in property _errorMessage
+	 * Performs a remote call using the PUT HTTP method
 	 */
-	private function _error($code, $message = 'Generic error')
+	private function _callPUT($uri)
 	{
-		$this->_error = true;
-		$this->_errorMessage = $code.': '.$message;
+		return \Httpful\Request::put($uri)
+			->expectsXml() // dangerous expectations
+			->addHeader(self::AUTHORIZATION_HEADER_NAME, self::AUTHORIZATION_HEADER_PREFIX.' '.$this->_authToken)
+			->addHeader(self::USER_AGENT_HEADER_NAME, self::USER_AGENT_HEADER_VALUE)
+			->addHeader(self::CONNECTION_HEADER_NAME, self::CONNECTION_HEADER_VALUE)
+			->sendsXml() // content type xml
+			->body($this->_callParametersArray) // parameters in body
+			->send();
+	}
+
+	/**
+	 * Performs a remote call using the GET HTTP method
+	 * NOTE: parameters in a HTTP GET call are appended to the URI by _generateURI
+	 */
+	private function _callPOST($uri)
+	{
+		return \Httpful\Request::post($uri)
+			->expectsXml() // dangerous expectations
+			->addHeader(self::AUTHORIZATION_HEADER_NAME, self::AUTHORIZATION_HEADER_PREFIX.' '.$this->_authToken)
+			->addHeader(self::USER_AGENT_HEADER_NAME, self::USER_AGENT_HEADER_VALUE)
+			->addHeader(self::CONNECTION_HEADER_NAME, self::CONNECTION_HEADER_VALUE)
+			->sendsXml() // content type xml
+			->body($this->_callParametersArray) // parameters in body
+			->send();
 	}
 
 	/**
@@ -235,7 +260,7 @@ class DVUHClientLib
 					$massnahme = isset($err->massnahme) ? '; '.$err->massnahme : '';
 					$datenfeld = isset($err->fehlerquelle->datenfeld)
 						? $err->fehlerquelle->datenfeld
-						: (isset($err->datenfeld) ? $err->datenfeld : '');
+						: (isset($err->datenfeld) && is_string($err->datenfeld) ? $err->datenfeld : '');
 
 					$errorInfo = $fehlernummer.$datenfeld.$fehlertext.$massnahme;
 				}

@@ -16,14 +16,17 @@ $config['fhc_dvuh_studiensemester_meldezeitraum'] = array(
 	)
 );
 
+// number of semesters, for which Prüfungsaktivitäten should be synced (including the one of current Meldestichtag)
+$config['fhc_dvuh_pruefungsaktivitaeten_semester_anzahl'] = 3;
+
 // Only students with given status_kurzbz (defined for each job) are sent to DVUH
 $config['fhc_dvuh_status_kurzbz'] = array(
 	'DVUHRequestMatrikelnummer' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHSendCharge' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
 	'DVUHSendPayment' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
 	'DVUHSendStudyData' => array('Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent'),
-	'DVUHGetBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
-	'DVUHRequestBpk' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
+	'DVUHGetBpk' => array('Bewerber','Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
+	'DVUHRequestBpk' => array('Bewerber','Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHRequestEkz' => array('Bewerber', 'Aufgenommener', 'Student', 'Incoming', 'Diplomand'),
 	'DVUHSendPruefungsaktivitaeten' => array('Aufgenommener', 'Student', 'Incoming', 'Diplomand', 'Abbrecher', 'Unterbrecher', 'Absolvent')
 );

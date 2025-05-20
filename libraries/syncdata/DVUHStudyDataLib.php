@@ -8,7 +8,7 @@ require_once 'DVUHErrorProducerLib.php';
  */
 class DVUHStudyDataLib extends DVUHErrorProducerLib
 {
-	private $_ci;
+	protected $_ci;
 	private $_dbModel;
 
 	/**

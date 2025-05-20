@@ -8,7 +8,7 @@ require_once 'DVUHErrorProducerLib.php';
  */
 class DVUHPaymentLib extends DVUHErrorProducerLib
 {
-	private $_ci;
+	protected $_ci;
 
 	/**
 	 * Library initialization
