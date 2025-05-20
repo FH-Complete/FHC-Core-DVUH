@@ -342,7 +342,7 @@ class UHSTATManagementLib extends UHSTATErrorProducerLib
 			$this->addWarning(
 				error("Personkennung fehlt (vBpk AS, vBpk BF oder Ersatzkennzeichen fehlt); Person ID ".$personData->person_id),
 				createExtendedIssueObj(
-					'uhstatPersonkennungFehlt',
+					'uhstatPersonkennungFehltCore',
 					$personData->person_id
 				)
 			);
