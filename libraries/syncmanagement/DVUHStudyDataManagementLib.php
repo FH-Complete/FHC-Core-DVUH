@@ -8,6 +8,7 @@ require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncmanagement/DVUHMan
  */
 class DVUHStudyDataManagementLib extends DVUHManagementLib
 {
+	const STORNO_STUDENTSTATUS = '4'; // Studentstatus code for Storno
 	const STORNO_MELDESTATUS = 'O'; // Meldestatus code for Storno
 
 	/**
@@ -28,6 +29,8 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Stammdaten_model', 'StammdatenModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Studium_model', 'StudiumModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHStudiumdaten_model', 'DVUHStudiumdatenModel');
+
+		$this->_dbModel = new DB_Model(); // get db
 	}
 
 	// --------------------------------------------------------------------------------------------
@@ -269,6 +272,30 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 					// only send Studiengang of requested prestudent id
  					if ($dvuh_stgkz != $fhc_stgkz_in_dvuh_format)
 						continue;
+
+					// check if this status is the first one (i.e. no other status before exist)
+					$prevStatusExists = $this->_dbModel->execReadOnlyQuery(
+						"SELECT
+							1
+						FROM
+							public.tbl_prestudentstatus status
+						JOIN
+							public.tbl_studiensemester sem USING (studiensemester_kurzbz)
+						WHERE
+							prestudent_id = ?
+							AND sem.start::date < (SELECT start from public.tbl_studiensemester WHERE studiensemester_kurzbz = ?)::date
+						ORDER BY
+							sem.start DESC, status.datum DESC, status.insertamum DESC
+						LIMIT 1",
+						array(
+							$prestudent_id, $semester
+						)
+					);
+
+					if (isError($prevStatusExists)) return $prevStatusExists;
+
+					// if it is the first status (canceled in first semester), set studentstatus to 4 to definitely cancel Matrikelnummer
+					if (!hasData($prevStatusExists)) $studium->studstatuscode = self::STORNO_STUDENTSTATUS;
 
 					// add storno data to data received from dvuh
 					$studium->meldestatus = self::STORNO_MELDESTATUS;
