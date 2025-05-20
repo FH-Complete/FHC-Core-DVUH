@@ -81,6 +81,28 @@ function createIssueObj($issue_fehlertext, $issue_fehler_kurzbz, $issue_fehlerte
 }
 
 /**
+ * Helper function for creating a custom object with issue data.
+ * @param string $issue_fehler_kurzbz short unique text id of issue
+ * @param int $person_id
+ * @param string $oe_kurzbz
+ * @param array $issue_fehlertext_params parameters for replacement of issue error text
+ * @param array $issue_resolution_params parameters used for check if issue is resolved, associative array
+ * @return object the issue object
+ */
+function createExtendedIssueObj($issue_fehler_kurzbz, $person_id = null, $oe_kurzbz = null, $issue_fehlertext_params = null, $issue_resolution_params = null)
+{
+	$issue = new stdClass();
+	$issue->issue_fehler_kurzbz = $issue_fehler_kurzbz;
+	$issue->person_id = $person_id;
+	$issue->oe_kurzbz = $oe_kurzbz;
+	$issue->issue_fehlertext_params = $issue_fehlertext_params;
+	$issue->issue_resolution_params = $issue_resolution_params;
+
+	return $issue;
+}
+
+
+/**
  * Helper function for creating a custom error object with issue data.
  * @param string $issue_fehler_kurzbz short unique text id of issue
  * @param array $issue_fehlertext_params parameters for replacement of issue error text
@@ -117,3 +139,15 @@ function createExternalIssueError($fehlertext, $fehlernummer)
 {
 	return error(createExternalIssueObj($fehlertext, $fehlernummer));
 }
+
+/**
+ * Base 64 url encode, replacing special chars as defined in RFC standard.
+ * @param string value string to encode
+ * @return string
+ */
+function base64_urlencode($value)
+{
+	return strtr($value, "/+", "_-");
+	//return rtrim(strtr($value, "/+", "_-"), '=');
+}
+

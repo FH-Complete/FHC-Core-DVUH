@@ -89,7 +89,7 @@ class Pruefungsaktivitaeten_loeschen_model extends DVUHClientModel
 				$params['semester'] = $dvuh_studiensemester;
 				$params['studienkennung'] = $melde_studiengang_kz;
 
-				$callRes = $this->_call('POST', $params);
+				$callRes = $this->_call(ClientLib::HTTP_POST_METHOD, $params);
 
 				if (isSuccess($callRes))
 				{

@@ -66,7 +66,7 @@ class DVUH extends Auth_Controller
 		$this->load->library('WidgetLib');
 
 		// display system path (e.g. rws or sandbox) and api version
-		$environment = $this->config->item(DVUHClientLib::URL_PATH);
+		$environment = $this->config->item(ClientLib::URL_PATH);
 		$apiVersion = $this->config->item(DVUHClientLib::API_VERSION);
 
 		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array('environment' => $environment, 'apiVersion' => $apiVersion));

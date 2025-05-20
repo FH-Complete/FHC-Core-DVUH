@@ -44,20 +44,7 @@ class JQMSchedulerLib
 		$oe_kurzbz = $this->_ci->config->item('fhc_dvuh_oe_kurzbz');
 		$this->_angerechnet_note = $this->_ci->config->item('fhc_dvuh_sync_note_angerechnet');
 		$this->_terminated_student_status_kurzbz = $this->_ci->config->item('fhc_dvuh_terminated_student_status_kurzbz');
-		$studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_dvuh_studiensemester_meldezeitraum');
 		$this->_vbpk_types = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
-
-		// get default Studiensemester from config
-		$today = new DateTime(date('Y-m-d'));
-
-		foreach ($studiensemesterMeldezeitraum as $studiensemester_kurzbz => $meldezeitraum)
-		{
-			if (validateDate($meldezeitraum['von']) && validateDate($meldezeitraum['bis'])
-				&& $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
-			{
-				$this->_studiensemester[] = $studiensemester_kurzbz;
-			}
-		}
 
 		// get children if oe_kurzbz is set in config
 		if (!isEmptyString($oe_kurzbz))
@@ -638,7 +625,7 @@ class JQMSchedulerLib
 		$jobInput = null;
 		$result = null;
 
-		$studiensemester_kurzbz_arr = $this->_getStudiensemester($studiensemester_kurzbz);
+		$studiensemester_kurzbz_arr = $this->_getStudiensemester($studiensemester_kurzbz, self::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN);
 
 		if (isEmptyArray($studiensemester_kurzbz_arr))
 			return error("Kein Studiensemester angegeben");
@@ -744,16 +731,88 @@ class JQMSchedulerLib
 	/**
 	 * Gets Studiensemester in an array, uses given parameter if valid or from config array field.
 	 * @param string $studiensemester_kurzbz
+	 * @param string $jobType job for which semester is needed, optional, if different semesters are needed for a job
 	 * @return array
 	 */
-	private function _getStudiensemester($studiensemester_kurzbz)
+	private function _getStudiensemester($studiensemester_kurzbz, $jobType = null)
 	{
 		$studiensemester_kurzbz_arr = array();
 
 		if (!isEmptyString($studiensemester_kurzbz))
 			$studiensemester_kurzbz_arr[] = $studiensemester_kurzbz;
-		elseif (!isEmptyArray($this->_studiensemester))
-			$studiensemester_kurzbz_arr = $this->_studiensemester;
+		else
+		{
+			if ($jobType == self::JOB_TYPE_SEND_PRUEFUNGSAKTIVITAETEN)
+			{
+				$this->_ci->load->model('codex/Bismeldestichtag_model', 'BismeldestichtagModel');
+				$stichtagRes = $this->_ci->BismeldestichtagModel->getNextMeldestichtag();
+
+				if (hasData($stichtagRes))
+				{
+					$meldestichtagStudiensemester = getData($stichtagRes)[0]->studiensemester_kurzbz;
+
+					$pruefungsaktivitaetenSemesterAnzahl = $this->_ci->config->item('fhc_dvuh_pruefungsaktivitaeten_semester_anzahl');
+
+					if (is_numeric($pruefungsaktivitaetenSemesterAnzahl))
+					{
+						$params = array($meldestichtagStudiensemester, $pruefungsaktivitaetenSemesterAnzahl);
+
+						$dbModel = new DB_Model();
+
+						$qry = '
+							SELECT
+								studiensemester_kurzbz
+							FROM
+								public.tbl_studiensemester sem
+							WHERE
+								NOT EXISTS (
+									SELECT
+										1
+									FROM
+										public.tbl_studiensemester
+									WHERE
+										studiensemester_kurzbz = ?
+										AND start < sem.start
+								)
+							ORDER BY
+								start DESC
+							LIMIT ?';
+
+						$studiensemesterRes = $dbModel->execReadOnlyQuery(
+							$qry,
+							$params
+						);
+
+						if (hasData($studiensemesterRes))
+						{
+							$studiensemester_kurzbz_arr = array_column(
+								getData($studiensemesterRes), 'studiensemester_kurzbz'
+							);
+						}
+					}
+				}
+			}
+
+
+			if (isEmptyArray($studiensemester_kurzbz_arr))
+			{
+				// get default Studiensemester from config
+				$studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_dvuh_studiensemester_meldezeitraum');
+				$today = new DateTime(date('Y-m-d'));
+
+				if (is_array($studiensemesterMeldezeitraum))
+				{
+					foreach ($studiensemesterMeldezeitraum as $studiensemester_kurzbz => $meldezeitraum)
+					{
+						if (validateDate($meldezeitraum['von']) && validateDate($meldezeitraum['bis'])
+							&& $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
+						{
+							$studiensemester_kurzbz_arr[] = $studiensemester_kurzbz;
+						}
+					}
+				}
+			}
+		}
 
 		return $studiensemester_kurzbz_arr;
 	}

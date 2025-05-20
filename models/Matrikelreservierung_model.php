@@ -35,7 +35,7 @@ class Matrikelreservierung_model extends DVUHClientModel
 				'uuid' => getUUID()
 			);
 
-			$result = $this->_call('GET', $callParametersArray);
+			$result = $this->_call(ClientLib::HTTP_GET_METHOD, $callParametersArray);
 		}
 
 		return $result;
@@ -64,7 +64,7 @@ class Matrikelreservierung_model extends DVUHClientModel
 			);
 			$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/matrikelreservierung', $params, true);
 
-			$result = $this->_call('POST', null, $postData);
+			$result = $this->_call(ClientLib::HTTP_POST_METHOD, null, $postData);
 		}
 
 		return $result;

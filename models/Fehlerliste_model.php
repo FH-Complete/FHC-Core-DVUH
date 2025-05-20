@@ -22,7 +22,7 @@ class Fehlerliste_model extends DVUHClientModel
 			"uuid" => getUUID()
 		);
 
-		$result = $this->_call('GET', $params);
+		$result = $this->_call(ClientLib::HTTP_GET_METHOD, $params);
 		return $result;
 	}
 }

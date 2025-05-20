@@ -43,7 +43,7 @@ class RohdatenOehBeitrag_model extends DVUHClientModel
 			if (!is_null($be))
 				$callParametersArray['be'] = $be;
 
-			$result = $this->_call('GET', $callParametersArray);
+			$result = $this->_call(ClientLib::HTTP_GET_METHOD, $callParametersArray);
 		}
 
 		return $result;

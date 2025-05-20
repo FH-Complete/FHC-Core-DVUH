@@ -9,9 +9,11 @@ if (!defined('BASEPATH')) exit('No direct script access allowed');
 class DVUHAuthLib
 {
 	private $_ci; // Code igniter instance
-	private $authentication;
+	private $authentication; // object containing access token
+
 	const OAUTH_TOKEN_URL = '/dvb/oauth/token';
-	const TOKEN_EXPIRATION_OFFSET = 3; // offset to make token expier earlier to avoid errors
+	const AUTHORIZATION_HEADER_PREFIX = 'Basic';
+	const TOKEN_EXPIRATION_OFFSET = 3; // offset to make token expire earlier to avoid errors
 
 	/**
 	 * Object initialization
@@ -64,8 +66,8 @@ class DVUHAuthLib
 	 */
 	private function _getConnection()
 	{
-		$activeConnectionName = $this->_ci->config->item(DVUHClientLib::ACTIVE_CONNECTION);
-		$connectionsArray = $this->_ci->config->item(DVUHClientLib::CONNECTIONS);
+		$activeConnectionName = $this->_ci->config->item(ClientLib::ACTIVE_CONNECTION);
+		$connectionsArray = $this->_ci->config->item(ClientLib::CONNECTIONS);
 		return $connectionsArray[$activeConnectionName];
 	}
 
@@ -89,54 +91,40 @@ class DVUHAuthLib
 		$url = $this->_getTokenServiceURL();
 		$conn = $this->_getConnection();
 
-		curl_setopt($curl, CURLOPT_URL, $url);
-		curl_setopt($curl, CURLOPT_POST, true);
-		curl_setopt($curl, CURLOPT_RETURNTRANSFER, 1);
-		curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, false);
-		curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, false);
+		$response = \Httpful\Request::post($url)
+			->expectsJson() // dangerous expectations
+			->addHeader(
+				ClientLib::AUTHORIZATION_HEADER_NAME,
+				self::AUTHORIZATION_HEADER_PREFIX.' '.base64_encode($conn['username'].":".$conn['password'])
+			)
+			->addHeader(ClientLib::USER_AGENT_HEADER_NAME, ClientLib::USER_AGENT_HEADER_VALUE)
+			->addHeader(ClientLib::CONNECTION_HEADER_NAME, ClientLib::CONNECTION_HEADER_VALUE)
+			->sendsForm() // content type form
+			->send();
 
-		$headers = array(
-			'Accept: application/json',
-			'Content-Type: application/x-www-form-urlencoded',
-			'Authorization: Basic '.base64_encode($conn['username'].":".$conn['password']),
-			'User-Agent: FHComplete',
-			'Connection: Keep-Alive',
-			'Expect:',
-			'Content-Length: 0'
-		);
-		curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
+		if (!is_object($response) || !isset($response->code) || $response->code != '200') return error('Authentication failed');
+		if (!isset($response->body->access_token)) return error('No access token returned');
 
-		$json_response = curl_exec($curl);
-		$curl_info = curl_getinfo($curl);
-		curl_close($curl);
+		/* Example Response:
+			{
+			"access_token": "d9c60404-1530-4b05-bb8e-0a0b0f321726",
+			"token_type": "bearer",
+			"expires_in": 41087,
+			"scope": "read write ROLE_bildungseinrichtung
+			ROLE_bildungseinrichtung_A"
+			}
+		*/
+		$this->authentication = $response->body;
 
-		if ($curl_info['http_code'] == '200')
-		{
-			/* Example Response:
-				{
-				"access_token": "d9c60404-1530-4b05-bb8e-0a0b0f321726",
-				"token_type": "bearer",
-				"expires_in": 41087,
-				"scope": "read write ROLE_bildungseinrichtung
-				ROLE_bildungseinrichtung_A"
-				}
-			*/
-			$this->authentication = json_decode($json_response);
+		// Calculate Expire Date
+		$ttl = new DateTime();
+		// make the date expire a bit earlier to avoid "invalid token" error
+		$expires_in_seconds = $this->authentication->expires_in > self::TOKEN_EXPIRATION_OFFSET
+			? $this->authentication->expires_in - self::TOKEN_EXPIRATION_OFFSET
+			: $this->authentication->expires_in;
+		$ttl->add(new DateInterval('PT'.($expires_in_seconds).'S'));
+		$this->authentication->DateTimeExpires = $ttl;
 
-			// Calculate Expire Date
-			$ttl = new DateTime();
-			// make the date expire a bit earlier to avoid "invalid token" error
-			$expires_in_seconds = $this->authentication->expires_in > self::TOKEN_EXPIRATION_OFFSET
-				? $this->authentication->expires_in - self::TOKEN_EXPIRATION_OFFSET
-				: $this->authentication->expires_in;
-			$ttl->add(new DateInterval('PT'.($expires_in_seconds).'S'));
-			$this->authentication->DateTimeExpires = $ttl;
-
-			return success();
-		}
-		else
-		{
-			return error('Authentication failed');
-		}
+		return success();
 	}
 }

@@ -10,7 +10,7 @@ class DVUHEkzLib extends DVUHErrorProducerLib
 {
 	const NATION_OESTERREICH = 'A';
 
-	private $_ci;
+	protected $_ci;
 
 	/**
 	 * Library initialization
