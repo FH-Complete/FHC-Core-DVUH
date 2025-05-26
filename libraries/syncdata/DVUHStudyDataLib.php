@@ -382,6 +382,9 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 						if (isset($gemeinsam))
 							$lehrgang['gemeinsam'] = $gemeinsam;
 
+						if (isset($mobilitaet))
+							$lehrgang['mobilitaet'] = $mobilitaet;
+
 						$lehrgaenge[] = $lehrgang;
 					}
 					else // studiengang

@@ -17,6 +17,60 @@
 			if (isset($lehrgang['beendigungsdatum']))
 				echo "\t\t\t<beendigungsdatum>".$lehrgang['beendigungsdatum']."</beendigungsdatum>\n";
 
+			if (isset($lehrgang['mobilitaet']))
+			{
+				// if not array and has von index, only single mobilitaet, put it in array.
+				if (isset($lehrgang['mobilitaet']['von']))
+				{
+					$lehrgang['mobilitaet'] = array($lehrgang['mobilitaet']);
+				}
+
+				foreach ($lehrgang['mobilitaet'] as $mobilitaet)
+				{
+					echo "\t\t\t\<mobilitaet>";
+					if (isset($mobilitaet['aufenthaltfoerderungcode']))
+					{
+						// if only one aufenthaltfoerderungcode without array, put it in array
+						if (!is_array($mobilitaet['aufenthaltfoerderungcode']))
+							$mobilitaet['aufenthaltfoerderungcode'] = array($mobilitaet['aufenthaltfoerderungcode']);
+
+						foreach ($mobilitaet['aufenthaltfoerderungcode'] as $foerderungscode)
+						{
+							echo "\t\t\t\t<aufenthaltfoerderungcode>". $foerderungscode . "</aufenthaltfoerderungcode>\n";
+						}
+					}
+
+					if (isset($mobilitaet['bis']) && $mobilitaet['bis'] != '')
+						echo "\t\t\t\t<bis>" . $mobilitaet['bis'] . "</bis>\n";
+
+					if (isset($mobilitaet['ectsangerechnet']) && is_numeric($mobilitaet['ectsangerechnet']))
+						echo "\t\t\t\t<ectsangerechnet>" . $mobilitaet['ectsangerechnet'] . "</ectsangerechnet>\n";
+
+					if (isset($mobilitaet['ectserworben']) && is_numeric($mobilitaet['ectserworben']))
+						echo "\t\t\t\t<ectserworben>" . $mobilitaet['ectserworben'] . "</ectserworben>\n";
+
+					echo "\t\t\t\t<programm>" . $mobilitaet['programm'] . "</programm>\n";
+					echo "\t\t\t\t<staat>" . $mobilitaet['staat'] . "</staat>\n";
+					echo "\t\t\t\t<von>" . $mobilitaet['von'] . "</von>\n";
+
+					if (isset($mobilitaet['herkunftslandcode']))
+						echo "\t\t\t\t<herkunftslandcode>" . $mobilitaet['herkunftslandcode'] . "</herkunftslandcode>\n";
+
+					if (isset($mobilitaet['id']))
+						echo "\t\t\t\t<id>" . $mobilitaet['id'] . "</id>\n";
+
+					// if only one zweck without array, put it in array
+					if (!is_array($mobilitaet['zweck']) && is_numeric($mobilitaet['zweck']))
+						$mobilitaet['zweck'] = array($mobilitaet['zweck']);
+
+					foreach ($mobilitaet['zweck'] as $zweck)
+					{
+						echo "\t\t\t\t<zweck>" . $zweck . "</zweck>\n";
+					}
+					echo "\t\t\t</mobilitaet>\n";
+				}
+			}
+
 			if (isset($lehrgang['gemeinsam']))
 			{
 				echo "\t\t\t<gemeinsam>\n".
