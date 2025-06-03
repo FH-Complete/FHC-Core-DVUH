@@ -25,8 +25,10 @@ class DVUH_SS_W_0005 implements IIssueResolvedChecker
 
 		if (hasData($prestudentRes))
 		{
-			// if berufstaetigkeit code exists, resolve
-			if (isEmptyString(getData($prestudentRes)[0]->berufstaetigkeit_code))
+			$berufstaetigkeit_code = getData($prestudentRes)[0]->berufstaetigkeit_code;
+
+			// only if berufstaetigkeit code exists (0 code also counts!), resolve
+			if (isEmptyString($berufstaetigkeit_code) && !is_numeric($berufstaetigkeit_code))
 				return success(false);
 			else
 				return success(true);
