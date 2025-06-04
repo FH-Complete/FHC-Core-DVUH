@@ -257,7 +257,7 @@ class JQMSchedulerLib
 			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_EKZ];
 		}
 
-		if (isset($this->_terminated_student_status_kurzbz))
+		if (isset($this->_terminated_student_status_kurzbz) && !isEmptyArray($this->_terminated_student_status_kurzbz))
 		{
 			$qry .= "
 				AND NOT EXISTS (

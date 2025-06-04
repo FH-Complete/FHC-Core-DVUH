@@ -73,6 +73,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 			$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz');
 			$active_status_kurzbz = $this->_ci->config->item('fhc_dvuh_active_student_status_kurzbz');
 			$finished_status_kurzbz = $this->_ci->config->item('fhc_dvuh_finished_student_status_kurzbz');
+			$terminated_status_kurzbz = $this->_ci->config->item('fhc_dvuh_terminated_student_status_kurzbz');
 
 			// Meldung pro Student, Studium und Semester
 			$qry = "SELECT DISTINCT ON (ps.prestudent_id) ps.person_id, ps.prestudent_id, tbl_student.student_uid,
@@ -90,16 +91,21 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 							ORDER BY datum ASC LIMIT 1
 						) AS beginndatum,
 						(
-							SELECT COALESCE (pr_datum.datum, ps_datum.datum) FROM
+							SELECT -- use abschlusspruefung date, except when there is none or it is a terminated status
+								CASE WHEN ps_datum.status_kurzbz IN ?
+								THEN ps_datum.datum
+								ELSE COALESCE (pr_datum.datum, ps_datum.datum)
+								END
+							FROM
 							(
-								SELECT prestudent_id, pss_datum.datum
+								SELECT prestudent_id, pss_datum.datum, pss_datum.status_kurzbz
 								FROM public.tbl_prestudentstatus pss_datum
 								WHERE pss_datum.prestudent_id=ps.prestudent_id
 								AND pss_datum.studiensemester_kurzbz = pss.studiensemester_kurzbz
 								AND pss_datum.status_kurzbz IN ?
 								AND pss_datum.datum <= NOW()
 							) ps_datum
-							LEFT JOIN -- if there is an abschlusspruefung date, use it as end date instead
+							LEFT JOIN -- if there is an abschlusspruefung date, use it as end date
 							(
 								SELECT std.prestudent_id, pr.datum
 								FROM lehre.tbl_abschlusspruefung pr
@@ -121,6 +127,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 					AND pss.studiensemester_kurzbz = ?";
 
 			$params = array(
+				isEmptyArray($terminated_status_kurzbz) ? array('') : $terminated_status_kurzbz,
 				isEmptyArray($finished_status_kurzbz) ? array('') : $finished_status_kurzbz,
 				$person_id,
 				$studiensemester_kurzbz
