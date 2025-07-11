@@ -11,6 +11,7 @@ class DVUHEkzLib extends DVUHErrorProducerLib
 	const NATION_OESTERREICH = 'A';
 
 	protected $_ci;
+	private $_vbpkTypes;
 
 	/**
 	 * Library initialization
@@ -26,9 +27,12 @@ class DVUHEkzLib extends DVUHErrorProducerLib
 
 		// load models
 		$this->_ci->load->model('person/person_model', 'PersonModel');
+		$this->_ci->load->model('person/kennzeichen_model', 'KennzeichenModel');
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+
+		$this->_vbpkTypes = $this->_ci->config->item('fhc_dvuh_sync_vbpk_types');
 
 		$this->_dbModel = new DB_Model(); // get db
 	}
@@ -54,6 +58,14 @@ class DVUHEkzLib extends DVUHErrorProducerLib
 				$invalidField = 'staatsbuergerschaft_code';
 			elseif (!isEmptyString($stammdaten->svnr))
 				$invalidField = 'svnr';
+			elseif (isset($this->_vbpkTypes) && is_array($this->_vbpkTypes))
+			{
+				$this->_ci->KennzeichenModel->addSelect("1");
+				$this->_ci->KennzeichenModel->db->where("person_id", $person_id);
+				$this->_ci->KennzeichenModel->db->where_in("kennzeichentyp_kurzbz", $this->_vbpkTypes);
+				$kennzeichenRes = $this->_ci->KennzeichenModel->load();
+				if (isError($kennzeichenRes) || hasData($kennzeichenRes)) $invalidField = 'vBpk';
+			}
 
 			if (isset($invalidField))
 				return error("EKZ Daten können nicht gesendet werden, ungültiges Feld: $invalidField");
