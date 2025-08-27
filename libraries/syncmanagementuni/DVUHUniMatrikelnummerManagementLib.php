@@ -31,7 +31,7 @@ class DVUHUniMatrikelnummerManagementLib extends DVUHMatrikelnummerManagementLib
 	 * @param array $infos for storing info messages
 	 * @return object
 	 */
-	protected function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv, &$infoArr)
+	protected function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv, &$infos)
 	{
 		$sendMasterDataResult = $this->_ci->MatrikelmeldungModel->post($this->_be, $person_id, $matrikelnummer);
 
@@ -45,7 +45,6 @@ class DVUHUniMatrikelnummerManagementLib extends DVUHMatrikelnummerManagementLib
 
 			if (isError($matrNrRes)) return $matrNrRes;
 
-			$infos = array();
 			$warningCodesToExcludeFromIssues = array();
 
 			$handleBpkWarningsRes = $this->_ci->dvuhmasterdatamanagementlib->handleBpkWarningsFromResponse(
@@ -74,7 +73,7 @@ class DVUHUniMatrikelnummerManagementLib extends DVUHMatrikelnummerManagementLib
 					$infos[] = "Neue Matrikelnr $matrikelnummer erfolgreich der Person Id $person_id vorläufig zugewiesen";
 				}
 
-				$result = $this->getResponseArr($xmlstr, $infos, array(), true, $warningCodesToExcludeFromIssues);
+				$result = $this->getResponseArr($xmlstr, array(), array(), true, $warningCodesToExcludeFromIssues);
 			}
 		}
 		else
