@@ -19,6 +19,42 @@ class DVUHUniMatrikelnummerManagementLib extends DVUHMatrikelnummerManagementLib
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
 	}
 
+	/**
+	 * Sends Matrikelnummer to DVUH, checks for errors. 
+	 * @param $person_id
+	 * @param $matrikelnummer
+	 * @param $preview if true, only data to post and infos are returned
+	 * @return object success or error
+	 */
+	public function sendMatrikelnummer($person_id, $matrikelnummer, $writeonerror, $preview)
+	{
+		if ($preview)
+		{
+			$postData = $this->_ci->MatrikelmeldungModel->retrievePostData(
+				$this->_be,
+				$person_id,
+				$matrikelnummer,
+				$writeonerror
+			);
+
+			if (isError($postData))
+				return $postData;
+
+			return $this->getResponseArr(getData($postData));
+		}
+
+		$sendMatrikelmeldungResult = $this->_ci->MatrikelmeldungModel->post($this->_be, $person_id, $matrikelnummer, $writeonerror);
+		if (isError($sendMatrikelmeldungResult)) return $sendMatrikelmeldungResult;
+		if (!hasData($sendMatrikelmeldungResult)) return error('Fehler beim Melden der Matrikelnummer');
+
+		$xmlstr = getData($sendMatrikelmeldungResult);
+
+		$parsedObj = $this->_ci->xmlreaderlib->parseXmlDvuh($xmlstr, array('uuid'));
+		if (isError($parsedObj)) return $parsedObj;
+
+		return $this->getResponseArr(getData($sendMatrikelmeldungResult), array('Matrikelnummer erfolgreich gemeldet'), array(), true);
+	}
+
 	// --------------------------------------------------------------------------------------------
 	// Protected methods
 

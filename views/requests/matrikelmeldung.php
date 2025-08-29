@@ -25,7 +25,7 @@
 		<staat><?php echo $personmeldung['staat']; ?></staat>
 		<vorname><?php echo $personmeldung['vorname']; ?></vorname>
 
-<?php if (isset($personmeldung['writeonerror']) && $personmeldung['writeonerror'] != ''): ?>
+<?php if (isset($personmeldung['writeonerror']) && $personmeldung['writeonerror'] === 'true'): ?>
 		<writeonerror><?php echo $personmeldung['writeonerror'] ?></writeonerror>
 <?php endif; ?>
 

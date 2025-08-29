@@ -129,6 +129,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 				}
 
 				$geschlecht = $this->dvuhconversionlib->convertGeschlechtToDVUH($stammdatenData->geschlecht);
+				$writeonerror = $writeonerror ? 'true' : null;
 
 				$params['personmeldung'] = array(
 					'adresseAusland' => $addressToSend->strasse,

@@ -49,16 +49,25 @@ $this->load->view('templates/FHC-Header', array(
 			<br />
 			<div id="menuContainer">
 				<div class="row first-row">
-					<div class="col-lg-3 panelcolumn">
+					<div class="col-lg-6 panelcolumn">
 						<div class="panel panel-default">
 							<div class="panel-heading">Matrikelnummermanagement</div>
 							<div class="panel-body">
-								<ul class="list-unstyled dvuhMenu">
-									<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
-									<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Reservierungen anzeigen</a></li>
-									<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
-									<li id="postMatrikelkorrektur"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
-								</ul>
+								<div class="row">
+									<div class="col-lg-6 menucolumn">
+										<ul class="list-unstyled dvuhMenu">
+											<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
+											<li id="postMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer melden</a></li>
+											<li id="postMatrikelkorrektur"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
+										</ul>
+									</div>
+									<div class="col-lg-6 menucolumn">
+										<ul class="list-unstyled dvuhMenu">
+											<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Reservierungen anzeigen</a></li>
+											<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
+										</ul>
+									</div>
+								</div>
 							</div>
 						</div>
 					</div>
@@ -74,7 +83,7 @@ $this->load->view('templates/FHC-Header', array(
 							</div>
 						</div>
 					</div>
-					<div class="col-lg-6 panelcolumn">
+					<div class="col-lg-3 panelcolumn">
 						<div class="panel panel-default">
 							<div class="panel-heading">Stammdatenmanagement</div>
 							<div class="panel-body">
