@@ -2,4 +2,5 @@ config/DVUHClient.php
 config/DVUHSync.php
 config/UHSTATSync.php
 config/DVUHBpkCheck.php
+config/DVUHMenu.php
 .idea
