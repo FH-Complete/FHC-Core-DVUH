@@ -49,98 +49,37 @@ $this->load->view('templates/FHC-Header', array(
 			<br />
 			<div id="menuContainer">
 				<div class="row first-row">
-					<div class="col-lg-6 panelcolumn">
-						<div class="panel panel-default">
-							<div class="panel-heading">Matrikelnummermanagement</div>
-							<div class="panel-body">
-								<div class="row">
-									<div class="col-lg-6 menucolumn">
-										<ul class="list-unstyled dvuhMenu">
-											<li id="getMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer prüfen</a></li>
-											<li id="postMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer melden</a></li>
-											<li id="postMatrikelkorrektur"><a href="javascript:void(0)">Matrikelnummer korrigieren</a></li>
-										</ul>
-									</div>
-									<div class="col-lg-6 menucolumn">
-										<ul class="list-unstyled dvuhMenu">
-											<li id="getMatrikelnummerReservierungen"><a href="javascript:void(0)">Reservierungen anzeigen</a></li>
-											<li id="reserveMatrikelnummer"><a href="javascript:void(0)">Matrikelnummer reservieren</a></li>
-										</ul>
+					<?php $panelColWidthUsed = 0; ?>
+					<?php foreach ($menu as $menuCategory => $menuEntries): ?>
+						<?php $panelColWidth = $menuEntries['width']; ?>
+						<?php unset($menuEntries['width']); ?>
+						<?php $menuColWidth = isset($menuEntries['left']) && isset($menuEntries['right']) ? '6' : '12'; ?>
+						<?php $panelColWidthUsed += $panelColWidth; ?>
+						<div class="col-lg-<?php echo $panelColWidth; ?> panelcolumn">
+							<div class="panel panel-default">
+								<div class="panel-heading"><?php echo $menuCategory; ?></div>
+								<div class="panel-body">
+									<div class="row">
+										<?php foreach ($menuEntries as $position => $entries): ?>
+										<div class="col-lg-<?php echo $menuColWidth ?> menucolumn">
+											<ul class="list-unstyled dvuhMenu">
+												<?php foreach ($entries as $menuEntry): ?>
+												<?php if (!$menuEntry['active']) continue; ?>
+												<li id="<?php echo $menuEntry['id'] ?>"><a href="javascript:void(0)"><?php echo $menuEntry['description'] ?></a></li>
+												<?php endforeach; ?>
+											</ul>
+										</div>
+										<?php endforeach; ?>
 									</div>
 								</div>
 							</div>
 						</div>
-					</div>
-					<div class="col-lg-3 panelcolumn">
-						<div class="panel panel-default">
-							<div class="panel-heading">bPK Management</div>
-							<div class="list-unstyled panel-body">
-								<ul class="list-unstyled dvuhMenu">
-									<li id="getPruefeBpkByPersonId"><a href="javascript:void(0)">bPK ermitteln</a></li>
-									<li id="getPruefeBpk"><a href="javascript:void(0)">bPK manuell ermitteln</a></li>
-									<li id="postErnpmeldung"><a href="javascript:void(0)">ERnP Meldung durchführen</a></li>
-								</ul>
-							</div>
-						</div>
-					</div>
-					<div class="col-lg-3 panelcolumn">
-						<div class="panel panel-default">
-							<div class="panel-heading">Stammdatenmanagement</div>
-							<div class="panel-body">
-								<ul class="list-unstyled dvuhMenu">
-									<li id="getStammdaten"><a href="javascript:void(0)">Stammdaten und Zahlungsvorschreibung abfragen</a></li>
-									<li id="postMasterData"><a href="javascript:void(0)">Stammdaten und Matrikelnummer melden</a></li>
-									<li id="postEkzanfordern"><a href="javascript:void(0)">EKZ anfordern</a></li>
-								</ul>
-							</div>
-						</div>
-					</div>
+						<?php if ($panelColWidthUsed >= 12): ?>
+							<?php $panelColWidthUsed = 0; ?>
 				</div>
 				<div class="row second-row">
-					<div class="col-lg-3 panelcolumn">
-						<div class="panel panel-default">
-							<div class="panel-heading">Zahlungsmanagement</div>
-							<div class="list-unstyled panel-body">
-								<ul class="list-unstyled dvuhMenu">
-									<li id="getKontostaende"><a href="javascript:void(0)">Kontostand abfragen</a></li>
-									<li id="postPayment"><a href="javascript:void(0)">Zahlungseingang melden</a></li>
-								</ul>
-							</div>
-						</div>
-					</div>
-					<div class="col-lg-3 panelcolumn">
-						<div class="panel panel-default">
-							<div class="panel-heading">Prüfungsaktivitätenmanagement</div> <!-- TODO phrases -->
-							<div class="list-unstyled panel-body">
-								<ul class="list-unstyled dvuhMenu">
-									<li id="getPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten abfragen</a></li>
-									<li id="postPruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten melden</a></li>
-									<li id="deletePruefungsaktivitaeten"><a href="javascript:void(0)">Pr&uuml;fungsaktivit&auml;ten l&ouml;schen</a></li>
-								</ul>
-							</div>
-						</div>
-					</div>
-					<div class="col-lg-6 panelcolumn">
-						<div class="panel panel-default mx-auto">
-							<div class="panel-heading">Studiumsdatenmanagement</div>
-							<div class="panel-body">
-								<div class="row">
-									<div class="col-lg-6 menucolumn">
-										<ul class="list-unstyled dvuhMenu">
-											<li id="getStudium"><a href="javascript:void(0)">Studiumsdaten abfragen</a></li>
-											<li id="getFullstudent"><a href="javascript:void(0)">Detaillierte Studiendaten abfragen</a></li>
-										</ul>
-									</div>
-									<div class="col-lg-6 menucolumn">
-										<ul class="list-unstyled dvuhMenu">
-											<li id="postStudium"><a href="javascript:void(0)">Studiumsdaten melden</a></li>
-											<li id="postStudiumStorno"><a href="javascript:void(0)">Studiumsdaten stornieren</a></li>
-										</ul>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
+						<?php endif; ?>
+					<?php endforeach; ?>
 				</div>
 			</div>
 			<div class="row">

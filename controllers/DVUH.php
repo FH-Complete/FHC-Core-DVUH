@@ -58,6 +58,7 @@ class DVUH extends Auth_Controller
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagementuni/DVUHUniMatrikelnummerManagementLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
+		$this->config->load('extensions/FHC-Core-DVUH/DVUHMenu');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -70,8 +71,14 @@ class DVUH extends Auth_Controller
 		// display system path (e.g. rws or sandbox) and api version
 		$environment = $this->config->item(ClientLib::URL_PATH);
 		$apiVersion = $this->config->item(DVUHClientLib::API_VERSION);
+		$dvuhMenu = $this->config->item('fhc_dvuh_menu');
 
-		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array('environment' => $environment, 'apiVersion' => $apiVersion));
+		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array(
+				'environment' => $environment,
+				'apiVersion' => $apiVersion,
+				'menu' => $dvuhMenu
+			)
+		);
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
