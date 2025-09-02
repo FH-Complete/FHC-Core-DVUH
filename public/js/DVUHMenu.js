@@ -138,6 +138,14 @@ var DVUHMenu = {
 				html += DVUHMenu._getStudienjahrRow();
 				method = 'post';
 				break;
+			case 'postMatrikelnummer':
+				html = '<h4>Matrikelnummer melden</h4>';
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
+					+ DVUHMenu._getMatrikelnummerRow(null, 'default: bereits gespeicherte Matrikelnummer (wenn vorhanden)')
+					+ DVUHMenu._getCheckboxHtml('writeonerror', 'Meldung Bei Fehler erzwingen', 'optional')
+				method = 'post';
+				writePreviewButton = true;
+				break;
 			case 'postMatrikelkorrektur':
 				html = '<h4>Matrikelnummer korrigieren</h4>';
 				html += DVUHMenu._getTextfieldHtml('matrikelnummer', 'Neue Matrikelnummer', '', 8)
@@ -154,7 +162,7 @@ var DVUHMenu = {
 				break;
 			case 'postPayment':
 				html = '<h4>Zahlungseingang melden</h4>';
-				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')/*DVUHMenu._getMatrikelnummerRow()*/
+				html += DVUHMenu._getTextfieldHtml('person_id', 'PersonID')
 					+ DVUHMenu._getSemesterRow()
 				method = 'post';
 				writePreviewButton = true;
@@ -479,9 +487,12 @@ var DVUHMenu = {
 			}
 		}
 	},
-	_getMatrikelnummerRow: function(value)
+	_getMatrikelnummerRow: function(value, hint)
 	{
-		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', '', 8, value)
+		if (!hint)
+			hint = '';
+
+		return DVUHMenu._getTextfieldHtml('matrikelnummer', 'Matrikelnummer', hint, 8, value)
 	},
 	_getStudienjahrRow: function()
 	{
@@ -512,6 +523,21 @@ var DVUHMenu = {
 					'<label class="col-lg-2 control-label" for="'+name+'">'+title+'</label>'+
 					'<div class="col-lg-5">'+
 						'<input class="form-control" id="'+name+'" name="'+name+'" type="text" size="30" maxlength="'+maxlength+'"'+
+							(value ? ' value="'+value+'"' : '') +
+						'>'+
+					'</div>'+
+					'<label class="col-lg-5 control-label form-hint" for="'+name+'">'+hint+'</label>'+
+				'</div>';
+	},
+	_getCheckboxHtml: function(name, title, hint, value)
+	{
+		if (!hint)
+			hint = '';
+
+		return '<div class="form-group">' +
+					'<label class="col-lg-2 control-label" for="'+name+'">'+title+'</label>'+
+					'<div class="col-lg-5">'+
+						'<input id="'+name+'" name="'+name+'" type="checkbox"'+
 							(value ? ' value="'+value+'"' : '') +
 						'>'+
 					'</div>'+

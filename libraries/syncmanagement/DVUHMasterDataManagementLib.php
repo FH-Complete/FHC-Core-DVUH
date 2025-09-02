@@ -210,32 +210,10 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 						return $paidOtherUnivRes;
 				}
 
-				// get warnings from result
-				$warningsRes = $this->_ci->xmlreaderlib->parseXmlDvuhWarnings($xmlstr);
-
-				if (isError($warningsRes))
-					return error('Fehler beim Auslesen der Warnungen');
-
 				$warningCodesToExcludeFromIssues = array();
+				$handleBpkWarningsRes = $this->handleBpkWarningsFromResponse($xmlstr, $person_id, $infos, $warningCodesToExcludeFromIssues);
 
-				if (hasData($warningsRes))
-				{
-					$parsedWarnings = getData($warningsRes);
-
-					// if no bpk saved in FHC, but a BPK is returned by DVUH in a warning, save it in FHC
-					$saveBpkRes = $this->_saveBpkFromDvuhWarning($person_id, $parsedWarnings);
-
-					if (isError($saveBpkRes))
-						return error('Fehler beim Speichern der Bpk in FHC');
-
-					if (hasData($saveBpkRes))
-					{
-						$bpkRes = getData($saveBpkRes);
-						// if bpk already added automatically, no need to write issue
-						$warningCodesToExcludeFromIssues[] = self::ERRORCODE_BPK_MISSING;
-						$infos[] = "Neue Bpk ($bpkRes) gespeichert für Person mit Id $person_id";
-					}
-				}
+				if (isError($handleBpkWarningsRes)) return $handleBpkWarningsRes;
 
 				if (!isset($result))
 					$result = $this->getResponseArr($xmlstr, $infos, $warnings, true, $warningCodesToExcludeFromIssues);
@@ -245,6 +223,44 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 			$result = error('Fehler beim Senden der Stammdaten');
 
 		return $result;
+	}
+
+	/**
+	 * Handles Bpk warnings in response. Saves missing bpks, if necessary.
+	 * @param $xmlstr the response xml string
+	 * @param $person_id person to save bpk for
+	 * @param $infos to be filled with infos
+	 * @param $warningCodesToExcludeFromIssues excluding from issues, as bpk warning should be ignored when already handled
+	 * @return object success or error
+	 */
+	public function handleBpkWarningsFromResponse($xmlstr, $person_id, &$infos, &$warningCodesToExcludeFromIssues)
+	{
+		// get warnings from result
+		$warningsRes = $this->_ci->xmlreaderlib->parseXmlDvuhWarnings($xmlstr);
+
+		if (isError($warningsRes))
+			return error('Fehler beim Auslesen der Warnungen');
+
+		if (hasData($warningsRes))
+		{
+			$parsedWarnings = getData($warningsRes);
+
+			// if no bpk saved in FHC, but a BPK is returned by DVUH in a warning, save it in FHC
+			$saveBpkRes = $this->_saveBpkFromDvuhWarning($person_id, $parsedWarnings);
+
+			if (isError($saveBpkRes))
+				return error('Fehler beim Speichern der Bpk in FHC');
+
+			if (hasData($saveBpkRes))
+			{
+				$bpkRes = getData($saveBpkRes);
+				// if bpk already added automatically, no need to write issue
+				$warningCodesToExcludeFromIssues[] = self::ERRORCODE_BPK_MISSING;
+				$infos[] = "Neue Bpk ($bpkRes) gespeichert für Person mit Id $person_id";
+			}
+		}
+
+		return success("Bpk warnings handled");
 	}
 
 	/**
