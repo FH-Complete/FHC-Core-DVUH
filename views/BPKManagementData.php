@@ -1,30 +1,35 @@
 <?php
+$limitClause = isset($display_limit) && is_integer($display_limit) ? " LIMIT $display_limit" : "";
+
 $filterWidgetArray = array(
-	'query' => '
+	'query' => "
+		WITH personen AS
+		(
+			SELECT
+				person_id, vorname, nachname, geschlecht, svnr, ersatzkennzeichen, matr_nr,
+				staatsbuergerschaft, gebdatum, ben.uid,
+				(SELECT count(*) FROM public.tbl_akte WHERE person_id=tbl_person.person_id) AS anzahl_dokumente
+			FROM
+				public.tbl_person
+				JOIN public.tbl_benutzer ben USING (person_id)
+			WHERE
+				ben.aktiv
+				AND bpk IS NULL
+		)
 		SELECT
+			DISTINCT ON (person_id)
 			person_id, vorname, nachname, geschlecht, svnr, ersatzkennzeichen, matr_nr,
-			staatsbuergerschaft, gebdatum, false AS mitarbeiter,
-			(SELECT count(*) FROM public.tbl_akte WHERE person_id=tbl_person.person_id) AS anzahl_dokumente
-		FROM
-			public.tbl_person
+			staatsbuergerschaft, gebdatum, mitarbeiter, anzahl_dokumente
+		FROM (
+			SELECT *,
+			EXISTS(SELECT 1 FROM public.tbl_student WHERE student_uid = personen.uid AND matr_nr IS NOT NULL) AS student,
+			EXISTS(SELECT 1 FROM public.tbl_mitarbeiter WHERE mitarbeiter_uid = personen.uid) AS mitarbeiter
+			FROM personen
+		) personen_erweitert
 		WHERE
-			matr_nr is not null
-			AND bpk is null
-			AND EXISTS(SELECT 1 FROM public.tbl_benutzer JOIN public.tbl_student ON(uid=student_uid) AND
-				person_id=tbl_person.person_id AND tbl_benutzer.aktiv=true)
-		UNION
-		SELECT
-			person_id, vorname, nachname, geschlecht, svnr, ersatzkennzeichen, matr_nr,
-			staatsbuergerschaft, gebdatum, true AS mitarbeiter,
-			(SELECT count(*) FROM public.tbl_akte WHERE person_id=tbl_person.person_id) AS anzahl_dokumente
-		FROM
-			public.tbl_person
-            JOIN public.tbl_benutzer USING(person_id)
-            JOIN public.tbl_mitarbeiter ON (mitarbeiter_uid=uid)
-		WHERE
-			bpk is null
-			AND tbl_benutzer.aktiv=true		
-		',
+			student OR mitarbeiter
+		{$limitClause}
+		",
 	'requiredPermissions' => 'admin',
 	'datasetRepresentation' => 'tablesorter',
 	'additionalColumns' => array('Details'),
