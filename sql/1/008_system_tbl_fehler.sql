@@ -32,6 +32,7 @@ INSERT INTO system.tbl_fehler (fehlercode, fehler_kurzbz, fehlercode_extern, feh
 ('DVUH_SS_0015', 'herkunftslandFehlt', NULL, 'Herkunftsland fehlt', 'error', 'dvuh'),
 ('DVUH_SS_0016', 'gsdatenFehlen', NULL, 'Daten für gemeinsames Studium fehlen: %s', 'error', 'dvuh'),
 ('DVUH_SS_0017', 'orgformUngueltig', NULL, 'Orgform ungültig', 'error', 'dvuh'),
+('DVUH_SS_0018', 'nichtGemeldeteStudierende', NULL, 'Zu meldende/r Studierende/r kurz vor Ende der Bismeldung nicht gemeldet, Zahlungsvorschreibung überprüfen, prestudent Id %s, Studiensemester %s', 'error', 'dvuh'),
 ('DVUH_RE_0001', 'personMitEkzExistiert', NULL, 'Person (person Id %s) mit EKZ %s existiert bereits', 'error', 'dvuh'),
 /* DVUH Errors */
 ('DVUH_ERROR', 'dvuhFehler', NULL, 'DVUH Fehler ist aufgetreten', 'error', 'dvuh'),

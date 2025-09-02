@@ -199,11 +199,10 @@ class DVUHClientLib extends ClientLib
 		);
 		 */
 		return \Httpful\Request::get($uri)
-			->expectsXml() // dangerous expectations
+			//->expectsXml() // dangerous expectations
 			->addHeader(self::AUTHORIZATION_HEADER_NAME, self::AUTHORIZATION_HEADER_PREFIX.' '.$this->_authToken)
 			->addHeader(self::USER_AGENT_HEADER_NAME, self::USER_AGENT_HEADER_VALUE)
 			->addHeader(self::CONNECTION_HEADER_NAME, self::CONNECTION_HEADER_VALUE)
-			->sendsXml() // content type xml
 			->send();
 	}
 
