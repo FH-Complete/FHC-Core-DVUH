@@ -29,6 +29,7 @@ class DVUH extends Auth_Controller
 		'postCharge'=>'admin:rw',
 		'postStudium'=>'admin:rw',
 		'postPayment'=>'admin:rw',
+		'postMatrikelnummer'=>'admin:rw',
 		'postMatrikelkorrektur'=>'admin:rw',
 		'postErnpmeldung'=> 'admin:rw',
 		'postPruefungsaktivitaeten'=>'admin:rw',
@@ -54,8 +55,10 @@ class DVUH extends Auth_Controller
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPaymentManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHStudyDataManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/syncmanagement/DVUHPruefungsaktivitaetenManagementLib');
+		$this->load->library('extensions/FHC-Core-DVUH/syncmanagementuni/DVUHUniMatrikelnummerManagementLib');
 
 		$this->config->load('extensions/FHC-Core-DVUH/DVUHClient');
+		$this->config->load('extensions/FHC-Core-DVUH/DVUHMenu');
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -68,8 +71,14 @@ class DVUH extends Auth_Controller
 		// display system path (e.g. rws or sandbox) and api version
 		$environment = $this->config->item(ClientLib::URL_PATH);
 		$apiVersion = $this->config->item(DVUHClientLib::API_VERSION);
+		$dvuhMenu = $this->config->item('fhc_dvuh_menu');
 
-		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array('environment' => $environment, 'apiVersion' => $apiVersion));
+		$this->load->view('extensions/FHC-Core-DVUH/dvuh', array(
+				'environment' => $environment,
+				'apiVersion' => $apiVersion,
+				'menu' => $dvuhMenu
+			)
+		);
 	}
 
 	//------------------------------------------------------------------------------------------------------------------
@@ -406,6 +415,28 @@ class DVUH extends Auth_Controller
 
 		$json = $this->dvuhmasterdatamanagementlib->sendErnpMeldung($person_id, $ausgabedatum,
 			$ausstellBehoerde, $ausstellland, $dokumentnr, $dokumenttyp, $preview);
+
+		$this->outputJson($json);
+	}
+
+	public function postMatrikelnummer()
+	{
+		$json = null;
+
+		$data = $this->input->post('data');
+		$preview = $this->input->post('preview');
+
+		$person_id = isset($data['person_id']) ? $data['person_id'] : null;
+		$matrikelnummer = isset($data['matrikelnummer']) ? $data['matrikelnummer'] : null;
+		$writeonerror = isset($data['writeonerror']) ? $data['writeonerror'] : null;
+
+		$be = $this->config->item('fhc_dvuh_be_code');
+
+		$this->load->model('extensions/FHC-Core-DVUH/Matrikelmeldung_model', 'MatrikelmeldungModel');
+
+		$json = $this->dvuhunimatrikelnummermanagementlib->sendMatrikelnummer(
+			$person_id, $matrikelnummer, $writeonerror, $preview
+		);
 
 		$this->outputJson($json);
 	}

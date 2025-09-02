@@ -40,8 +40,11 @@ $this->load->view(
 				Es ist die Namensschreibweise zu prüfen und ggf zu korrigieren.
 				Falls die Person keine Meldeadresse hat, ist eine Eintragung der
 				Person in das "Ergänzungsregister für natürliche Personen" notwendig.
+				<?php if (isset($display_limit)): ?>
+				 (Es werden maximal die ersten <?php echo $display_limit ?> Ergebnisse angezeigt)
+				<?php endif; ?>
 				<br /><br />
-				<?php $this->load->view('extensions/FHC-Core-DVUH/BPKManagementData.php'); ?>
+				<?php $this->load->view('extensions/FHC-Core-DVUH/BPKManagementData.php', array('display_limit' => $display_limit)); ?>
 			</div>
 		</div>
 	</div>
