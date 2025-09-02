@@ -17,9 +17,6 @@
 		<?php if (isset($ekzbasisdaten['requestTimestamp'])): ?>
 			<requestTimestamp><?php echo $ekzbasisdaten['requestTimestamp'] ?></requestTimestamp>
 		<?php endif; ?>
-		<?php if (isset($ekzbasisdaten['svnr'])): ?>
-			<svnr><?php echo $ekzbasisdaten['svnr'] ?></svnr>
-		<?php endif; ?>
 			<vorname><?php echo $ekzbasisdaten['vorname'] ?></vorname>
 		</ekzBasis>
 	<?php if (isset($forcierungskey)):?>

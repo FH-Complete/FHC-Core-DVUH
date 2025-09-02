@@ -127,9 +127,6 @@ class DVUHEkzLib extends DVUHErrorProducerLib
 					$this->addError('Stammdaten fehlen: ' . $idx, 'stammdatenFehlen', array($idx));
 			}
 
-			if (isset($stammdaten->svnr))
-				$ekzData['svnr'] = $stammdaten->svnr;
-
 			if ($this->hasError())
 				return error($this->readErrors());
 

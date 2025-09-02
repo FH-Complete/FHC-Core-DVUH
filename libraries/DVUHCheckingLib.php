@@ -61,12 +61,12 @@ class DVUHCheckingLib
 
 	/**
 	 * Checks Matrikelnummer for validity.
-	 * @param string $svnr
+	 * @param string $matrikelnummer
 	 * @return bool valid or not
 	 */
-	public function checkMatrikelnummer($svnr)
+	public function checkMatrikelnummer($matrikelnummer)
 	{
-		return preg_match("/^\d{8}$/", $svnr) === 1;
+		return preg_match("/^\d{8}$/", $matrikelnummer) === 1;
 	}
 
 	/**
