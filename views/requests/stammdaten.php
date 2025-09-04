@@ -62,12 +62,6 @@
 		<geschlecht><?php echo $studentinfo['geschlecht']; ?></geschlecht>
 		<nachname><?php echo $studentinfo['nachname']; ?></nachname>
 		<staatsbuergerschaft><?php echo $studentinfo['staatsbuergerschaft']; ?></staatsbuergerschaft>
-<?php
-		if(isset($studentinfo['svnr']) && $studentinfo['svnr'] != '')
-		{
-			echo "\t\t<svnr>".$studentinfo['svnr']."</svnr>";
-		}
-?>
 		<vorname><?php echo $studentinfo['vorname']; ?></vorname>
 	</stammdaten>
 <?php if(isset($vorschreibung)): ?>
