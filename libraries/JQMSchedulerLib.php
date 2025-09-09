@@ -257,6 +257,21 @@ class JQMSchedulerLib
 			$params[] = $this->_status_kurzbz[self::JOB_TYPE_REQUEST_EKZ];
 		}
 
+		if (!isEmptyArray($this->_vbpk_types))
+		{
+			$qry .= " AND NOT EXISTS (
+						SELECT
+							1
+						FROM
+							public.tbl_kennzeichen
+						WHERE
+							person_id = pers.person_id
+							AND kennzeichentyp_kurzbz IN ?
+					)";
+
+			$params[] = $this->_vbpk_types;
+		}
+
 		if (isset($this->_terminated_student_status_kurzbz) && !isEmptyArray($this->_terminated_student_status_kurzbz))
 		{
 			$qry .= "

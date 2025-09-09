@@ -239,7 +239,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 					$isExtern = (isset($studtyp) && $studtyp == 'E');
 
 					// zulassungsdatum (start date of studies)
-					$zulassungsdatum = $isIncoming || $isAusserordentlich ? null : $prestudentstatus->beginndatum;
+					$zulassungsdatum = $isAusserordentlich ? null : $prestudentstatus->beginndatum;
 
 					// orgform_kurzbz
 					$orgform_kurzbz = null;
@@ -371,7 +371,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 						if (isset($meldestatus))
 							$lehrgang['meldestatus'] = $meldestatus;
 
-						if (isset($zulassungsdatum) && !$isExtern)
+						if (isset($zulassungsdatum))
 							$lehrgang['zulassungsdatum'] = $zulassungsdatum;
 
 						if (isset($prestudentstatus->beendigungsdatum) && !$isExtern)
@@ -498,7 +498,7 @@ class DVUHStudyDataLib extends DVUHErrorProducerLib
 						if (isset($meldestatus))
 							$studiengang['meldestatus'] = $meldestatus;
 
-						if (isset($zulassungsdatum) && !$isExtern)
+						if (isset($zulassungsdatum))
 							$studiengang['zulassungsdatum'] = $zulassungsdatum;
 
 						if (isset($unterbrechungsdatum) && !$isExtern)
