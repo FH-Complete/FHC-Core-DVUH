@@ -27,14 +27,13 @@ class BPKManagement extends Auth_Controller
 		);
 
 		// Loads models
-		$this->load->model('crm/akte_model', 'AkteModel');
 		$this->load->model('person/person_model', 'PersonModel');
-
 
 		// Loads libraries
 		$this->load->library('WidgetLib');
 		$this->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 		$this->load->library('extensions/FHC-Core-DVUH/BPKManagementLib');
+		$this->load->library('AkteLib');
 
 		$this->loadPhrases(
 			array(
@@ -175,9 +174,7 @@ class BPKManagement extends Auth_Controller
 	 */
 	public function outputAkteContent($akte_id)
 	{
-		$this->load->library('DmsLib');
-
-		$akteRes = $this->AkteModel->load($akte_id);
+		$akteRes = $this->aktelib->getByAkteId($akte_id);
 
 		if (isError($akteRes))
 		{
@@ -186,7 +183,7 @@ class BPKManagement extends Auth_Controller
 
 		if (hasData($akteRes))
 		{
-			$akteContentRes = $this->dmslib->getAkteContent($akte_id);
+			$akteContentRes = $this->aktelib->getByAkteId($akte_id);
 
 			if (isError($akteContentRes))
 			{

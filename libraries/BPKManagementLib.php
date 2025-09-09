@@ -19,7 +19,6 @@ class BPKManagementLib
 		// load models
 		$this->_ci->load->model('person/Person_model', 'PersonModel');
 		$this->_ci->load->model('person/Adresse_model', 'AdresseModel');
-		$this->_ci->load->model('crm/Akte_model', 'AkteModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Pruefebpk_model', 'PruefebpkModel');
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/Fullstudent_model', 'FullstudentModel');
 
