@@ -9,7 +9,7 @@ require_once APPPATH.'/libraries/extensions/FHC-Core-DVUH/syncmanagement/DVUHMan
 class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 {
 	// Statuscodes returned when checking Matrikelnr, resulting actions are array keys
-	private $_matrnr_statuscodes = array(
+	protected $_matrnr_statuscodes = array(
 		'assignNew' => array('1', '5'),
 		'saveExisting' => array('3'),
 		'error' => array('2', '4', '6')
@@ -291,7 +291,7 @@ class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 	}
 
 	// --------------------------------------------------------------------------------------------
-	// Private methods
+	// Protected methods
 
 	/**
 	 * Saves masterdata with Matrikelnr in DVUH, sets Matrikelnr in FHC.
@@ -302,7 +302,7 @@ class DVUHMatrikelnummerManagementLib extends DVUHManagementLib
 	 * @param array $infos for storing info messages
 	 * @return object
 	 */
-	private function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv, &$infos)
+	protected function _sendAndUpdateMatrikelnummer($person_id, $studiensemester_kurzbz, $matrikelnummer, $matr_aktiv, &$infos)
 	{
 		$sendMasterDataResult = $this->_ci->dvuhmasterdatamanagementlib->sendMasterdata($person_id, $studiensemester_kurzbz, $matrikelnummer);
 

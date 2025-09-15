@@ -9,7 +9,7 @@ class DVUHManagement extends JQW_Controller
 {
 	const ERRORCODE_TOO_MANY_SZR_REQUESTS = 'ZD00001';
 
-	private $_logInfos; // stores config param for info display
+	protected $_logInfos; // stores config param for info display
 
 	/**
 	 * Controller initialization
@@ -634,7 +634,7 @@ class DVUHManagement extends JQW_Controller
 	 * @param $jobs
 	 * @return array with jobinput
 	 */
-	private function _getInputObjArray($jobs)
+	protected function _getInputObjArray($jobs)
 	{
 		$mergedUsersArray = array();
 
@@ -658,7 +658,7 @@ class DVUHManagement extends JQW_Controller
 	 * Extracts infos and warnings from a result and logs them.
 	 * @param array $resultarr
 	 */
-	private function _logDVUHInfosAndWarnings($resultarr, $idArr)
+	protected function _logDVUHInfosAndWarnings($resultarr, $idArr)
 	{
 		if ($this->_logInfos === true) // if info logging enabled
 		{
@@ -716,7 +716,7 @@ class DVUHManagement extends JQW_Controller
 	 * Logs info message if info logging is enabled in config.
 	 * @param string $info
 	 */
-	private function _logDVUHInfoIfEnabled($info)
+	protected function _logDVUHInfoIfEnabled($info)
 	{
 		if ($this->_logInfos === true)
 			$this->logInfo($info);
@@ -729,7 +729,7 @@ class DVUHManagement extends JQW_Controller
 	 * @param int $person_id for issue
 	 * @param int $prestudent_id for issue oe_kurzbz
 	 */
-	private function _logDVUHError($logging_prefix, $errorObj, $person_id = null, $prestudent_id = null)
+	protected function _logDVUHError($logging_prefix, $errorObj, $person_id = null, $prestudent_id = null)
 	{
 		if (!isError($errorObj))
 			return;
@@ -767,7 +767,7 @@ class DVUHManagement extends JQW_Controller
 	 * @param int $prestudent_id
 	 * @param string $force_predefined_for_external
 	 */
-	private function _addDVUHIssue($issue, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
+	protected function _addDVUHIssue($issue, $person_id = null, $prestudent_id = null, $force_predefined_for_external = false)
 	{
 		$issueRes = $this->dvuhissuelib->addIssue($issue, $person_id, $prestudent_id, $force_predefined_for_external);
 

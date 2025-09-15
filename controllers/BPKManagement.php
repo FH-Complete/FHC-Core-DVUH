@@ -26,6 +26,9 @@ class BPKManagement extends Auth_Controller
 			)
 		);
 
+		// load config
+		$this->config->load('extensions/FHC-Core-DVUH/DVUHBpkCheck');
+
 		// Loads models
 		$this->load->model('crm/akte_model', 'AkteModel');
 		$this->load->model('person/person_model', 'PersonModel');
@@ -59,7 +62,10 @@ class BPKManagement extends Auth_Controller
 	 */
 	public function index()
 	{
-		$this->load->view('extensions/FHC-Core-DVUH/BPKManagement.php');
+		$this->load->view(
+			'extensions/FHC-Core-DVUH/BPKManagement.php',
+			array('display_limit' => $this->config->item('fhc_dvuh_bpkcheck_no_bpk_display_limit'))
+		);
 	}
 
 	/**

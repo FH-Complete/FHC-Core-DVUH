@@ -215,9 +215,6 @@ class DVUHStammdatenLib extends DVUHErrorProducerLib
 				$studentinfo['akadgradnach'] = $stammdaten->titelpost;
 			}
 
-			if (isset($stammdaten->svnr))
-				$studentinfo['svnr'] = $stammdaten->svnr;
-
 			if (isset($stammdaten->ersatzkennzeichen) && isEmptyString($stammdaten->svnr))
 			{
 				if (!$this->_ci->dvuhcheckinglib->checkEkz($stammdaten->ersatzkennzeichen))
