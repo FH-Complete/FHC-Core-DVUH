@@ -67,7 +67,7 @@ class DVUHIssueLib
 				$issue = array($issue);
 
 			// optimistic assumption
-			$issuesResObj = success('Successfully added issue(s)');
+			$issuesResObj = success('Successfully managed issue(s)');
 			$issuesErrorArr = array();
 
 			foreach($issue as $iss)
@@ -92,7 +92,6 @@ class DVUHIssueLib
 						if ($force_predefined_for_external)
 							return success("External issue not added because it is not defined in FHC"); // TODO phrases
 					}
-
 					// add the external issue
 					$extIssueRes = $this->_ci->issueslib->addExternalIssue(
 						$iss->fehlernummer,
@@ -113,6 +112,7 @@ class DVUHIssueLib
 				}
 				elseif (isset($iss->issue_fehler_kurzbz)) // add custom fhc error if no fehlernummer, but issue_kurzbz
 				{
+
 					$addIssueRes = $this->_ci->issueslib->addFhcIssue(
 						$iss->issue_fehler_kurzbz,
 						$person_id,

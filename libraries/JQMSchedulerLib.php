@@ -808,24 +808,10 @@ class JQMSchedulerLib
 				}
 			}
 
-
 			if (isEmptyArray($studiensemester_kurzbz_arr))
 			{
 				// get default Studiensemester from config
-				$studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_dvuh_studiensemester_meldezeitraum');
-				$today = new DateTime(date('Y-m-d'));
-
-				if (is_array($studiensemesterMeldezeitraum))
-				{
-					foreach ($studiensemesterMeldezeitraum as $studiensemester_kurzbz => $meldezeitraum)
-					{
-						if (validateDate($meldezeitraum['von']) && validateDate($meldezeitraum['bis'])
-							&& $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
-						{
-							$studiensemester_kurzbz_arr[] = $studiensemester_kurzbz;
-						}
-					}
-				}
+				$studiensemester_kurzbz_arr = getStudiensemesterForSync($this->_ci->config->item('fhc_dvuh_studiensemester_meldezeitraum'));
 			}
 		}
 

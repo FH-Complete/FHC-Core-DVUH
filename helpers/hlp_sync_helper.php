@@ -151,3 +151,34 @@ function base64_urlencode($value)
 	//return rtrim(strtr($value, "/+", "_-"), '=');
 }
 
+/**
+ * Gets Studiensemester, for which a job should be executed.
+ * @param array $studiensemesterMeldezeitraum containing valid date spans for each needed Studiensemester
+ * @param array $studiensemester_kurzbz if passed, this Studiensemester is used
+ * @return array with all Studiensemester, for which job should be executed
+ */
+function getStudiensemesterForSync($studiensemesterMeldezeitraum, $studiensemester_kurzbz = null)
+{
+	if (!isEmptyString($studiensemester_kurzbz)) return [$studiensemester_kurzbz];
+
+	$studiensemester_kurzbz_arr = [];
+
+	// get default Studiensemester from config
+	$ci =& get_instance();
+	$today = new DateTime(date('Y-m-d'));
+
+	if (is_array($studiensemesterMeldezeitraum))
+	{
+		foreach ($studiensemesterMeldezeitraum as $studiensemester_kurzbz => $meldezeitraum)
+		{
+			if (validateDate($meldezeitraum['von']) && validateDate($meldezeitraum['bis'])
+				&& $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
+			{
+				$studiensemester_kurzbz_arr[] = $studiensemester_kurzbz;
+			}
+		}
+	}
+
+	return $studiensemester_kurzbz_arr;
+}
+

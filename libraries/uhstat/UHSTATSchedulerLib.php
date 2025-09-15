@@ -27,20 +27,7 @@ class UHSTATSchedulerLib
 		// set config items
 		$this->_status_kurzbz = $this->_ci->config->item('fhc_uhstat_status_kurzbz');
 		$this->_terminated_student_status_kurzbz = $this->_ci->config->item('fhc_uhstat_terminated_student_status_kurzbz');
-				$studiensemesterMeldezeitraum = $this->_ci->config->item('fhc_uhstat_studiensemester_meldezeitraum');
 		$oe_kurzbz = $this->_ci->config->item('fhc_uhstat_oe_kurzbz');
-
-		// get default Studiensemester from config
-		$today = new DateTime(date('Y-m-d'));
-
-		foreach ($studiensemesterMeldezeitraum as $studiensemester_kurzbz => $meldezeitraum)
-		{
-			if (validateDate($meldezeitraum['von']) && validateDate($meldezeitraum['bis'])
-				&& $today >= new DateTime($meldezeitraum['von']) && $today <= new DateTime($meldezeitraum['bis']))
-			{
-				$this->_studiensemester[] = $studiensemester_kurzbz;
-			}
-		}
 
 		// get children if oe_kurzbz is set in config
 		if (!isEmptyString($oe_kurzbz))
@@ -213,13 +200,6 @@ class UHSTATSchedulerLib
 	 */
 	private function _getStudiensemester($studiensemester_kurzbz)
 	{
-		$studiensemester_kurzbz_arr = array();
-
-		if (!isEmptyString($studiensemester_kurzbz))
-			$studiensemester_kurzbz_arr[] = $studiensemester_kurzbz;
-		elseif (!isEmptyArray($this->_studiensemester))
-			$studiensemester_kurzbz_arr = $this->_studiensemester;
-
-		return $studiensemester_kurzbz_arr;
+		return getStudiensemesterForSync($this->_ci->config->item('fhc_uhstat_studiensemester_meldezeitraum'), $studiensemester_kurzbz);
 	}
 }
