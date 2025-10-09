@@ -51,7 +51,7 @@ $this->load->view('templates/FHC-Header', array(
 				<div class="row first-row">
 					<?php $panelColWidthUsed = 0; ?>
 					<?php foreach ($menu as $menuCategory => $menuEntries): ?>
-						<?php $panelColWidth = $menuEntries['width']; ?>
+						<?php $panelColWidth = $menuEntries['width'] ?? 12; ?>
 						<?php unset($menuEntries['width']); ?>
 						<?php $menuColWidth = isset($menuEntries['left']) && isset($menuEntries['right']) ? '6' : '12'; ?>
 						<?php $panelColWidthUsed += $panelColWidth; ?>
@@ -64,8 +64,12 @@ $this->load->view('templates/FHC-Header', array(
 										<div class="col-lg-<?php echo $menuColWidth ?> menucolumn">
 											<ul class="list-unstyled dvuhMenu">
 												<?php foreach ($entries as $menuEntry): ?>
-												<?php if (!$menuEntry['active']) continue; ?>
-												<li id="<?php echo $menuEntry['id'] ?>"><a href="javascript:void(0)"><?php echo $menuEntry['description'] ?></a></li>
+												<?php if (isset($menuEntry['active']) && !$menuEntry['active']) continue; ?>
+												<li id="<?php echo $menuEntry['id'] ?? '' ?>">
+													<a href="javascript:void(0)">
+														<?php echo $menuEntry['description'] ?? (isset($menuEntry['id']) ? $menuEntry['id'] : 'Menüpunkt') ?>
+													</a>
+												</li>
 												<?php endforeach; ?>
 											</ul>
 										</div>
