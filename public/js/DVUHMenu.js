@@ -636,7 +636,7 @@ var DVUHMenu = {
 				else
 					contentToWrite += 'Unbekannter Fehler';
 
-				contentToWrite += '</ br>';
+				contentToWrite += '<br />';
 			}
 		}
 

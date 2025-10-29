@@ -58,7 +58,7 @@ class Zahlung_model extends DVUHClientModel
 			$result = error('Semester nicht gesetzt');
 		elseif (isEmptyString($zahlungsart))
 			$result = error('Zahlungsart nicht gesetzt');
-		elseif (isEmptyString($centbetrag))
+		elseif (!is_numeric($centbetrag))
 			$result = error('Centbetrag nicht gesetzt');
 		elseif (isEmptyString($zahlungsart))
 			$result = error('Buchungsdatum nicht gesetzt');
