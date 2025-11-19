@@ -23,6 +23,7 @@ class DVUHPaymentLib extends DVUHErrorProducerLib
 
 		// load models
 		$this->_ci->load->model('extensions/FHC-Core-DVUH/synctables/DVUHZahlungen_model', 'DVUHZahlungenModel');
+		$this->_ci->load->model('crm/Konto_model', 'KontoModel');
 
 		// load configs
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -111,7 +112,13 @@ class DVUHPaymentLib extends DVUHErrorProducerLib
 				{
 					$charge = getData($chargeRes)[0];
 
-					if (abs($charge->betrag) != $buchung->summe_zahlungen)
+					$this->_ci->KontoModel->addSelect('sum(betrag) as summe_zahlungen');
+					$this->_ci->KontoModel->addGroupBy('buchungsnr_verweis');
+					$summeZahlungenRes = $this->_ci->KontoModel->loadWhere(array('buchungsnr_verweis' => $charge->buchungsnr));
+
+					$summe_zahlungen = hasData($summeZahlungenRes) ? getData($summeZahlungenRes)[0]->summe_zahlungen : 0;
+
+					if (abs($charge->betrag) != $summe_zahlungen)
 					{
 						$this->addError(
 							"Buchung: ".$charge->buchungsnr.": Zahlungsbetrag abweichend von Vorschreibungsbetrag",
