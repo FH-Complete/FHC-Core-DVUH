@@ -119,7 +119,7 @@ class NichtGemeldeteStudierende extends PlausiChecker
 					WHERE
 						fehlertyp_kurzbz = 'error'
 						AND verarbeitetamum IS NULL
-						AND app IN ('core', 'dvuh')
+						AND EXISTS (SELECT 1 FROM system.tbl_fehler_app WHERE fehlercode = fe.fehlercode AND app IN ('dvuh', 'core'))
 						AND person_id = prestudent.person_id";
 
 		// exclude the issue checked for resolution

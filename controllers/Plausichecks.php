@@ -254,7 +254,7 @@ class Plausichecks extends Auth_Controller
 			FROM
 				system.tbl_fehler
 			WHERE
-				app = ?
+				EXISTS (SELECT 1 FROM system.tbl_fehler_app WHERE fehlercode = tbl_fehler.fehlercode AND app = ?)
 				AND fehler_kurzbz IS NOT NULL
 				AND fehler_kurzbz NOT IN ?';
 
