@@ -30,10 +30,10 @@ class Matrikelmeldung_model extends DVUHClientModel
 	 * @param string $dokumenttyp
 	 * @return object success or error
 	 */
-	public function post($be, $person_id, $writeonerror = null, $ausgabedatum = null, $ausstellBehoerde = null,
+	public function post($be, $person_id, $matrikelnummer = null, $writeonerror = null, $ausgabedatum = null, $ausstellBehoerde = null,
 						 $ausstellland = null, $dokumentnr = null, $dokumenttyp = null)
 	{
-		$postData = $this->retrievePostData($be, $person_id, $writeonerror, $ausgabedatum, $ausstellBehoerde,
+		$postData = $this->retrievePostData($be, $person_id, $matrikelnummer, $writeonerror, $ausgabedatum, $ausstellBehoerde,
 			$ausstellland, $dokumentnr, $dokumenttyp);
 
 		if (isError($postData))
@@ -56,7 +56,7 @@ class Matrikelmeldung_model extends DVUHClientModel
 	 * @param string $dokumenttyp
 	 * @return object success or error
 	 */
-	public function retrievePostData($be, $person_id, $writeonerror = null, $ausgabedatum = null, $ausstellBehoerde = null,
+	public function retrievePostData($be, $person_id, $matrikelnummer = null, $writeonerror = null, $ausgabedatum = null, $ausstellBehoerde = null,
 									 $ausstellland = null, $dokumentnr = null, $dokumenttyp = null)
 	{
 		$result = null;
@@ -113,8 +113,6 @@ class Matrikelmeldung_model extends DVUHClientModel
 						$lastZgvdatum = getData($lastZgvdatumRes)[0]->zgvdatum;
 				}
 
-				$svnr = isset($stammdatenData->svnr) ? $stammdatenData->svnr : $stammdatenData->ersatzkennzeichen;
-
 				$params = array(
 					"uuid" => getUUID()
 				);
@@ -131,21 +129,22 @@ class Matrikelmeldung_model extends DVUHClientModel
 				}
 
 				$geschlecht = $this->dvuhconversionlib->convertGeschlechtToDVUH($stammdatenData->geschlecht);
+				$writeonerror = $writeonerror ? 'true' : null;
 
 				$params['personmeldung'] = array(
 					'adresseAusland' => $addressToSend->strasse,
 					'be' => $be,
 					'bpk' => $stammdatenData->bpk,
+					'ekz' => $stammdatenData->ersatzkennzeichen,
 					'gebdat' => $stammdatenData->gebdatum,
 					'geschlecht' => $geschlecht,
-					'matrikelnummer' => $stammdatenData->matr_nr,
+					'matrikelnummer' => $matrikelnummer ?? $stammdatenData->matr_nr,
+					'matura' => $lastZgvdatum,
 					'nachname' => $stammdatenData->nachname,
 					'plz' => $addressToSend->plz,
 					'staat' => $addressToSend->nation,
-					'svnr' => $svnr,
 					'vorname' => $stammdatenData->vorname,
-					'writeonerror' => $writeonerror,
-					'matura' => $lastZgvdatum
+					'writeonerror' => $writeonerror
 				);
 
 				$postData = $this->load->view('extensions/FHC-Core-DVUH/requests/matrikelmeldung', $params, true);
