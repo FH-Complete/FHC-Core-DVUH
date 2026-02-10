@@ -182,37 +182,19 @@ class BPKManagement extends Auth_Controller
 	{
 		$akteRes = $this->aktelib->getByAkteId($akte_id);
 
-		if (isError($akteRes))
-		{
-			show_error(getError($akteRes));
-		}
+		if (isError($akteRes)) show_error(getError($akteRes));
 
 		if (hasData($akteRes))
 		{
-			$akteContentRes = $this->aktelib->getByAkteId($akte_id);
+			$akteData = getData($akteRes)[0];
 
-			if (isError($akteContentRes))
-			{
-				show_error(getError($akteContentRes));
-			}
+			// Get file to be downloaded from DMS
+			$download = $this->dmslib->getOutputFileInfo($akteData->dms_id);
+			if (isError($download)) show_error(getError($download));
 
-			if (hasData($akteContentRes))
-			{
-				$akteData = getData($akteRes);
-				$akteContentData = getData($akteContentRes);
-
-				$this->output
-					->set_status_header(200)
-					->set_content_type($akteData[0]->mimetype, 'utf-8')
-					->set_header('Content-Disposition: attachment; filename="'.$akteData[0]->titel.'"')
-					->set_output($akteContentData)
-					->_display();
-			}
-			else
-				show_error("Akte Inhalt nicht gefunden");
+			// Download file
+			$this->outputFile(getData($download));
 		}
-		else
-			show_error("Akte nicht gefunden");
 	}
 
 	// -----------------------------------------------------------------------------------------------------------------
