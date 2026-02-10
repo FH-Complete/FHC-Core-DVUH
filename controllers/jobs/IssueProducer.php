@@ -14,13 +14,4 @@ class IssueProducer extends PlausiIssueProducer_Controller
 			'nichtGemeldeteStudierende'
 		);
 	}
-
-	/**
-	 * Runs issue production job.
-	 */
-	public function run()
-	{
-		// producing issues
-		$this->producePlausicheckIssues(array());
-	}
 }
