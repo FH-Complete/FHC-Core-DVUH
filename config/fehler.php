@@ -19,7 +19,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Wenn der Name angegeben ist muss auch ein Geburtsdatum angegeben werden',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'NameUndGebdatumAngeben',
 		'resolverLibName' => 'DVUH_SM_0001',
 		'producerIsResolver' => false
 	),
@@ -30,7 +30,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Matrikelnummer nicht gesetzt',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'MatrNrFehlt',
 		'resolverLibName' => 'DVUH_SC_0001',
 		'producerIsResolver' => false
 	),
@@ -41,7 +41,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Keine Zustelladresse angegeben',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'KeineZustelladresse',
 		'resolverLibName' => 'DVUH_SC_0002',
 		'producerIsResolver' => false
 	),
@@ -52,7 +52,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Keine Heimatadresse angegeben',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'KeineHeimatadresse',
 		'resolverLibName' => 'DVUH_SC_0003',
 		'producerIsResolver' => false
 	),
@@ -63,7 +63,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Adresse ungültig: %s',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'AdresseUngueltig',
 		'resolverLibName' => 'DVUH_SC_0004',
 		'producerIsResolver' => false
 	),
@@ -74,7 +74,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Ersatzkennzeichen ungültig, muss aus 4 Grossbuchstaben gefolgt von 6 Zahlen bestehen',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'ErsatzkennzeichenUngueltig',
 		'resolverLibName' => 'DVUH_SC_0005',
 		'producerIsResolver' => false
 	),
@@ -85,7 +85,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Stammdaten fehlen: %s',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'StammdatenFehlen',
 		'resolverLibName' => 'DVUH_SC_0006',
 		'producerIsResolver' => false
 	),
@@ -107,7 +107,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Email enthält Sonderzeichen',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'EmailEnthaeltSonderzeichen',
 		'resolverLibName' => 'DVUH_SC_0008',
 		'producerIsResolver' => false
 	),
@@ -118,7 +118,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Keine Höhe des Öhbeiträgs in Öhbeitragstabelle für Studiensemester %s spezifiziert, Buchung %s',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'OehbeitragNichtSpezifiziert',
 		'resolverLibName' => 'DVUH_SC_0009',
 		'producerIsResolver' => false
 	),
@@ -129,7 +129,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'BPK ungültig, muss aus 27 Zeichen (alphanum. mit / +) gefolgt von = bestehen',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'BpkUngueltig',
 		'resolverLibName' => 'DVUH_SC_0010',
 		'producerIsResolver' => false
 	),
@@ -140,7 +140,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Titel pre hat ungültiges Format',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'TitelpreUngueltig',
 		'resolverLibName' => 'DVUH_SC_0011',
 		'producerIsResolver' => false
 	),
@@ -151,7 +151,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Titel post hat ungültiges Format',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'TitelpostUngueltig',
 		'resolverLibName' => 'DVUH_SC_0012',
 		'producerIsResolver' => false
 	),
@@ -162,7 +162,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Vorschreibung ungültig, Zahlungstypen: %s',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'VorschreibungUngueltig',
 		'resolverLibName' => 'DVUH_SC_0013',
 		'producerIsResolver' => false
 	),
@@ -173,7 +173,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Buchung: %s: Zahlungsbetrag abweichend von Vorschreibungsbetrag',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'ZlgUngleichVorschreibung',
 		'resolverLibName' => 'DVUH_SP_0001',
 		'producerIsResolver' => false
 	),
@@ -184,32 +184,32 @@ $config['fehler'] = array(
 		'fehlertext' => 'Matrikelnummer ungültig (%s)',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'MatrikelnrUngueltig',
 		'resolverLibName' => 'DVUH_SS_0001',
 		'producerIsResolver' => false
 	),
-	array(
-		'fehlercode' => 'DVUH_SS_0002',
-		'fehler_kurzbz' => 'fehlerhafteZgvDaten',
-		'fehlercode_extern' => null,
-		'fehlertext' => 'Fehlerhafte ZGV Daten: %s',
-		'fehlertyp_kurzbz' => 'error',
-		'app' => array('dvuh'),
-		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0002',
-		'producerIsResolver' => false
-	),
-	array(
-		'fehlercode' => 'DVUH_SS_0003',
-		'fehler_kurzbz' => 'fehlerhafteZgvMasterDaten',
-		'fehlercode_extern' => null,
-		'fehlertext' => 'Fehlerhafte ZGV Master Daten: %s',
-		'fehlertyp_kurzbz' => 'error',
-		'app' => array('dvuh'),
-		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0003',
-		'producerIsResolver' => true
-	),
+	//~ array(
+		//~ 'fehlercode' => 'DVUH_SS_0002',
+		//~ 'fehler_kurzbz' => 'fehlerhafteZgvDaten',
+		//~ 'fehlercode_extern' => null,
+		//~ 'fehlertext' => 'Fehlerhafte ZGV Daten: %s',
+		//~ 'fehlertyp_kurzbz' => 'error',
+		//~ 'app' => array('dvuh'),
+		//~ 'producerLibName' => null,
+		//~ 'resolverLibName' => 'DVUH_SS_0002',
+		//~ 'producerIsResolver' => false
+	//~ ),
+	//~ array(
+		//~ 'fehlercode' => 'DVUH_SS_0003',
+		//~ 'fehler_kurzbz' => 'fehlerhafteZgvMasterDaten',
+		//~ 'fehlercode_extern' => null,
+		//~ 'fehlertext' => 'Fehlerhafte ZGV Master Daten: %s',
+		//~ 'fehlertyp_kurzbz' => 'error',
+		//~ 'app' => array('dvuh'),
+		//~ 'producerLibName' => null,
+		//~ 'resolverLibName' => 'DVUH_SS_0003',
+		//~ 'producerIsResolver' => true
+	//~ ),
 	array(
 		'fehlercode' => 'DVUH_SS_0004',
 		'fehler_kurzbz' => 'personenkennzeichenUngueltig',
@@ -217,32 +217,32 @@ $config['fehler'] = array(
 		'fehlertext' => 'Personenkennzeichen ungültig (%s)',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'PersonenkennzeichenUngueltig',
 		'resolverLibName' => 'DVUH_SS_0004',
 		'producerIsResolver' => false
 	),
-	array(
-		'fehlercode' => 'DVUH_SS_0005',
-		'fehler_kurzbz' => 'zuVieleZweckeIncoming',
-		'fehlercode_extern' => null,
-		'fehlertext' => 'Es sind %s Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)',
-		'fehlertyp_kurzbz' => 'error',
-		'app' => array('dvuh'),
-		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0005',
-		'producerIsResolver' => false
-	),
-	array(
-		'fehlercode' => 'DVUH_SS_0006',
-		'fehler_kurzbz' => 'falscherIncomingZweck',
-		'fehlercode_extern' => null,
-		'fehlertext' => 'Aufenthaltszweckcode ist %s (für Incomings ist nur Zweck 1, 2, 3 erlaubt)',
-		'fehlertyp_kurzbz' => 'error',
-		'app' => array('dvuh'),
-		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0006',
-		'producerIsResolver' => false
-	),
+	//~ array(
+		//~ 'fehlercode' => 'DVUH_SS_0005',
+		//~ 'fehler_kurzbz' => 'zuVieleZweckeIncoming',
+		//~ 'fehlercode_extern' => null,
+		//~ 'fehlertext' => 'Es sind %s Aufenthaltszwecke eingetragen (max. 1 Zweck für Incomings)',
+		//~ 'fehlertyp_kurzbz' => 'error',
+		//~ 'app' => array('dvuh'),
+		//~ 'producerLibName' => null,
+		//~ 'resolverLibName' => 'DVUH_SS_0005',
+		//~ 'producerIsResolver' => false
+	//~ ),
+	//~ array(
+		//~ 'fehlercode' => 'DVUH_SS_0006',
+		//~ 'fehler_kurzbz' => 'falscherIncomingZweck',
+		//~ 'fehlercode_extern' => null,
+		//~ 'fehlertext' => 'Aufenthaltszweckcode ist %s (für Incomings ist nur Zweck 1, 2, 3 erlaubt)',
+		//~ 'fehlertyp_kurzbz' => 'error',
+		//~ 'app' => array('dvuh'),
+		//~ 'producerLibName' => 'falscherIncomingZweck',
+		//~ 'resolverLibName' => 'DVUH_SS_0006',
+		//~ 'producerIsResolver' => false
+	//~ ),
 	array(
 		'fehlercode' => 'DVUH_SS_0007',
 		'fehler_kurzbz' => 'falscherIncomingZweckGemeinsam',
@@ -250,43 +250,43 @@ $config['fehler'] = array(
 		'fehlertext' => 'Aufenthaltzweckcode 1, 2, 3 dürfen nicht gemeinsam gemeldet werden',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'FalscherIncomingZweckGemeinsam',
 		'resolverLibName' => 'DVUH_SS_0007',
 		'producerIsResolver' => false
 	),
-	array(
-		'fehlercode' => 'DVUH_SS_0008',
-		'fehler_kurzbz' => 'outgoingAufenthaltfoerderungfehlt',
-		'fehlercode_extern' => null,
-		'fehlertext' => 'Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)',
-		'fehlertyp_kurzbz' => 'error',
-		'app' => array('dvuh'),
-		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0008',
-		'producerIsResolver' => false
-	),
-	array(
-		'fehlercode' => 'DVUH_SS_0009',
-		'fehler_kurzbz' => 'outgoingAngerechneteEctsFehlen',
-		'fehlercode_extern' => null,
-		'fehlertext' => 'Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)',
-		'fehlertyp_kurzbz' => 'error',
-		'app' => array('dvuh'),
-		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0009',
-		'producerIsResolver' => false
-	),
-	array(
-		'fehlercode' => 'DVUH_SS_0010',
-		'fehler_kurzbz' => 'outgoingErworbeneEctsFehlen',
-		'fehlercode_extern' => null,
-		'fehlertext' => 'Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)',
-		'fehlertyp_kurzbz' => 'error',
-		'app' => array('dvuh'),
-		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0010',
-		'producerIsResolver' => false
-	),
+	//~ array(
+		//~ 'fehlercode' => 'DVUH_SS_0008',
+		//~ 'fehler_kurzbz' => 'outgoingAufenthaltfoerderungfehlt',
+		//~ 'fehlercode_extern' => null,
+		//~ 'fehlertext' => 'Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)Keine Aufenthaltsfoerderung angegeben (bei Outgoings >= 29 Tage Monat im Ausland muss mind. 1 gemeldet werden)',
+		//~ 'fehlertyp_kurzbz' => 'error',
+		//~ 'app' => array('dvuh'),
+		//~ 'producerLibName' => null,
+		//~ 'resolverLibName' => 'DVUH_SS_0008',
+		//~ 'producerIsResolver' => false
+	//~ ),
+	//~ array(
+		//~ 'fehlercode' => 'DVUH_SS_0009',
+		//~ 'fehler_kurzbz' => 'outgoingAngerechneteEctsFehlen',
+		//~ 'fehlercode_extern' => null,
+		//~ 'fehlertext' => 'Angerechnete ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)',
+		//~ 'fehlertyp_kurzbz' => 'error',
+		//~ 'app' => array('dvuh'),
+		//~ 'producerLibName' => null,
+		//~ 'resolverLibName' => 'DVUH_SS_0009',
+		//~ 'producerIsResolver' => false
+	//~ ),
+	//~ array(
+		//~ 'fehlercode' => 'DVUH_SS_0010',
+		//~ 'fehler_kurzbz' => 'outgoingErworbeneEctsFehlen',
+		//~ 'fehlercode_extern' => null,
+		//~ 'fehlertext' => 'Erworbene ECTS fehlen (Meldepflicht bei Outgoings >= 29 Tage Monat im Ausland)',
+		//~ 'fehlertyp_kurzbz' => 'error',
+		//~ 'app' => array('dvuh'),
+		//~ 'producerLibName' => null,
+		//~ 'resolverLibName' => 'DVUH_SS_0010',
+		//~ 'producerIsResolver' => false
+	//~ ),
 	array(
 		'fehlercode' => 'DVUH_SS_0011',
 		'fehler_kurzbz' => 'lehrgangdatenFehlen',
@@ -316,7 +316,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Ungültige Meldestudiengangskennzahl für Studiengang %s, gültiges Format: (3 Stellen für Erhalter wenn Lehrgang) [4 Stellen Studiengang]',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'UngueltigeMeldeStudiengangskennzahl',
 		'resolverLibName' => 'DVUH_SS_0013',
 		'producerIsResolver' => false
 	),
@@ -327,7 +327,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Ungültige Studienkennung Uni für GS mit Programmcode %s, muss z.B. UUT190593347UA sein',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'StudienkennunguniUngueltig',
 		'resolverLibName' => 'DVUH_SS_0014',
 		'producerIsResolver' => false
 	),
@@ -338,7 +338,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Herkunftsland fehlt',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'HerkunftslandFehlt',
 		'resolverLibName' => 'DVUH_SS_0015',
 		'producerIsResolver' => false
 	),
@@ -349,7 +349,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Daten für gemeinsames Studium fehlen: %s',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'GsdatenFehlen',
 		'resolverLibName' => 'DVUH_SS_0016',
 		'producerIsResolver' => false
 	),
@@ -360,7 +360,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Orgform ungültig',
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'OrgformUngueltig',
 		'resolverLibName' => 'DVUH_SS_0017',
 		'producerIsResolver' => false
 	),
@@ -582,7 +582,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Vorgeschriebener Beitrag %s nach Abzug der Versicherung stimmt nicht mit festgesetztem Betrag für Semester, %s, überein',
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'VorgeschrBetragUngleichFestgesetzt',
 		'resolverLibName' => 'DVUH_SP_W_0001',
 		'producerIsResolver' => false
 	),
@@ -604,7 +604,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Es gibt noch offene Buchungen',
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'OffeneBuchungen',
 		'resolverLibName' => 'DVUH_SP_W_0003',
 		'producerIsResolver' => false
 	),
@@ -615,7 +615,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'ZGV fehlt',
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'ZgvFehlt',
 		'resolverLibName' => 'DVUH_SS_W_0001',
 		'producerIsResolver' => false
 	),
@@ -626,7 +626,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'ZGV Datum fehlt',
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'ZgvDatumFehlt',
 		'resolverLibName' => 'DVUH_SS_W_0002',
 		'producerIsResolver' => false
 	),
@@ -637,7 +637,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'ZGV Master fehlt',
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'ZgvMasterFehlt',
 		'resolverLibName' => 'DVUH_SS_W_0003',
 		'producerIsResolver' => false
 	),
@@ -648,7 +648,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'ZGV Masterdatum fehlt',
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'ZgvMasterDatumFehlt',
 		'resolverLibName' => 'DVUH_SS_W_0004',
 		'producerIsResolver' => false
 	),
@@ -659,7 +659,7 @@ $config['fehler'] = array(
 		'fehlertext' => 'Berufstätigkeitcode fehlt',
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
-		'producerLibName' => null,
+		'producerLibName' => 'BerufstaetigkeitcodeFehlt',
 		'resolverLibName' => 'DVUH_SS_W_0005',
 		'producerIsResolver' => false
 	),

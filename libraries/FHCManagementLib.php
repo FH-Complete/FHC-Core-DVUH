@@ -213,24 +213,40 @@ class FHCManagementLib
 	 * @param array $buchungstypen limit to only certain types
 	 * @return mixed
 	 */
-	public function getUnpaidBuchungen($person_id, $studiensemester_kurzbz, $buchungstypen)
+	public function getUnpaidBuchungen($studiensemester_kurzbz, $buchungstypen, $person_id = null)
 	{
+		$params = array($studiensemester_kurzbz, $buchungstypen);
+		$person_id_clause = '';
+
+		if (isset($person_id) && is_numeric($person_id))
+		{
+			$person_id_clause .= 'AND person_id = ?';
+			$params[] = $person_id;
+		}
+
 		return $this->_dbModel->execReadOnlyQuery(
-			"SELECT buchungsnr
-				FROM public.tbl_konto
-				WHERE person_id = ?
-				AND studiensemester_kurzbz = ?
+			"SELECT
+				buchungsnr
+			FROM
+				public.tbl_konto
+			WHERE
+				studiensemester_kurzbz = ?
 				AND buchungsnr_verweis IS NULL
 				AND betrag < 0
-				AND NOT EXISTS (SELECT 1 FROM public.tbl_konto kto
-				WHERE kto.person_id = tbl_konto.person_id
-				AND kto.buchungsnr_verweis = tbl_konto.buchungsnr)
+				AND NOT EXISTS (
+					SELECT 1
+					FROM
+						public.tbl_konto kto
+					WHERE
+						kto.person_id = tbl_konto.person_id
+						AND kto.buchungsnr_verweis = tbl_konto.buchungsnr
+				)
 				AND buchungstyp_kurzbz IN ?
-				ORDER BY buchungsdatum, buchungsnr
+				{$person_id_clause}
+				ORDER BY
+					buchungsdatum, buchungsnr
 				LIMIT 1",
-			array(
-				$person_id, $studiensemester_kurzbz, $buchungstypen
-			)
+			$params
 		);
 	}
 

@@ -113,7 +113,7 @@ class NichtGemeldeteStudierende extends PlausiChecker
 				AND NOT EXISTS ( -- No issue, preventing study data from being sent, occured
 					SELECT 1
 					FROM
-						system.tbl_fehler
+						system.tbl_fehler fe
 					JOIN
 						system.tbl_issue USING (fehlercode)
 					WHERE

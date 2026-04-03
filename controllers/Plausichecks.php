@@ -266,6 +266,9 @@ class Plausichecks extends Auth_Controller
 			$params[] = $fehler_kurzbz;
 		}
 
+		$qry .= '
+			ORDER BY fehler_kurzbz, fehlercode';
+
 		$fehlerRes = $db-> execReadOnlyQuery($qry, $params);
 
 		if (hasData($fehlerRes))
