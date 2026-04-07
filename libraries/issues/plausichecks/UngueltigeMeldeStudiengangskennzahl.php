@@ -63,7 +63,10 @@ class UngueltigeMeldeStudiengangskennzahl extends PlausiChecker
 			WHERE
 				stg.aktiv
 				AND stg.melderelevant
-				AND (CASE WHEN lgartcode IS NOT NULL THEN LPAD(stg.erhalter_kz::varchar, 3, '0') ELSE '' END || LPAD(abs(stg.studiengang_kz)::varchar , 4, '0')) <> stg.melde_studiengang_kz";
+				AND (
+					CASE WHEN lgartcode IS NOT NULL THEN LPAD(stg.erhalter_kz::varchar, 3, '0') ELSE '' END
+					|| LPAD(abs(stg.studiengang_kz)::varchar , 4, '0')
+				) <> stg.melde_studiengang_kz";
 
 		if (isset($studiengang_kz))
 		{
