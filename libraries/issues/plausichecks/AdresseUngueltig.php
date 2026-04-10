@@ -92,7 +92,7 @@ class AdresseUngueltig extends PlausiChecker
 				DISTINCT person_id, adresse_id, addr.strasse, addr.plz, addr.gemeinde, addr.nation, addr.ort
 			FROM
 				public.tbl_prestudent pre
-				JOIN public.tbl_person USING(person_id)
+				JOIN public.tbl_person pers USING(person_id)
 				JOIN public.tbl_adresse addr USING(person_id)
 				JOIN public.tbl_prestudentstatus status USING(prestudent_id)
 				JOIN public.tbl_studiengang stg ON pre.studiengang_kz = stg.studiengang_kz

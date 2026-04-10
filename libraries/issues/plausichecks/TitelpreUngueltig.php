@@ -77,7 +77,7 @@ class TitelpreUngueltig extends PlausiChecker
 				DISTINCT person_id, titelpre
 			FROM
 				public.tbl_prestudent pre
-				JOIN public.tbl_person USING(person_id)
+				JOIN public.tbl_person pers USING(person_id)
 				JOIN public.tbl_prestudentstatus status USING(prestudent_id)
 				JOIN public.tbl_studiengang stg ON pre.studiengang_kz = stg.studiengang_kz
 			WHERE

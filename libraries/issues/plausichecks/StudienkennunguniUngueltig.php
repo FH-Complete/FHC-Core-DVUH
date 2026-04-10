@@ -78,7 +78,7 @@ class StudienkennunguniUngueltig extends PlausiChecker
 				DISTINCT person_id, pre.prestudent_id, gs.studienkennung_uni, gs.gsprogramm_id, gs.programm_code
 			FROM
 				public.tbl_prestudent pre
-				JOIN public.tbl_person USING(person_id)
+				JOIN public.tbl_person pers USING(person_id)
 				JOIN public.tbl_prestudentstatus status USING(prestudent_id)
 				JOIN public.tbl_studiengang stg ON pre.studiengang_kz = stg.studiengang_kz
 				JOIN bis.tbl_mobilitaet mo ON pre.prestudent_id = mo.prestudent_id
