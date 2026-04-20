@@ -18,9 +18,10 @@ class UngueltigeMeldeStudiengangskennzahl extends PlausiChecker
 
 		// pass parameters needed for plausicheck
 		$studiengang_kz = isset($params['studiengang_kz']) ? $params['studiengang_kz'] : null;
+		$person_id = isset($params['person_id']) ? $params['person_id'] : null;
 
 		// get all students failing the plausicheck
-		$studiengangRes = $this->_getStudiengaenge($studiengang_kz, $exkludierte_studiengang_kz);
+		$studiengangRes = $this->_getStudiengaenge($studiengang_kz, $person_id, $exkludierte_studiengang_kz);
 
 		if (isError($studiengangRes)) return $studiengangRes;
 
@@ -51,6 +52,7 @@ class UngueltigeMeldeStudiengangskennzahl extends PlausiChecker
 	 */
 	public function _getStudiengaenge(
 		$studiengang_kz = null,
+		$person_id = null,
 		$exkludierte_studiengang_kz = null
 	) {
 		$params = array();
@@ -72,6 +74,36 @@ class UngueltigeMeldeStudiengangskennzahl extends PlausiChecker
 		{
 			$qry .= " AND stg.studiengang_kz = ?";
 			$params[] = $studiengang_kz;
+		}
+
+		if (isset($person_id))
+		{
+			$params[] = $person_id;
+
+			$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
+			$status_kurzbz = $this->_ci->config->item('fhc_dvuh_status_kurzbz')['DVUHSendStudyData'] ?? null;
+
+			$status_clause = "";
+			if (isset($status_kurzbz) && !isEmptyArray($status_kurzbz))
+			{
+				$status_clause = " AND status.status_kurzbz IN ?";
+				$params[] = $status_kurzbz;
+			}
+
+			$qry .= "
+				AND EXISTS (
+					SELECT 1
+					FROM
+						public.tbl_prestudent pre
+						JOIN public.tbl_studiengang stgg USING (studiengang_kz)
+						JOIN public.tbl_prestudentstatus status USING (prestudent_id)
+					WHERE
+						stgg.studiengang_kz = stg.studiengang_kz
+						AND stgg.melderelevant
+						AND pre.bismelden
+						AND pre.person_id = ?
+						{$status_clause}
+				)";
 		}
 
 		if (isset($exkludierte_studiengang_kz) && !isEmptyArray($exkludierte_studiengang_kz))

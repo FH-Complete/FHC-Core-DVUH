@@ -20,9 +20,10 @@ class VorgeschrBetragUngleichFestgesetzt extends PlausiChecker
 		$studiensemester_kurzbz = isset($params['studiensemester_kurzbz']) ? $params['studiensemester_kurzbz'] : null;
 		$studiengang_kz = isset($params['studiengang_kz']) ? $params['studiengang_kz'] : null;
 		$buchungsnr = isset($params['buchungsnr']) ? $params['buchungsnr'] : null;
+		$person_id = isset($params['person_id']) ? $params['person_id'] : null;
 
 		// get all students failing the plausicheck
-		$buchungenRes = $this->_getBuchungen($studiensemester_kurzbz, $studiengang_kz, $buchungsnr, $exkludierte_studiengang_kz);
+		$buchungenRes = $this->_getBuchungen($studiensemester_kurzbz, $studiengang_kz, $buchungsnr, $person_id, $exkludierte_studiengang_kz);
 
 		if (isError($buchungenRes)) return $buchungenRes;
 
@@ -57,6 +58,7 @@ class VorgeschrBetragUngleichFestgesetzt extends PlausiChecker
 	public function _getBuchungen(
 		$studiensemester_kurzbz = null,
 		$studiengang_kz = null,
+		$buchungsnr = null,
 		$person_id = null,
 		$exkludierte_studiengang_kz = null
 	) {
@@ -105,6 +107,13 @@ class VorgeschrBetragUngleichFestgesetzt extends PlausiChecker
 		{
 			$buchungsnr_clause = " AND kto.buchungsnr = ?";
 			$params[] = $buchungsnr;
+		}
+
+		$person_clause = '';
+		if (isset($person_id))
+		{
+			$person_clause = " AND pers.person_id = ?";
+			$params[] = $person_id;
 		}
 
 		$qry = "
@@ -164,6 +173,7 @@ class VorgeschrBetragUngleichFestgesetzt extends PlausiChecker
 						{$studiengang_clause}
 						{$status_clause}
 						{$buchungsnr_clause}
+						{$person_clause}
 						{$exkl_studiengang_clause}
 				) buchungen
 				WHERE betrag_netto <> studierendenbeitrag";

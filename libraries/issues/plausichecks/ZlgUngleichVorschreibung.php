@@ -20,9 +20,16 @@ class ZlgUngleichVorschreibung extends PlausiChecker
 		$studiensemester_kurzbz = isset($params['studiensemester_kurzbz']) ? $params['studiensemester_kurzbz'] : null;
 		$studiengang_kz = isset($params['studiengang_kz']) ? $params['studiengang_kz'] : null;
 		$buchungsnr = isset($params['buchungsnr']) ? $params['buchungsnr'] : null;
+		$person_id = isset($params['person_id']) ? $params['person_id'] : null;
 
 		// get all students failing the plausicheck
-		$buchungenRes = $this->_getZlgUngleichVorschreibung($studiensemester_kurzbz, $studiengang_kz, $buchungsnr, $exkludierte_studiengang_kz);
+		$buchungenRes = $this->_getZlgUngleichVorschreibung(
+			$studiensemester_kurzbz,
+			$studiengang_kz,
+			$buchungsnr,
+			$person_id,
+			$exkludierte_studiengang_kz
+		);
 
 		if (isError($buchungenRes)) return $buchungenRes;
 
@@ -57,6 +64,7 @@ class ZlgUngleichVorschreibung extends PlausiChecker
 		$studiensemester_kurzbz = null,
 		$studiengang_kz = null,
 		$buchungsnr = null,
+		$person_id = null,
 		$exkludierte_studiengang_kz = null
 	) {
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -110,6 +118,13 @@ class ZlgUngleichVorschreibung extends PlausiChecker
 			$params[] = $buchungsnr;
 		}
 
+		$person_id_clause = '';
+		if (isset($person_id))
+		{
+			$person_id_clause = "AND pre.person_id = ?";
+			$params[] = $person_id;
+		}
+
 		$qry = "
 				SELECT * FROM 
 				(
@@ -140,6 +155,7 @@ class ZlgUngleichVorschreibung extends PlausiChecker
 						{$status_clause}
 						{$exkl_studiengang_clause}
 						{$buchungsnr_clause}
+						{$person_id_clause}
 				) buchungen
 				WHERE
 					gezahlt > 0 

@@ -21,9 +21,17 @@ class GsdatenFehlen extends PlausiChecker
 		$studiengang_kz = isset($params['studiengang_kz']) ? $params['studiengang_kz'] : null;
 		$mobilitaet_id = isset($params['mobilitaet_id']) ? $params['mobilitaet_id'] : null;
 		$fehlendes_feld = isset($params['fehlendes_feld']) ? $params['fehlendes_feld'] : null;
+		$person_id = isset($params['person_id']) ? $params['person_id'] : null;
 
 		// get all students failing the plausicheck
-		$prestudentRes = $this->_getGsdatenFehlen($studiensemester_kurzbz, $studiengang_kz, $mobilitaet_id, $fehlendes_feld, $exkludierte_studiengang_kz);
+		$prestudentRes = $this->_getGsdatenFehlen(
+			$studiensemester_kurzbz,
+			$studiengang_kz,
+			$mobilitaet_id,
+			$fehlendes_feld,
+			$person_id,
+			$exkludierte_studiengang_kz
+		);
 
 		if (isError($prestudentRes)) return $prestudentRes;
 
@@ -61,6 +69,7 @@ class GsdatenFehlen extends PlausiChecker
 		$studiengang_kz = null,
 		$mobilitaet_id = null,
 		$fehlendes_feld = null,
+		$person_id = null,
 		$exkludierte_studiengang_kz = null
 	) {
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -133,6 +142,12 @@ class GsdatenFehlen extends PlausiChecker
 		{
 			$qry .= " AND mobilitaeten.fehlendes_feld = ?";
 			$params[] = $fehlendes_feld;
+		}
+
+		if (isset($person_id))
+		{
+			$qry .= " AND mobilitaeten.person_id = ?";
+			$params[] = $person_id;
 		}
 
 		if (isset($exkludierte_studiengang_kz) && !isEmptyArray($exkludierte_studiengang_kz))

@@ -20,8 +20,8 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => 'NameUndGebdatumAngeben',
-		'resolverLibName' => 'DVUH_SM_0001',
-		'producerIsResolver' => false
+		'resolverLibName' => null,
+		'producerIsResolver' => true
 	),
 	array(
 		'fehlercode' => 'DVUH_SC_0001',
@@ -86,8 +86,8 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => 'StammdatenFehlen',
-		'resolverLibName' => 'DVUH_SC_0006',
-		'producerIsResolver' => false
+		'resolverLibName' => null,
+		'producerIsResolver' => true
 	),
 	array(
 		'fehlercode' => 'DVUH_SC_0007',
@@ -97,7 +97,7 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SC_0007',
+		'resolverLibName' => null,
 		'producerIsResolver' => false
 	),
 	array(
@@ -251,8 +251,8 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => 'FalscherIncomingZweckGemeinsam',
-		'resolverLibName' => 'DVUH_SS_0007',
-		'producerIsResolver' => false
+		'resolverLibName' => null,
+		'producerIsResolver' => true
 	),
 	//~ array(
 		//~ 'fehlercode' => 'DVUH_SS_0008',
@@ -295,7 +295,7 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0011',
+		'resolverLibName' => null,
 		'producerIsResolver' => false
 	),
 	array(
@@ -306,7 +306,7 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SS_0012',
+		'resolverLibName' => null,
 		'producerIsResolver' => false
 	),
 	array(
@@ -317,8 +317,8 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => 'UngueltigeMeldeStudiengangskennzahl',
-		'resolverLibName' => 'DVUH_SS_0013',
-		'producerIsResolver' => false
+		'resolverLibName' => null,
+		'producerIsResolver' => true
 	),
 	array(
 		'fehlercode' => 'DVUH_SS_0014',
@@ -372,8 +372,8 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => 'NichtGemeldeteStudierende',
-		'resolverLibName' => 'DVUH_SS_0018',
-		'producerIsResolver' => false
+		'resolverLibName' => null,
+		'producerIsResolver' => true
 	),
 	array(
 		'fehlercode' => 'DVUH_RE_0001',
@@ -383,7 +383,7 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'error',
 		'app' => array('dvuh'),
 		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_RE_0001',
+		'resolverLibName' => null,
 		'producerIsResolver' => false
 	),
 	/* DVUH Errors */
@@ -572,7 +572,7 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
 		'producerLibName' => null,
-		'resolverLibName' => 'DVUH_SC_W_0001',
+		'resolverLibName' => null,
 		'producerIsResolver' => false
 	),
 	array(
@@ -583,8 +583,8 @@ $config['fehler'] = array(
 		'fehlertyp_kurzbz' => 'warning',
 		'app' => array('dvuh'),
 		'producerLibName' => 'VorgeschrBetragUngleichFestgesetzt',
-		'resolverLibName' => 'DVUH_SP_W_0001',
-		'producerIsResolver' => false
+		'resolverLibName' => null,
+		'producerIsResolver' => true
 	),
 	array(
 		'fehlercode' => 'DVUH_SP_W_0002',

@@ -20,9 +20,10 @@ class AdresseUngueltig extends PlausiChecker
 		$studiensemester_kurzbz = isset($params['studiensemester_kurzbz']) ? $params['studiensemester_kurzbz'] : null;
 		$studiengang_kz = isset($params['studiengang_kz']) ? $params['studiengang_kz'] : null;
 		$adresse_id = isset($params['adresse_id']) ? $params['adresse_id'] : null;
+		$person_id = isset($params['person_id']) ? $params['person_id'] : null;
 
 		// get all students failing the plausicheck
-		$personRes = $this->_getPersons($studiensemester_kurzbz, $studiengang_kz, $adresse_id, $exkludierte_studiengang_kz);
+		$personRes = $this->_getPersons($studiensemester_kurzbz, $studiengang_kz, $adresse_id, $person_id, $exkludierte_studiengang_kz);
 
 		if (isError($personRes)) return $personRes;
 
@@ -80,6 +81,7 @@ class AdresseUngueltig extends PlausiChecker
 		$studiensemester_kurzbz = null,
 		$studiengang_kz = null,
 		$adresse_id = null,
+		$person_id = null,
 		$exkludierte_studiengang_kz = null
 	) {
 		$this->_ci->config->load('extensions/FHC-Core-DVUH/DVUHSync');
@@ -128,6 +130,12 @@ class AdresseUngueltig extends PlausiChecker
 		{
 			$qry .= " AND pers.adresse_id = ?";
 			$params[] = $adresse_id;
+		}
+
+		if (isset($person_id))
+		{
+			$qry .= " AND pers.person_id = ?";
+			$params[] = $person_id;
 		}
 
 		return $this->_db->execReadOnlyQuery($qry, $params);

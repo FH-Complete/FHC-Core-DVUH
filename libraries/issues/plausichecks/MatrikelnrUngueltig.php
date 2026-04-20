@@ -41,13 +41,14 @@ class MatrikelnrUngueltig extends PlausiChecker
 			foreach ($persons as $person)
 			{
 				// call method for checking bPK
-				$bpkCheck = $this->_ci->dvuhcheckinglib->checkMatrikelnummer($person->matr_nr);
+				$matrikelNrCheck = $this->_ci->dvuhcheckinglib->checkMatrikelnummer($person->matr_nr);
 
 				// if check failed, produce issue
-				if (!$bpkCheck)
+				if (!$matrikelNrCheck)
 				{
 					$results[] = array(
-						'person_id' => $person->person_id
+						'person_id' => $person->person_id,
+						'fehlertext_params' => array('matrikelnr' => $person->matrikelnr)
 					);
 				}
 			}
