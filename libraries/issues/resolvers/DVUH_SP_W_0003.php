@@ -26,9 +26,9 @@ class DVUH_SP_W_0003 implements IIssueResolvedChecker
 		$this->_ci->load->library('extensions/FHC-Core-DVUH/FHCManagementLib');
 
 		$unpaidBuchungen = $this->_ci->fhcmanagementlib->getUnpaidBuchungen(
-			$params['issue_person_id'],
 			$params['studiensemester_kurzbz'],
-			$all_buchungstypen
+			$all_buchungstypen,
+			$params['issue_person_id']
 		);
 
 		if (isError($unpaidBuchungen))

@@ -75,12 +75,16 @@ class DVUHIssueLib
 				if (isset($iss->fehlernummer)) // has fehlernummer if external error
 				{
 					// get external fehlercode (unique for each app)
-					$this->_ci->FehlerModel->addSelect('fehlercode');
-					$fehlerRes = $this->_ci->FehlerModel->loadWhere(
-						array(
-							'fehlercode_extern' => $iss->fehlernummer,
-							'app' => self::APP
-						)
+					$fehlerRes = $this->_ci->FehlerModel->execReadOnlyQuery(
+						'
+							SELECT
+								fehlercode
+							FROM
+								system.tbl_fehler fe
+							WHERE
+								fehlercode_extern = ?
+								AND EXISTS (SELECT 1 FROM system.tbl_fehler_app WHERE fehlercode = fe.fehlercode AND app = ?)',
+						[$iss->fehlernummer, self::APP]
 					);
 
 					if (isError($fehlerRes))

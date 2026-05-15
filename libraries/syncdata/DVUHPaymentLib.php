@@ -83,7 +83,7 @@ class DVUHPaymentLib extends DVUHErrorProducerLib
 		{
 			// check: are there still unpaid Buchungen for the semester? Payment should only be sent if everything is paid
 			// to avoid part payments
-			$unpaidBuchungen = $this->_ci->fhcmanagementlib->getUnpaidBuchungen($person_id, $studiensemester_kurzbz, $all_buchungstypen);
+			$unpaidBuchungen = $this->_ci->fhcmanagementlib->getUnpaidBuchungen($studiensemester_kurzbz, $all_buchungstypen, $person_id);
 
 			if (hasData($unpaidBuchungen))
 			{

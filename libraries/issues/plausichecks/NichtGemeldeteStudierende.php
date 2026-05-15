@@ -17,6 +17,10 @@ class NichtGemeldeteStudierende extends PlausiChecker
 
 		// get parameters from config
 		$exkludierte_studiengang_kz = isset($this->_config['exkludierteStudiengaenge']) ? $this->_config['exkludierteStudiengaenge'] : null;
+		$studiensemester_kurzbz = isset($params['studiensemester_kurzbz']) ? $params['studiensemester_kurzbz'] : null;
+		$prestudent_id = isset($params['prestudent_id']) ? $params['prestudent_id'] : null;
+		$issue_id = isset($params['issue_id']) ? $params['issue_id'] : null;
+		$person_id = isset($params['person_id']) ? $params['person_id'] : null;
 
 		// get next Meldestichtag
 		$this->_ci->load->model('codex/Bismeldestichtag_model', 'BismeldestichtagModel');
@@ -30,7 +34,7 @@ class NichtGemeldeteStudierende extends PlausiChecker
 
 		$bismeldestichtag = getData($result)[0];
 
-		$studiensemester_kurzbz = $bismeldestichtag->studiensemester_kurzbz;
+		$studiensemester_kurzbz = $studiensemester_kurzbz ?? $bismeldestichtag->studiensemester_kurzbz;
 		$meldestichtag = $bismeldestichtag->meldestichtag;
 
 		$meldestichtagDate = new DateTime($meldestichtag);
@@ -42,7 +46,13 @@ class NichtGemeldeteStudierende extends PlausiChecker
 		if ($daysUntilStichtag > self::DAYS_UNTIL_STICHTAG_THRESHOLD) return success([]);
 
 		// get all students failing the plausicheck
-		$prestudentRes = $this->getNichtGemeldeteStudierende($studiensemester_kurzbz, null, $exkludierte_studiengang_kz);
+		$prestudentRes = $this->getNichtGemeldeteStudierende(
+			$studiensemester_kurzbz,
+			$prestudent_id,
+			$person_id,
+			$exkludierte_studiengang_kz,
+			$issue_id
+		);
 
 		if (isError($prestudentRes)) return $prestudentRes;
 
@@ -75,8 +85,13 @@ class NichtGemeldeteStudierende extends PlausiChecker
 	 * @param exkludierte_studiengang_kz array if certain Studiengänge have to be excluded from check
 	 * @return success with prestudents or error
 	 */
-	function getNichtGemeldeteStudierende($studiensemester_kurzbz, $prestudent_id = null, $exkludierte_studiengang_kz = null, $issue_id = null)
-	{
+	public function getNichtGemeldeteStudierende(
+		$studiensemester_kurzbz,
+		$prestudent_id = null,
+		$person_id = null,
+		$exkludierte_studiengang_kz = null,
+		$issue_id = null
+	) {
 		$params = array($studiensemester_kurzbz);
 
 		//$this->_ci =& get_instance(); // get code igniter instance
@@ -113,13 +128,13 @@ class NichtGemeldeteStudierende extends PlausiChecker
 				AND NOT EXISTS ( -- No issue, preventing study data from being sent, occured
 					SELECT 1
 					FROM
-						system.tbl_fehler
+						system.tbl_fehler fe
 					JOIN
 						system.tbl_issue USING (fehlercode)
 					WHERE
 						fehlertyp_kurzbz = 'error'
 						AND verarbeitetamum IS NULL
-						AND app IN ('core', 'dvuh')
+						AND EXISTS (SELECT 1 FROM system.tbl_fehler_app WHERE fehlercode = fe.fehlercode AND app IN ('dvuh', 'core'))
 						AND person_id = prestudent.person_id";
 
 		// exclude the issue checked for resolution
@@ -141,6 +156,12 @@ class NichtGemeldeteStudierende extends PlausiChecker
 		{
 			$qry .= " AND prestudent.prestudent_id = ?";
 			$params[] = $prestudent_id;
+		}
+
+		if (isset($person_id))
+		{
+			$qry .= " AND prestudent.person_id = ?";
+			$params[] = $person_id;
 		}
 
 		if (isset($exkludierte_studiengang_kz) && !isEmptyArray($exkludierte_studiengang_kz))
