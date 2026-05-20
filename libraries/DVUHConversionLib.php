@@ -66,7 +66,9 @@ class DVUHConversionLib
 		$geschlechtMappings = array(
 			'm' => 'M',
 			'w' => 'W',
-			'default' => 'X'
+			'x' => 'X',
+			'u' => 'U',
+			'default' => 'U'
 		);
 
 		// return same value if already converted

@@ -423,7 +423,46 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 							return error("Fehler bei bPK-Neuanfrage mit Adresse");
 					}
 					else
-						$warnings[] = error("Keine bPK in DVUH gefunden");
+					{
+						// no bpk - try for all geschlechter (diverse is also found when searching for male or female)
+						$geschlechter = array_diff(['m', 'w'], [$person->geschlecht]); // remove already tested geschlecht
+
+						foreach ($geschlechter as $geschlecht)
+						{
+							$pruefeBpkGeschlechtResult = $this->_ci->bpkmanagementlib->executeBpkRequest(
+								array(
+									'vorname' => $person->vorname,
+									'nachname' => $person->nachname,
+									'geburtsdatum' => $person->gebdatum,
+									'geschlecht' => $geschlecht
+								)
+							);
+
+							if (isError($pruefeBpkGeschlechtResult))
+							{
+								return $pruefeBpkGeschlechtResult;
+							}
+
+							if (hasData($pruefeBpkGeschlechtResult))
+							{
+								$parsedObjGeschl = getData($pruefeBpkGeschlechtResult);
+
+								if (!isEmptyString($parsedObjGeschl['bpk']))
+								{
+									$infos[] = "bPK nach Neuanfrage mit Geschlecht erfolgreich ermittelt!";
+									$warnings[] = createIssueObj(
+										"Bpk erst nach Neuanfrage mit anderem Geschlecht ($geschlecht) ermittelt."
+										."Geschlecht prüfen und ggf. anpassen.",
+										'bpkMitAnderemGeschlechtErmittelt',
+										array('geschlecht' => $geschlecht)
+									);
+									$bpk = $parsedObjGeschl['bpk'];
+									$vbpkArr = $parsedObjGeschl['vbpk'];
+									break; // break Geschlechter loop
+								}
+							}
+						}
+					}
 				}
 				else // bpk found on first try
 				{
@@ -443,6 +482,10 @@ class DVUHMasterDataManagementLib extends DVUHManagementLib
 					if (isError($saveResult)) return $saveResult;
 
 					$infos[] = getData($saveResult);
+				}
+				else
+				{
+					$warnings[] = error("Keine bPK in DVUH gefunden");
 				}
 
 				return $this->getResponseArr($bpk, $infos, $warnings);

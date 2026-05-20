@@ -663,6 +663,17 @@ $config['fehler'] = array(
 		'resolverLibName' => 'DVUH_SS_W_0005',
 		'producerIsResolver' => false
 	),
+	array(
+		'fehlercode' => 'DVUH_BP_W_0001',
+		'fehler_kurzbz' => 'bpkMitAnderemGeschlechtErmittelt',
+		'fehlercode_extern' => null,
+		'fehlertext' => 'Bpk erst nach Neuanfrage mit anderem Geschlecht (%s) ermittelt. Geschlecht prüfen und ggf. anpassen.',
+		'fehlertyp_kurzbz' => 'warning',
+		'app' => array('dvuh'),
+		'producerLibName' => null,
+		'resolverLibName' => null,
+		'producerIsResolver' => false
+	),
 	/* DVUH Warnings */
 	array(
 		'fehlercode' => 'DVUH_SC_W_AD10065',

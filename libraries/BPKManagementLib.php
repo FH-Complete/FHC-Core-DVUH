@@ -137,6 +137,7 @@ class BPKManagementLib
 			$combinations = $this->getNamesForBpkCheck($nameArr);
 
 			$allBpkResults = array();
+			$bpkFound = false;
 
 			foreach ($combinations as $combination)
 			{
@@ -159,7 +160,11 @@ class BPKManagementLib
 					// add results to result array
 					$this->_addBpkResponseToResults($bpkRequestData, $bpkResponseData, $allBpkResults);
 
-					if ($bpkResponseData['numberPersonsFound'] > 1)
+					$numberPersonsFound = $bpkResponseData['numberPersonsFound'];
+
+					if ($numberPersonsFound > 0) $bpkFound = true;
+
+					if ($numberPersonsFound > 1)
 					{
 						// if multiple person results, check with more parameters
 						$additionalParamms = array(
@@ -188,6 +193,37 @@ class BPKManagementLib
 				}
 			}
 
+			// no bpk - try for all geschlechter (diverse is also found when searching for male or female)
+			if (!$bpkFound)
+			{
+				$male = $this->_ci->dvuhconversionlib->convertGeschlechtToDVUH('m');
+				$female = $this->_ci->dvuhconversionlib->convertGeschlechtToDVUH('w');
+				$geschlechter = array_diff([$male, $female], [$personData['geschlecht']]); // remove already tested geschlecht
+
+				foreach ($geschlechter as $geschlecht)
+				{
+					$bpkGeschlechtRequestData = array(
+						'vorname' => $personData['vorname'],
+						'nachname' => $personData['nachname'],
+						'geburtsdatum' => $personData['gebdatum'],
+						'geschlecht' => $geschlecht
+					);
+
+					$pruefeBpkGeschlechtResult = $this->executeBpkRequest($bpkGeschlechtRequestData);
+
+					if (isError($pruefeBpkGeschlechtResult))
+					{
+						return $pruefeBpkGeschlechtResult;
+					}
+
+					if (hasData($pruefeBpkGeschlechtResult))
+					{
+						$bpkNewResponseData = getData($pruefeBpkGeschlechtResult);
+						$this->_addBpkResponseToResults($bpkGeschlechtRequestData, $bpkNewResponseData, $allBpkResults);
+					}
+				}
+			}
+
 			return success($allBpkResults);
 		}
 		else
@@ -202,37 +238,37 @@ class BPKManagementLib
 	public function getNamesForBpkCheck($nameArr)
 	{
 		$replacements = array(
-			'A' => '&Agrave;|&Aacute;|&Acirc;|&Atilde;|&Aring;|&Abreve;|Ǎ',
-			'Ae' => '&Auml;',
-			'a' => '&agrave;|&aacute;|&acirc;|&atilde;|&aring;|&abreve;|ǎ|&ordm;',
-			'ae' => '&auml;',
-			'C' => '&Ccedil;|&Ccaron;',
-			'c' => '&ccedil;|&ccaron;',
-			'E' => '&Egrave;|&Eacute;|&Ecirc;|&Euml;',
-			'e' => '&egrave;|&eacute;|&ecirc;|&euml;',
-			'I' => '&Igrave;|&Iacute;|&Icirc;|&Iuml;|Ǐ',
-			'i' => '&igrave;|&iacute;|&icirc;|&iuml;|ǐ',
-			'N' => '&Ntilde;|&Ncaron;|&ncaron;',
-			'n' => '&ntilde;',
-			'O' => '&Ograve;|&Oacute;|&Ocirc;|&Otilde;|Ǒ',
-			'Oe' => '&Ouml;',
-			'o' => '&ograve;|&oacute;|&ocirc;|&otilde;|ǒ|&ordf;',
-			'oe' => '&ouml;',
-			'R' => '&Rcaron;',
-			'r' => '&rcaron;',
-			'S' => '&Scaron;',
-			's' => '&scaron;',
-			'T' => '&Tcaron;',
-			't' => '&tcaron;',
-			'U' => '&Ugrave;|&Uacute;|&Ucirc;|&Ubreve;|Ǔ',
-			'Ue' => '&Uuml;',
-			'u' => '&ugrave;|&uacute;|&ucirc;|&ubreve;|ǔ',
-			'ue' => '&uuml;',
-			'Y' => '&Yacute;',
-			'y' => '&yacute;|&yuml;',
-			'Z' => '&Zcaron;',
-			'z' => '&zcaron;',
-			'ss' => '&szlig;'/*,*/
+			//~ 'A' => '&Agrave;|&Aacute;|&Acirc;|&Atilde;|&Aring;|&Abreve;|Ǎ',
+			//~ 'Ae' => '&Auml;',
+			//~ 'a' => '&agrave;|&aacute;|&acirc;|&atilde;|&aring;|&abreve;|ǎ|&ordm;',
+			//~ 'ae' => '&auml;',
+			//~ 'C' => '&Ccedil;|&Ccaron;',
+			//~ 'c' => '&ccedil;|&ccaron;',
+			//~ 'E' => '&Egrave;|&Eacute;|&Ecirc;|&Euml;',
+			//~ 'e' => '&egrave;|&eacute;|&ecirc;|&euml;',
+			//~ 'I' => '&Igrave;|&Iacute;|&Icirc;|&Iuml;|Ǐ',
+			//~ 'i' => '&igrave;|&iacute;|&icirc;|&iuml;|ǐ',
+			//~ 'N' => '&Ntilde;|&Ncaron;|&ncaron;',
+			//~ 'n' => '&ntilde;',
+			//~ 'O' => '&Ograve;|&Oacute;|&Ocirc;|&Otilde;|Ǒ',
+			//~ 'Oe' => '&Ouml;',
+			//~ 'o' => '&ograve;|&oacute;|&ocirc;|&otilde;|ǒ|&ordf;',
+			//~ 'oe' => '&ouml;',
+			//~ 'R' => '&Rcaron;',
+			//~ 'r' => '&rcaron;',
+			//~ 'S' => '&Scaron;',
+			//~ 's' => '&scaron;',
+			//~ 'T' => '&Tcaron;',
+			//~ 't' => '&tcaron;',
+			//~ 'U' => '&Ugrave;|&Uacute;|&Ucirc;|&Ubreve;|Ǔ',
+			//~ 'Ue' => '&Uuml;',
+			//~ 'u' => '&ugrave;|&uacute;|&ucirc;|&ubreve;|ǔ',
+			//~ 'ue' => '&uuml;',
+			//~ 'Y' => '&Yacute;',
+			//~ 'y' => '&yacute;|&yuml;',
+			//~ 'Z' => '&Zcaron;',
+			//~ 'z' => '&zcaron;',
+			//~ 'ss' => '&szlig;'
 			/*			'ä' => 'ae',
 						'ö' => 'oe', //Umlauts should be handled by DVUH...
 						'ü' => 'ue'*/
@@ -477,6 +513,11 @@ class BPKManagementLib
 			$bpkResponse['requestData'][] = $bpkRequestData;
 			$allBpkResults[] = $bpkResponse;
 		}
+
+		// displaying found bpks first
+		usort($allBpkResults, function($a, $b) {
+			return $b['responseData']['numberPersonsFound'] - $a['responseData']['numberPersonsFound'];
+		});
 	}
 
 	/**
@@ -490,7 +531,7 @@ class BPKManagementLib
 		$enc = 'UTF-8';
 		$name = htmlentities($name, ENT_NOQUOTES | ENT_HTML5, $enc);
 
-		$pattern = '/('.implode('|', $charsReplace).')/';
+		$pattern = isEmptyArray($charsReplace) ? '/ /' : '/('.implode('|', $charsReplace).')/';
 
 		// split whole word into parts by replacing symbols
 		$parts = preg_split($pattern, $name, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
