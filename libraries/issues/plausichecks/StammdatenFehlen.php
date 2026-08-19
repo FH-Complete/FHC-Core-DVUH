@@ -88,6 +88,20 @@ class StammdatenFehlen extends PlausiChecker
 			$params[] = $status_kurzbz;
 		}
 
+		$studiengang_clause = '';
+		if (isset($studiengang_kz))
+		{
+			$studiengang_clause .= " AND stg.studiengang_kz = ?";
+			$params[] = $studiengang_kz;
+		}
+
+		$excluded_studiengang_clause = '';
+		if (isset($exkludierte_studiengang_kz) && !isEmptyArray($exkludierte_studiengang_kz))
+		{
+			$excluded_studiengang_clause .= " AND stg.studiengang_kz NOT IN ?";
+			$params[] = $exkludierte_studiengang_kz;
+		}
+
 		$qry = "
 			SELECT * FROM (
 				SELECT
@@ -114,14 +128,11 @@ class StammdatenFehlen extends PlausiChecker
 					AND pre.bismelden
 					{$studiensemester_clause}
 					{$status_clause}
+					{$studiengang_clause}
+					{$excluded_studiengang_clause}
 			) persons
 			WHERE fehlendes_feld IS NOT NULL";
 
-		if (isset($studiengang_kz))
-		{
-			$qry .= " AND persons.studiengang_kz = ?";
-			$params[] = $studiengang_kz;
-		}
 
 		if (isset($person_id))
 		{
@@ -133,12 +144,6 @@ class StammdatenFehlen extends PlausiChecker
 		{
 			$qry .= " AND persons.fehlendes_feld = ?";
 			$params[] = $fehlendes_feld;
-		}
-
-		if (isset($exkludierte_studiengang_kz) && !isEmptyArray($exkludierte_studiengang_kz))
-		{
-			$qry .= " AND persons.studiengang_kz NOT IN ?";
-			$params[] = $exkludierte_studiengang_kz;
 		}
 
 		return $this->_db->execReadOnlyQuery($qry, $params);

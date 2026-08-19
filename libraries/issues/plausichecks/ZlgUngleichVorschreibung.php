@@ -80,7 +80,7 @@ class ZlgUngleichVorschreibung extends PlausiChecker
 		}
 
 		$buchungstypenConfig = $this->_ci->config->item('fhc_dvuh_buchungstyp') ?? [];
-		$buchungstypen = array_merge($buchungstypenConfig['oehbeitrag'] ?? [], $buchungstypenConfig['oehbeitrag'] ?? []);
+		$buchungstypen = array_merge($buchungstypenConfig['oehbeitrag'] ?? [], $buchungstypenConfig['studiengebuehr'] ?? []);
 
 
 		$buchungstypen_clause = '';
