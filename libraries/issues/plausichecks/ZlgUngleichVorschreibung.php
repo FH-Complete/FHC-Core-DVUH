@@ -100,7 +100,7 @@ class ZlgUngleichVorschreibung extends PlausiChecker
 		$status_clause = '';
 		if (isset($status_kurzbz) && !isEmptyArray($status_kurzbz))
 		{
-			$status_clause = "AND status.status_kurzbz IN ?";
+			$status_clause = "AND EXISTS (SELECT 1 FROM public.tbl_prestudentstatus WHERE prestudent_id = pre.prestudent_id AND status_kurzbz IN ?)";
 			$params[] = $status_kurzbz;
 		}
 
@@ -129,13 +129,12 @@ class ZlgUngleichVorschreibung extends PlausiChecker
 				SELECT * FROM 
 				(
 					SELECT
-						DISTINCT ON (buchungsnr) person_id, kto.buchungsnr, kto.buchungstyp_kurzbz, COALESCE(betrag, 0) AS vorgeschrieben,
+						DISTINCT ON (buchungsnr) person_id, kto.buchungsnr, kto.buchungstyp_kurzbz,
+						(SELECT betrag FROM sync.tbl_dvuh_zahlungen WHERE buchungsnr = kto.buchungsnr ORDER BY buchungsdatum DESC, insertamum DESC LIMIT 1) AS vorgeschrieben,
 						(SELECT COALESCE(SUM(betrag), 0) FROM public.tbl_konto WHERE buchungsnr_verweis = kto.buchungsnr) AS gezahlt
 					FROM
 						public.tbl_prestudent pre
 						JOIN public.tbl_person pers USING(person_id)
-						JOIN public.tbl_prestudentstatus status USING(prestudent_id)
-						JOIN public.tbl_studiensemester sem ON status.studiensemester_kurzbz = sem.studiensemester_kurzbz
 						JOIN public.tbl_studiengang stg ON pre.studiengang_kz = stg.studiengang_kz
 						JOIN public.tbl_konto kto USING(person_id)
 					WHERE
