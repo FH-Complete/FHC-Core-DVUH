@@ -20,17 +20,15 @@ function event_dvuh_konto_delete_allowed($buchungsnr)
 	return true;
 }
 
-Events::on('konto_delete_validation', function ($form_validation) {
+Events::on('konto_delete_validation', function ($buchungsnr, $validationObj) {
 	$CI =& get_instance();
 
 	$CI->load->library('PhrasesLib', ['datenverbund'], 'p_dvuh');
-
-	$form_validation->set_rules(
-		'buchungsnr',
-		'Buchungsnr',
-		'event_dvuh_konto_delete_allowed',
-		[
-			'event_dvuh_konto_delete_allowed' => $CI->p_dvuh->t('datenverbund', 'error_buchungNotDeletable')
-		]
-	);
+	$validationObj->validations[] = [
+		'app' => 'dvuh',
+		'field' => 'buchungsnr',
+		'fieldDisplay' => 'Buchungsnr',
+		'result' => event_dvuh_konto_delete_allowed($buchungsnr),
+		'error_message' => $CI->p_dvuh->t('datenverbund', 'error_buchungNotDeletable')
+	];
 });
