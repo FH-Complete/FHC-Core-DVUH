@@ -47,11 +47,24 @@ class StornoOverview extends Auth_Controller
 	public function index()
 	{
 		$status_kurzbz = $this->config->item('fhc_dvuh_status_kurzbz');
+		$meldeSemester = [];
+		if (!isEmptyArray($this->config->item('fhc_dvuh_studiensemester_meldezeitraum')))
+		{
+			$meldeSemester = array_keys($this->config->item('fhc_dvuh_studiensemester_meldezeitraum'));
+		}
+		else
+		{
+			$this->load->model('organisation/Studiensemester_model', 'StudiensemesterModel');
+			$currSemester = $this->StudiensemesterModel->getAkt();
+			if (isError($currSemester)) show_error(getError($currSemester));
+			if (hasData($currSemester)) $meldeSemester[] = getData($currSemester)[0]->studiensemester_kurzbz;
+		}
 
 		$this->load->view(
 			'extensions/FHC-Core-DVUH/stornoOverview.php',
 			array(
-				'valid_status_kurzbz' => $status_kurzbz['DVUHSendStudyData']
+				'valid_status_kurzbz' => $status_kurzbz['DVUHSendStudyData'],
+				'studiensemester' => $meldeSemester
 			)
 		);
 	}

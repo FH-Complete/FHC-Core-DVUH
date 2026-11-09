@@ -160,6 +160,7 @@ class DVUHCheckingLib
 	public function checkIfAusserordentlich($personenkennzeichen)
 	{
 		$ausserordentlich_prefix = $this->_ci->config->item('fhc_dvuh_sync_ausserordentlich_prefix');
+		if (!isset($personenkennzeichen)) return false;
 		return mb_substr($personenkennzeichen, 3, 1) == $ausserordentlich_prefix;
 	}
 

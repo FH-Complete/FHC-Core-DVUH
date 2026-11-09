@@ -1,7 +1,10 @@
 <?php
-$VALID_STATUS_KURZBZ = "('" . implode("','", $valid_status_kurzbz) . "')";
+$VALID_STATUS_KURZBZ = isEmptyArray($valid_status_kurzbz) ? '' : " AND status_kurzbz IN ('" . implode("','", $valid_status_kurzbz) . "')";
 $LANGUAGE = getUserLanguage();
 $STUDIENGANG_BEZEICHNUNG = $LANGUAGE === 'German' ? 'bezeichnung' : 'english';
+$STUDIENSEMESTER = isEmptyArray($studiensemester)
+	? ''
+	: " AND sem.studiensemester_kurzbz IN ('" . implode("','", $studiensemester) . "')";
 
 $filterWidgetArray = array(
 	'query' => '
@@ -24,12 +27,13 @@ $filterWidgetArray = array(
 				SELECT 1
 				FROM public.tbl_prestudentstatus
 				JOIN public.tbl_prestudent USING (prestudent_id)
-				WHERE prestudent_id = ps.prestudent_id
-				AND status_kurzbz IN '.$VALID_STATUS_KURZBZ.'
-				AND studiensemester_kurzbz = std_daten.studiensemester_kurzbz
+				WHERE prestudent_id = ps.prestudent_id'
+				.$VALID_STATUS_KURZBZ.
+				' AND studiensemester_kurzbz = std_daten.studiensemester_kurzbz
 				AND bismelden
-			)
-			ORDER BY prestudent_id, meldedatum DESC, std_daten.insertamum DESC NULLS LAST, studiumdaten_id DESC
+			)'
+			.$STUDIENSEMESTER.
+			'ORDER BY prestudent_id, meldedatum DESC, std_daten.insertamum DESC NULLS LAST, studiumdaten_id DESC
 		) prestudents
 		WHERE storniert = FALSE /* exclude already storniert */
 		ORDER BY sem_start DESC, prestudent_id DESC

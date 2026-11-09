@@ -176,7 +176,7 @@ class DVUHStudyDataManagementLib extends DVUHManagementLib
 		$this->_ci->PersonModel->addSelect("matr_nr, matrikelnr AS personenkennzeichen, stg.studiengang_kz, stg.melde_studiengang_kz, erhalter_kz");
 		$this->_ci->PersonModel->addJoin("public.tbl_prestudent", "person_id");
 		$this->_ci->PersonModel->addJoin("public.tbl_studiengang stg", "studiengang_kz");
-		$this->_ci->PersonModel->addJoin("public.tbl_student stud", "prestudent_id");
+		$this->_ci->PersonModel->addJoin("public.tbl_student stud", "prestudent_id", "LEFT");
 		$studentRes = $this->_ci->PersonModel->loadWhere(
 			array(
 				'prestudent_id' => $prestudent_id
